@@ -1,10 +1,10 @@
 import { AgentStatus } from '@/lib/types'
 
 const styles: Record<AgentStatus, string> = {
-  queued: 'bg-gray-100 text-gray-600',
-  running: 'bg-blue-100 text-blue-700 animate-pulse',
-  done: 'bg-green-100 text-green-700',
-  failed: 'bg-red-100 text-red-700',
+  queued: 'bg-gray-700 text-gray-300',
+  running: 'bg-blue-900 text-blue-300 animate-pulse',
+  done: 'bg-green-900 text-green-300',
+  failed: 'bg-red-900 text-red-300',
 }
 
 export function StatusBadge({ status }: { status: AgentStatus }) {

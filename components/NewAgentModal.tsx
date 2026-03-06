@@ -37,12 +37,12 @@ export function NewAgentModal() {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-xl bg-gray-900 border border-gray-700 p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Spawn New Agent</h2>
+              <h2 className="text-lg font-semibold text-white">Spawn New Agent</h2>
               <button
                 onClick={() => setOpen(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-500 hover:text-gray-300"
               >
                 ✕
               </button>
@@ -50,13 +50,13 @@ export function NewAgentModal() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-gray-300">
                   Agent Type
                 </label>
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value as AgentType)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-lg border border-gray-700 bg-gray-800 text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="researcher">Researcher</option>
                   <option value="coder">Coder</option>
@@ -65,7 +65,7 @@ export function NewAgentModal() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-gray-300">
                   Prompt
                 </label>
                 <textarea
@@ -73,7 +73,7 @@ export function NewAgentModal() {
                   onChange={(e) => setPrompt(e.target.value)}
                   rows={4}
                   placeholder="What should this agent do?"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full rounded-lg border border-gray-700 bg-gray-800 text-gray-100 placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
               </div>
 
@@ -81,7 +81,7 @@ export function NewAgentModal() {
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                  className="rounded-lg px-4 py-2 text-sm text-gray-400 hover:bg-gray-800"
                 >
                   Cancel
                 </button>
