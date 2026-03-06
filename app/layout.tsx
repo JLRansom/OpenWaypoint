@@ -28,10 +28,10 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 min-h-screen`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-950 text-gray-100 min-h-screen`}>
         <StreamProvider initial={initialAgents}>
-          <nav className="border-b border-gray-200 bg-white px-6 py-4">
-            <a href="/" className="text-lg font-bold text-gray-900">
+          <nav className="border-b border-gray-800 bg-gray-900 px-6 py-4">
+            <a href="/" className="text-lg font-bold text-white">
               Agents Galore
             </a>
           </nav>

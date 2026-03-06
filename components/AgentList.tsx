@@ -8,16 +8,16 @@ export function AgentList() {
 
   if (agents.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-gray-200 py-16 text-center text-gray-400">
+      <div className="rounded-lg border border-dashed border-gray-700 py-16 text-center text-gray-500">
         No agents yet. Spawn one to get started.
       </div>
     )
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200">
+    <div className="overflow-x-auto rounded-lg border border-gray-700">
       <table className="w-full text-left text-sm">
-        <thead className="bg-gray-50 text-xs font-medium uppercase text-gray-500">
+        <thead className="bg-gray-800 text-xs font-medium uppercase text-gray-400">
           <tr>
             <th className="py-3 px-4">ID</th>
             <th className="py-3 px-4">Type</th>
