@@ -14,7 +14,7 @@ export function AgentLog({ agentId }: { agentId: string }) {
   }, [agent?.events.length])
 
   if (!agent) {
-    return <div className="text-gray-500 text-sm">Loading agent...</div>
+    return <div className="text-dracula-blue text-sm">Loading agent...</div>
   }
 
   const fullText = agent.events.map((e) => e.text).join('')
@@ -23,33 +23,33 @@ export function AgentLog({ agentId }: { agentId: string }) {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <StatusBadge status={agent.status} />
-        <span className="text-xs text-gray-500 capitalize">{agent.type} agent</span>
+        <span className="text-xs text-dracula-blue capitalize">{agent.type} agent</span>
         {agent.completedAt && (
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-dracula-blue">
             Completed {new Date(agent.completedAt).toLocaleTimeString()}
           </span>
         )}
       </div>
 
-      <div className="rounded-lg bg-gray-800 border border-gray-700 p-4">
-        <p className="text-sm text-gray-400 mb-3 font-medium">Prompt</p>
-        <p className="text-sm text-gray-200">{agent.prompt}</p>
+      <div className="rounded-lg bg-dracula-dark border border-dracula-dark p-4">
+        <p className="text-sm text-dracula-blue mb-3 font-medium">Prompt</p>
+        <p className="text-sm text-dracula-light">{agent.prompt}</p>
       </div>
 
       {agent.error && (
-        <div className="rounded-lg bg-red-950 border border-red-800 p-4 text-sm text-red-400">
+        <div className="rounded-lg bg-dracula-red/10 border border-dracula-red p-4 text-sm text-dracula-red">
           {agent.error}
         </div>
       )}
 
-      <div className="rounded-lg bg-gray-900 border border-gray-700 p-4 min-h-48 max-h-[60vh] overflow-y-auto font-mono text-sm text-gray-100 leading-relaxed whitespace-pre-wrap">
+      <div className="rounded-lg bg-dracula-surface border border-dracula-dark p-4 min-h-48 max-h-[60vh] overflow-y-auto font-mono text-sm text-dracula-light leading-relaxed whitespace-pre-wrap">
         {fullText || (
-          <span className="text-gray-500">
+          <span className="text-dracula-blue">
             {agent.status === 'queued' ? 'Waiting to start...' : 'Running...'}
           </span>
         )}
         {agent.status === 'running' && (
-          <span className="inline-block w-2 h-4 bg-blue-400 ml-0.5 animate-pulse" />
+          <span className="inline-block w-2 h-4 bg-dracula-purple ml-0.5 animate-pulse" />
         )}
         <div ref={bottomRef} />
       </div>
