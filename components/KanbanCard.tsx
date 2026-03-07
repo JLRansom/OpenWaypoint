@@ -12,10 +12,9 @@ type AssignRole = 'researcher' | 'coder' | 'senior-coder'
 interface KanbanCardProps {
   task: Task
   activeAgent?: Agent
-  isOverlay?: boolean
 }
 
-export function KanbanCard({ task, activeAgent, isOverlay }: KanbanCardProps) {
+export function KanbanCard({ task, activeAgent }: KanbanCardProps) {
   const [loading, setLoading] = useState<AssignRole | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -25,7 +24,8 @@ export function KanbanCard({ task, activeAgent, isOverlay }: KanbanCardProps) {
   })
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
+    willChange: isDragging ? 'transform' : undefined,
   }
 
   useEffect(() => {
@@ -84,7 +84,7 @@ export function KanbanCard({ task, activeAgent, isOverlay }: KanbanCardProps) {
         <div ref={menuRef} className="relative shrink-0">
           <button
             onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o) }}
-            className={`rounded p-0.5 text-dracula-blue/60 hover:text-dracula-light hover:bg-dracula-dark/60 transition-colors ${isOverlay ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+            className="rounded p-0.5 text-dracula-blue/60 hover:text-dracula-light hover:bg-dracula-dark/60 transition-colors opacity-0 group-hover:opacity-100"
             aria-label="Card menu"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -172,21 +172,13 @@ export function KanbanCard({ task, activeAgent, isOverlay }: KanbanCardProps) {
     </div>
   )
 
-  if (isOverlay) {
-    return (
-      <div className="rounded-lg border border-dracula-dark/40 bg-dracula-dark p-3 shadow-2xl opacity-90">
-        {cardContent}
-      </div>
-    )
-  }
-
   return (
     <div
       ref={setNodeRef}
       style={style}
       {...listeners}
       {...attributes}
-      className={`group rounded-lg border border-dracula-dark/40 bg-dracula-dark p-3 hover:border-dracula-purple/30 transition-all cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-40' : ''}`}
+      className={`group rounded-lg border border-dracula-dark/60 bg-dracula-dark shadow-sm p-3 hover:border-dracula-purple/40 hover:shadow-md transition-all cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-40' : ''}`}
     >
       {cardContent}
     </div>

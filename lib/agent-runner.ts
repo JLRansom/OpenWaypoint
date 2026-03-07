@@ -5,7 +5,7 @@ import { updateAgent, appendEvent } from '@/lib/store'
 const client = new Anthropic()
 
 const MODEL_MAP: Record<AgentType, string> = {
-  researcher: 'claude-sonnet-4-6',
+  researcher: 'claude-opus-4-6',
   coder: 'claude-sonnet-4-6',
   writer: 'claude-sonnet-4-6',
   'senior-coder': 'claude-opus-4-6',
