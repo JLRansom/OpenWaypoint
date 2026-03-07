@@ -37,7 +37,7 @@ export default function ProjectsPage() {
                 className="block rounded-xl border border-dracula-dark bg-dracula-surface p-5 hover:border-dracula-purple/50 hover:bg-dracula-dark/30 transition-colors group"
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <h2 className="text-base font-semibold text-dracula-light group-hover:text-dracula-purple transition-colors">
+                  <h2 className="text-base font-semibold text-dracula-light group-hover:text-dracula-purple transition-colors break-words min-w-0">
                     {project.name}
                   </h2>
                   <span className="rounded-full bg-dracula-dark px-2 py-0.5 text-xs text-dracula-blue shrink-0">
@@ -45,7 +45,7 @@ export default function ProjectsPage() {
                   </span>
                 </div>
                 {project.description && (
-                  <p className="text-sm text-dracula-blue line-clamp-2">{project.description}</p>
+                  <p className="text-sm text-dracula-blue line-clamp-2 break-words">{project.description}</p>
                 )}
                 <p className="text-xs text-dracula-blue/50 mt-3">
                   Open Board →

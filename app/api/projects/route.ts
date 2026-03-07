@@ -9,7 +9,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { name, description } = body as { name: string; description: string }
+  const { name, description, directory } = body as { name: string; description: string; directory?: string }
 
   if (!name) {
     return NextResponse.json({ error: 'name is required' }, { status: 400 })
@@ -19,6 +19,7 @@ export async function POST(req: NextRequest) {
     id: randomUUID(),
     name,
     description: description ?? '',
+    directory: directory ?? '',
     createdAt: Date.now(),
     updatedAt: Date.now(),
   }
