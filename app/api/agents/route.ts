@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'type and prompt are required' }, { status: 400 })
   }
 
-  const validTypes: AgentType[] = ['researcher', 'coder', 'writer']
+  const validTypes: AgentType[] = ['researcher', 'coder', 'writer', 'senior-coder']
   if (!validTypes.includes(type)) {
     return NextResponse.json({ error: 'invalid agent type' }, { status: 400 })
   }

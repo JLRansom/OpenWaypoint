@@ -5,7 +5,7 @@ import { useStream } from '@/components/StreamProvider'
 import { AgentRow } from '@/components/AgentRow'
 
 export function AgentList() {
-  const agents = useStream()
+  const { agents } = useStream()
 
   if (agents.length === 0) {
     return (

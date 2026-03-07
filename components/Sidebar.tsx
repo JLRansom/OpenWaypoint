@@ -2,10 +2,11 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Zap, LayoutDashboard, History } from 'lucide-react'
+import { Zap, LayoutDashboard, FolderKanban, History } from 'lucide-react'
 
 const navLinks = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/projects', label: 'Projects', icon: FolderKanban },
   { href: '/history', label: 'History', icon: History },
 ]
 
@@ -21,7 +22,7 @@ export function Sidebar() {
 
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navLinks.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href
+          const active = pathname === href || (href !== '/' && pathname.startsWith(href))
           return (
             <Link
               key={href}
@@ -40,7 +41,7 @@ export function Sidebar() {
       </nav>
 
       <div className="px-6 py-4 border-t border-dracula-dark">
-        <p className="text-xs text-dracula-blue">claude-sonnet-4-6</p>
+        <p className="text-xs text-dracula-blue">sonnet · opus</p>
       </div>
     </aside>
   )

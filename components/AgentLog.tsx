@@ -5,7 +5,7 @@ import { useStream } from '@/components/StreamProvider'
 import { StatusBadge } from '@/components/StatusBadge'
 
 export function AgentLog({ agentId }: { agentId: string }) {
-  const agents = useStream()
+  const { agents } = useStream()
   const agent = agents.find((a) => a.id === agentId)
   const bottomRef = useRef<HTMLDivElement>(null)
 

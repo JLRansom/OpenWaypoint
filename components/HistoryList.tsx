@@ -60,7 +60,7 @@ function PillButton({
 }
 
 export function HistoryList() {
-  const agents = useStream()
+  const { agents } = useStream()
   const router = useRouter()
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')

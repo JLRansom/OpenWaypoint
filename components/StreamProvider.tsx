@@ -7,9 +7,11 @@ import {
   useState,
   ReactNode,
 } from 'react'
-import { Agent } from '@/lib/types'
+import { StreamPayload } from '@/lib/types'
 
-const StreamContext = createContext<Agent[]>([])
+const defaultPayload: StreamPayload = { agents: [], projects: [], tasks: [] }
+
+const StreamContext = createContext<StreamPayload>(defaultPayload)
 
 export function useStream() {
   return useContext(StreamContext)
@@ -19,18 +21,18 @@ export function StreamProvider({
   initial,
   children,
 }: {
-  initial: Agent[]
+  initial: StreamPayload
   children: ReactNode
 }) {
-  const [agents, setAgents] = useState<Agent[]>(initial)
+  const [payload, setPayload] = useState<StreamPayload>(initial)
 
   useEffect(() => {
     const es = new EventSource('/api/stream')
 
     es.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data) as Agent[]
-        setAgents(data)
+        const data = JSON.parse(event.data) as StreamPayload
+        setPayload(data)
       } catch {
         // ignore malformed events
       }
@@ -46,6 +48,6 @@ export function StreamProvider({
   }, [])
 
   return (
-    <StreamContext.Provider value={agents}>{children}</StreamContext.Provider>
+    <StreamContext.Provider value={payload}>{children}</StreamContext.Provider>
   )
 }

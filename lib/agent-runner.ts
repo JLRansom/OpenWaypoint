@@ -1,26 +1,38 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { Agent } from '@/lib/types'
+import { Agent, AgentType } from '@/lib/types'
 import { updateAgent, appendEvent } from '@/lib/store'
 
 const client = new Anthropic()
 
-const SYSTEM_PROMPTS: Record<Agent['type'], string> = {
+const MODEL_MAP: Record<AgentType, string> = {
+  researcher: 'claude-sonnet-4-6',
+  coder: 'claude-sonnet-4-6',
+  writer: 'claude-sonnet-4-6',
+  'senior-coder': 'claude-opus-4-6',
+}
+
+const SYSTEM_PROMPTS: Record<AgentType, string> = {
   researcher:
     'You are a research analyst. Analyze topics thoroughly, summarize key findings clearly, and cite your reasoning step by step. Be concise but comprehensive.',
   coder:
     'You are an expert software engineer. Write clean, well-structured code. Explain your design decisions. Handle edge cases. Prefer clarity over cleverness.',
   writer:
     'You are a professional writer. Draft clear, structured prose in first person. No fluff or filler. Short paragraphs. Bullet points where appropriate.',
+  'senior-coder':
+    'You are a senior software engineer performing code review. Evaluate the implementation for correctness, edge cases, and code quality. End your review with exactly one of: "VERDICT: APPROVED" or "VERDICT: CHANGES REQUESTED". If requesting changes, include a "## Changes Required" section listing specific items to fix.',
 }
 
 export async function runAgent(agent: Agent): Promise<void> {
   updateAgent(agent.id, { status: 'running' })
 
+  const systemPrompt = agent.systemPromptOverride ?? SYSTEM_PROMPTS[agent.type]
+  const model = MODEL_MAP[agent.type]
+
   try {
     const stream = client.messages.stream({
-      model: 'claude-sonnet-4-6',
+      model,
       max_tokens: 4096,
-      system: SYSTEM_PROMPTS[agent.type],
+      system: systemPrompt,
       messages: [{ role: 'user', content: agent.prompt }],
     })
 
