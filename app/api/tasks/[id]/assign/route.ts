@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { Agent, TaskStatus } from '@/lib/types'
-import { getTask, updateTask, addAgent, getAgent } from '@/lib/store'
+import { getTask, updateTask, addAgent, getAgent, getProject } from '@/lib/store'
 import { runAgent } from '@/lib/agent-runner'
 
 type AssignRole = 'researcher' | 'coder' | 'senior-coder'
@@ -39,8 +39,11 @@ function buildSystemPrompt(role: AssignRole): string {
   )
 }
 
-function buildUserPrompt(role: AssignRole, task: NonNullable<ReturnType<typeof getTask>>): string {
-  const header = `# Task: ${task.title}\n\n${task.description}`
+function buildUserPrompt(role: AssignRole, task: NonNullable<ReturnType<typeof getTask>>, directory?: string): string {
+  const dirContext = directory
+    ? `\n\n## Working Directory\n\`${directory}\` — all file references should be relative to this path.`
+    : ''
+  const header = `# Task: ${task.title}\n\n${task.description}${dirContext}`
 
   if (role === 'researcher') {
     return `${header}\n\nProduce a technical specification and implementation plan for this task.`
@@ -78,6 +81,9 @@ export async function POST(
   const task = getTask(id)
   if (!task) return NextResponse.json({ error: 'task not found' }, { status: 404 })
 
+  const project = task.projectId ? getProject(task.projectId) : null
+  const directory = project?.directory || undefined
+
   const body = await req.json()
   const { role } = body as { role: AssignRole }
 
@@ -89,7 +95,7 @@ export async function POST(
   const agent: Agent = {
     id: randomUUID(),
     type: role,
-    prompt: buildUserPrompt(role, task),
+    prompt: buildUserPrompt(role, task, directory),
     status: 'queued',
     events: [],
     createdAt: Date.now(),

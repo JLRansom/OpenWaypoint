@@ -47,6 +47,7 @@ export interface Project {
   id: string
   name: string
   description: string
+  directory?: string
   createdAt: number
   updatedAt: number
 }

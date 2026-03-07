@@ -2,11 +2,18 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { FolderOpen, X } from 'lucide-react'
+
+const NAME_MAX = 60
+const NAME_WARN = 50
+const DESC_MAX = 200
+const DESC_WARN = 180
 
 export function NewProjectModal() {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [directory, setDirectory] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
@@ -18,15 +25,33 @@ export function NewProjectModal() {
       await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description }),
+        body: JSON.stringify({ name, description, directory }),
       })
       setName('')
       setDescription('')
+      setDirectory('')
       setOpen(false)
       router.refresh()
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleBrowse() {
+    try {
+      // @ts-expect-error File System Access API not in all TS lib versions
+      const handle = await window.showDirectoryPicker()
+      setDirectory(handle.name)
+    } catch {
+      // user cancelled or API unavailable
+    }
+  }
+
+  function handleClose() {
+    setName('')
+    setDescription('')
+    setDirectory('')
+    setOpen(false)
   }
 
   return (
@@ -44,14 +69,15 @@ export function NewProjectModal() {
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-dracula-light">New Project</h2>
               <button
-                onClick={() => setOpen(false)}
-                className="text-dracula-blue hover:text-dracula-light"
+                onClick={handleClose}
+                className="text-dracula-blue hover:text-dracula-light transition-colors"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Name */}
               <div>
                 <label className="mb-1 block text-sm font-medium text-dracula-blue">
                   Project Name
@@ -60,11 +86,18 @@ export function NewProjectModal() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  maxLength={NAME_MAX}
                   placeholder="My awesome project"
-                  className="w-full rounded-lg border border-dracula-dark bg-dracula-dark text-dracula-light placeholder:text-dracula-blue px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dracula-purple"
+                  className="w-full rounded-lg border border-dracula-dark bg-dracula-dark text-dracula-light placeholder:text-dracula-blue/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dracula-purple"
                 />
+                <div className="flex justify-end mt-1">
+                  <span className={`text-xs ${name.length >= NAME_WARN ? 'text-dracula-red' : 'text-dracula-comment'}`}>
+                    {name.length}/{NAME_MAX}
+                  </span>
+                </div>
               </div>
 
+              {/* Description */}
               <div>
                 <label className="mb-1 block text-sm font-medium text-dracula-blue">
                   Description
@@ -72,17 +105,51 @@ export function NewProjectModal() {
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  maxLength={DESC_MAX}
                   rows={3}
                   placeholder="What is this project about?"
-                  className="w-full rounded-lg border border-dracula-dark bg-dracula-dark text-dracula-light placeholder:text-dracula-blue px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dracula-purple resize-none"
+                  className="w-full rounded-lg border border-dracula-dark bg-dracula-dark text-dracula-light placeholder:text-dracula-blue/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dracula-purple resize-none"
                 />
+                <div className="flex justify-end mt-1">
+                  <span className={`text-xs ${description.length >= DESC_WARN ? 'text-dracula-red' : 'text-dracula-comment'}`}>
+                    {description.length}/{DESC_MAX}
+                  </span>
+                </div>
               </div>
 
-              <div className="flex justify-end gap-2">
+              {/* Directory */}
+              <div>
+                <label className="mb-1 block text-sm font-medium text-dracula-blue">
+                  Working Directory <span className="font-normal text-dracula-comment">(optional)</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={directory}
+                    onChange={(e) => setDirectory(e.target.value)}
+                    placeholder="E:\path\to\project"
+                    className="flex-1 rounded-lg border border-dracula-dark bg-dracula-dark text-dracula-light placeholder:text-dracula-blue/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dracula-purple font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleBrowse}
+                    title="Pick a folder"
+                    className="flex items-center gap-1.5 rounded-lg border border-dracula-dark bg-dracula-dark px-3 py-2 text-sm text-dracula-blue hover:text-dracula-light hover:border-dracula-purple/50 transition-colors shrink-0"
+                  >
+                    <FolderOpen className="w-4 h-4" />
+                    Browse
+                  </button>
+                </div>
+                <p className="mt-1 text-xs text-dracula-comment">
+                  Agents will reference this path when planning and implementing tasks.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => setOpen(false)}
-                  className="rounded-lg px-4 py-2 text-sm text-dracula-blue hover:text-dracula-light"
+                  onClick={handleClose}
+                  className="rounded-lg px-4 py-2 text-sm text-dracula-blue hover:text-dracula-light transition-colors"
                 >
                   Cancel
                 </button>

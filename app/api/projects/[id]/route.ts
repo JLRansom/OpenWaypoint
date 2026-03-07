@@ -20,11 +20,12 @@ export async function PATCH(
   if (!project) return NextResponse.json({ error: 'not found' }, { status: 404 })
 
   const body = await req.json()
-  const { name, description } = body as { name?: string; description?: string }
+  const { name, description, directory } = body as { name?: string; description?: string; directory?: string }
 
   updateProject(id, {
     ...(name !== undefined && { name }),
     ...(description !== undefined && { description }),
+    ...(directory !== undefined && { directory }),
     updatedAt: Date.now(),
   })
 
