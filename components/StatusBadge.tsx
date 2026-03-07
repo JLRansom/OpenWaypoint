@@ -10,7 +10,7 @@ const styles: Record<AgentStatus, string> = {
 export function StatusBadge({ status }: { status: AgentStatus }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[status]}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${styles[status]}`}
     >
       {status}
     </span>

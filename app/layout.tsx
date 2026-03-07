@@ -34,9 +34,7 @@ export default async function RootLayout({
           <div className="flex min-h-screen">
             <Sidebar />
             <main className="flex-1 overflow-auto p-8">
-              <div className="max-w-5xl mx-auto">
-                {children}
-              </div>
+              {children}
             </main>
           </div>
         </StreamProvider>

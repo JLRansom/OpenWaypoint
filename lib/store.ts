@@ -134,6 +134,11 @@ export function updateTask(id: string, patch: Partial<Task>): void {
   broadcast()
 }
 
+export function deleteTask(id: string): void {
+  getStore().tasks.delete(id)
+  broadcast()
+}
+
 // --- Full payload (for initial SSE load) ---
 
 export function getStreamPayload(): StreamPayload {

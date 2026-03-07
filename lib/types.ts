@@ -40,6 +40,7 @@ export interface Task {
   researcherOutput?: string
   coderOutput?: string
   reviewNotes?: string
+  archived?: boolean
 }
 
 export interface Project {
