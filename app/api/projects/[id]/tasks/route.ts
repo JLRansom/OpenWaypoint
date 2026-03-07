@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
-import { Task } from '@/lib/types'
+import { Task, TaskStatus } from '@/lib/types'
 import { getProject, getTasksByProject, addTask } from '@/lib/store'
 
 export async function GET(
@@ -22,7 +22,7 @@ export async function POST(
   if (!project) return NextResponse.json({ error: 'not found' }, { status: 404 })
 
   const body = await req.json()
-  const { title, description } = body as { title: string; description?: string }
+  const { title, description, status } = body as { title: string; description?: string; status?: TaskStatus }
 
   if (!title) {
     return NextResponse.json({ error: 'title is required' }, { status: 400 })
@@ -33,7 +33,7 @@ export async function POST(
     projectId: id,
     title,
     description: description ?? '',
-    status: 'backlog',
+    status: status ?? 'backlog',
     createdAt: Date.now(),
     updatedAt: Date.now(),
   }

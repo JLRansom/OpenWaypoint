@@ -17,6 +17,7 @@ interface KanbanCardProps {
 export function KanbanCard({ task, activeAgent }: KanbanCardProps) {
   const [loading, setLoading] = useState<AssignRole | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [assignError, setAssignError] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -41,12 +42,18 @@ export function KanbanCard({ task, activeAgent }: KanbanCardProps) {
 
   async function assign(role: AssignRole) {
     setLoading(role)
+    setAssignError(null)
     try {
-      await fetch(`/api/tasks/${task.id}/assign`, {
+      const res = await fetch(`/api/tasks/${task.id}/assign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role }),
       })
+      if (!res.ok) {
+        const { error } = await res.json()
+        setAssignError(error)
+        setTimeout(() => setAssignError(null), 5000)
+      }
     } finally {
       setLoading(null)
     }
@@ -168,6 +175,10 @@ export function KanbanCard({ task, activeAgent }: KanbanCardProps) {
             </Link>
           )}
         </div>
+      )}
+
+      {assignError && (
+        <p className="text-xs text-dracula-red mt-1.5 leading-snug">{assignError}</p>
       )}
     </div>
   )

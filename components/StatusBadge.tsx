@@ -1,6 +1,7 @@
 import { AgentStatus } from '@/lib/types'
 
 const styles: Record<AgentStatus, string> = {
+  idle: 'bg-dracula-dark/60 text-dracula-comment',
   queued: 'bg-dracula-dark text-dracula-blue',
   running: 'bg-dracula-cyan/20 text-dracula-cyan animate-pulse',
   done: 'bg-dracula-green/20 text-dracula-green',

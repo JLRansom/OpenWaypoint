@@ -53,6 +53,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
               status={status}
               tasks={projectTasks.filter((t) => t.status === status)}
               agents={agents}
+              projectId={projectId}
             />
           ))}
         </div>
