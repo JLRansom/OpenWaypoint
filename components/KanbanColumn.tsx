@@ -1,6 +1,7 @@
 import { useDroppable } from '@dnd-kit/core'
 import { Task, Agent, TaskStatus } from '@/lib/types'
 import { KanbanCard } from '@/components/KanbanCard'
+import { AddCardForm } from '@/components/AddCardForm'
 
 const COLUMN_LABELS: Record<TaskStatus, string> = {
   backlog: 'Backlog',
@@ -25,9 +26,10 @@ interface KanbanColumnProps {
   status: TaskStatus
   tasks: Task[]
   agents: Agent[]
+  projectId: string
 }
 
-export function KanbanColumn({ status, tasks, agents }: KanbanColumnProps) {
+export function KanbanColumn({ status, tasks, agents, projectId }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
   const label = COLUMN_LABELS[status]
   const accentClass = COLUMN_ACCENT[status]
@@ -62,6 +64,11 @@ export function KanbanColumn({ status, tasks, agents }: KanbanColumnProps) {
             <KanbanCard key={task.id} task={task} activeAgent={activeAgent} />
           )
         })}
+      </div>
+
+      {/* Add card */}
+      <div className="p-2 pt-0">
+        <AddCardForm projectId={projectId} status={status} />
       </div>
     </div>
   )

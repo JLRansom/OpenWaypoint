@@ -1,5 +1,5 @@
 export type AgentType = 'researcher' | 'coder' | 'writer' | 'senior-coder'
-export type AgentStatus = 'queued' | 'running' | 'done' | 'failed'
+export type AgentStatus = 'idle' | 'queued' | 'running' | 'done' | 'failed'
 
 export interface AgentEvent {
   timestamp: number

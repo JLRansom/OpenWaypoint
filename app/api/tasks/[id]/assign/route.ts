@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { randomUUID } from 'crypto'
-import { Agent, TaskStatus } from '@/lib/types'
-import { getTask, updateTask, addAgent, getAgent, getProject } from '@/lib/store'
+import { TaskStatus } from '@/lib/types'
+import { getTask, updateTask, getAgent, getProject, getAllAgents, updateAgent } from '@/lib/store'
 import { runAgent } from '@/lib/agent-runner'
 
 type AssignRole = 'researcher' | 'coder' | 'senior-coder'
@@ -29,7 +28,6 @@ function buildSystemPrompt(role: AssignRole): string {
       'Handle edge cases. Prefer clarity over cleverness.'
     )
   }
-  // senior-coder
   return (
     'You are a senior software engineer performing code review. ' +
     'Evaluate the implementation for correctness, edge cases, and code quality. ' +
@@ -92,29 +90,40 @@ export async function POST(
     return NextResponse.json({ error: 'invalid role' }, { status: 400 })
   }
 
-  const agent: Agent = {
-    id: randomUUID(),
-    type: role,
-    prompt: buildUserPrompt(role, task, directory),
-    status: 'queued',
-    events: [],
-    createdAt: Date.now(),
-    projectId: task.projectId,
-    taskId: task.id,
-    systemPromptOverride: buildSystemPrompt(role),
+  // Find an idle agent of the right type assigned to this project
+  const idleAgent = getAllAgents().find(
+    (a) => a.type === role && a.status === 'idle' && a.projectId === task.projectId
+  )
+
+  if (!idleAgent) {
+    const roleLabel = role === 'senior-coder' ? 'senior coder' : role
+    return NextResponse.json(
+      { error: `No idle ${roleLabel} assigned to this project. Spawn one from the Dashboard.` },
+      { status: 409 }
+    )
   }
 
-  addAgent(agent)
+  const prompt = buildUserPrompt(role, task, directory)
+  const systemPrompt = buildSystemPrompt(role)
 
-  // Move task to appropriate status column
-  updateTask(task.id, {
-    status: STATUS_FOR_ROLE[role],
-    activeAgentId: agent.id,
+  // Delegate task to idle agent
+  updateAgent(idleAgent.id, {
+    prompt,
+    status: 'queued',
+    taskId: task.id,
+    events: [],
+    systemPromptOverride: systemPrompt,
   })
 
-  // Run agent, then capture output and update task when done
-  runAgent(agent).then(() => {
-    const completed = getAgent(agent.id)
+  updateTask(task.id, {
+    status: STATUS_FOR_ROLE[role],
+    activeAgentId: idleAgent.id,
+  })
+
+  const agentToRun = getAgent(idleAgent.id)!
+
+  runAgent(agentToRun).then(() => {
+    const completed = getAgent(idleAgent.id)
     if (!completed) return
 
     const output = completed.events.map((e) => e.text).join('')
@@ -127,13 +136,19 @@ export async function POST(
       if (output.includes('VERDICT: APPROVED')) {
         updateTask(task.id, { status: 'done' })
       } else {
-        // Extract changes required section if present
         const changesMatch = output.match(/##\s*Changes Required([\s\S]*)/)
         const reviewNotes = changesMatch ? changesMatch[1].trim() : output
         updateTask(task.id, { status: 'changes-requested', reviewNotes })
       }
     }
+
+    // Reset agent to idle — ready for next task
+    updateAgent(idleAgent.id, {
+      status: 'idle',
+      taskId: undefined,
+      prompt: '',
+    })
   }).catch(console.error)
 
-  return NextResponse.json(agent, { status: 201 })
+  return NextResponse.json(agentToRun, { status: 200 })
 }

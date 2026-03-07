@@ -1,22 +1,15 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { Agent } from '@/lib/types'
 import { StatusBadge } from '@/components/StatusBadge'
+import { useStream } from '@/components/StreamProvider'
 
 export function AgentRow({ agent }: { agent: Agent }) {
-  const router = useRouter()
+  const { projects } = useStream()
+  const project = projects.find((p) => p.id === agent.projectId)
 
   async function handleStop() {
     await fetch(`/api/agents/${agent.id}`, { method: 'DELETE' })
-  }
-
-  async function handleRetry() {
-    await fetch('/api/agents', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: agent.type, prompt: agent.prompt }),
-    })
   }
 
   return (
@@ -27,7 +20,9 @@ export function AgentRow({ agent }: { agent: Agent }) {
           {agent.type}
         </span>
       </td>
-      <td className="py-3 px-4 max-w-xs truncate text-sm text-dracula-light/80">{agent.prompt}</td>
+      <td className="py-3 px-4 text-sm text-dracula-light/80">
+        {project ? project.name : <span className="text-dracula-comment text-xs">—</span>}
+      </td>
       <td className="py-3 px-4">
         <StatusBadge status={agent.status} />
       </td>
@@ -35,30 +30,14 @@ export function AgentRow({ agent }: { agent: Agent }) {
         {new Date(agent.createdAt).toLocaleTimeString()}
       </td>
       <td className="py-3 px-4">
-        <div className="flex gap-2">
+        {agent.status === 'running' && (
           <button
-            onClick={() => router.push(`/agents/${agent.id}`)}
-            className="text-xs text-dracula-cyan hover:text-dracula-light"
+            onClick={handleStop}
+            className="text-xs text-dracula-red hover:text-dracula-red/80"
           >
-            View
+            Stop
           </button>
-          {agent.status === 'running' && (
-            <button
-              onClick={handleStop}
-              className="text-xs text-dracula-red"
-            >
-              Stop
-            </button>
-          )}
-          {(agent.status === 'done' || agent.status === 'failed') && (
-            <button
-              onClick={handleRetry}
-              className="text-xs text-dracula-blue hover:text-dracula-light"
-            >
-              Retry
-            </button>
-          )}
-        </div>
+        )}
       </td>
     </tr>
   )
