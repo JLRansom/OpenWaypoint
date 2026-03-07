@@ -9,7 +9,7 @@ export default function ProjectsPage() {
   const { projects, tasks } = useStream()
 
   return (
-    <div>
+    <div className="max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-dracula-light">Projects</h1>

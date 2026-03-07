@@ -16,8 +16,8 @@ export default async function ProjectBoardPage({
   if (!project) notFound()
 
   return (
-    <div className="max-w-none -mx-8">
-      <div className="px-8 mb-6 flex items-center justify-between">
+    <div>
+      <div className="mb-6 flex items-center justify-between">
         <div>
           <Link
             href="/projects"
@@ -34,9 +34,7 @@ export default async function ProjectBoardPage({
         <NewTaskModal projectId={id} />
       </div>
 
-      <div className="px-8 overflow-x-auto">
-        <KanbanBoard projectId={id} />
-      </div>
+      <KanbanBoard projectId={id} />
     </div>
   )
 }

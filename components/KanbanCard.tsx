@@ -1,7 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useDraggable } from '@dnd-kit/core'
+import { CSS } from '@dnd-kit/utilities'
 import { Task, Agent } from '@/lib/types'
 import { StatusBadge } from '@/components/StatusBadge'
 
@@ -10,10 +12,32 @@ type AssignRole = 'researcher' | 'coder' | 'senior-coder'
 interface KanbanCardProps {
   task: Task
   activeAgent?: Agent
+  isOverlay?: boolean
 }
 
-export function KanbanCard({ task, activeAgent }: KanbanCardProps) {
+export function KanbanCard({ task, activeAgent, isOverlay }: KanbanCardProps) {
   const [loading, setLoading] = useState<AssignRole | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: task.id,
+  })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+  }
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function handleMouseDown(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleMouseDown)
+    return () => document.removeEventListener('mousedown', handleMouseDown)
+  }, [menuOpen])
 
   async function assign(role: AssignRole) {
     setLoading(role)
@@ -28,99 +52,143 @@ export function KanbanCard({ task, activeAgent }: KanbanCardProps) {
     }
   }
 
-  const isAgentRunning = activeAgent?.status === 'running' || activeAgent?.status === 'queued'
+  async function archiveTask() {
+    setMenuOpen(false)
+    await fetch(`/api/tasks/${task.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ archived: true }),
+    })
+  }
 
-  // Determine which action buttons to show based on status
+  async function deleteTask() {
+    setMenuOpen(false)
+    if (!window.confirm(`Delete "${task.title}"? This cannot be undone.`)) return
+    await fetch(`/api/tasks/${task.id}`, { method: 'DELETE' })
+  }
+
+  const isAgentRunning = activeAgent?.status === 'running' || activeAgent?.status === 'queued'
   const showAssignResearcher = task.status === 'backlog'
   const showAssignCoder =
-    (task.status === 'planning' && !isAgentRunning) ||
-    task.status === 'changes-requested'
-  const showAssignSeniorCoder =
-    task.status === 'in-progress' && !isAgentRunning
+    (task.status === 'planning' && !isAgentRunning) || task.status === 'changes-requested'
+  const showAssignSeniorCoder = task.status === 'in-progress' && !isAgentRunning
+  const hasAssignAction = showAssignResearcher || showAssignCoder || showAssignSeniorCoder
 
-  return (
-    <div className="rounded-lg border border-dracula-dark bg-dracula-darker p-3 space-y-2">
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-medium text-dracula-light leading-snug">{task.title}</p>
-        {activeAgent && <StatusBadge status={activeAgent.status} />}
+  const hasBottomMeta =
+    (activeAgent && (isAgentRunning || activeAgent.status === 'done' || activeAgent.status === 'failed'))
+
+  const cardContent = (
+    <div className="space-y-1.5">
+      <div className="flex items-start justify-between gap-1.5">
+        <p className="text-sm font-medium text-dracula-light line-clamp-2 leading-snug">{task.title}</p>
+        <div ref={menuRef} className="relative shrink-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o) }}
+            className={`rounded p-0.5 text-dracula-blue/60 hover:text-dracula-light hover:bg-dracula-dark/60 transition-colors ${isOverlay ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+            aria-label="Card menu"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="5" r="2" />
+              <circle cx="12" cy="12" r="2" />
+              <circle cx="12" cy="19" r="2" />
+            </svg>
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-6 z-50 min-w-[150px] rounded-lg border border-dracula-dark bg-dracula-darker shadow-xl py-1">
+              {hasAssignAction && (
+                <>
+                  {showAssignResearcher && (
+                    <button
+                      onClick={() => { setMenuOpen(false); assign('researcher') }}
+                      disabled={loading === 'researcher'}
+                      className="w-full text-left px-3 py-1.5 text-xs text-dracula-cyan hover:bg-dracula-dark/60 hover:text-dracula-light transition-colors disabled:opacity-50"
+                    >
+                      {loading === 'researcher' ? 'Assigning…' : 'Assign Researcher'}
+                    </button>
+                  )}
+                  {showAssignCoder && (
+                    <button
+                      onClick={() => { setMenuOpen(false); assign('coder') }}
+                      disabled={loading === 'coder'}
+                      className="w-full text-left px-3 py-1.5 text-xs text-dracula-green hover:bg-dracula-dark/60 hover:text-dracula-light transition-colors disabled:opacity-50"
+                    >
+                      {loading === 'coder' ? 'Assigning…' : 'Assign Coder'}
+                    </button>
+                  )}
+                  {showAssignSeniorCoder && (
+                    <button
+                      onClick={() => { setMenuOpen(false); assign('senior-coder') }}
+                      disabled={loading === 'senior-coder'}
+                      className="w-full text-left px-3 py-1.5 text-xs text-dracula-orange hover:bg-dracula-dark/60 hover:text-dracula-light transition-colors disabled:opacity-50"
+                    >
+                      {loading === 'senior-coder' ? 'Assigning…' : 'Assign Senior Coder'}
+                    </button>
+                  )}
+                  <div className="border-t border-dracula-dark/60 my-1" />
+                </>
+              )}
+              <button
+                onClick={archiveTask}
+                className="w-full text-left px-3 py-1.5 text-xs text-dracula-blue hover:bg-dracula-dark/60 hover:text-dracula-light transition-colors"
+              >
+                Archive
+              </button>
+              <button
+                onClick={deleteTask}
+                className="w-full text-left px-3 py-1.5 text-xs text-dracula-red hover:bg-dracula-red/10 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {task.description && (
-        <p className="text-xs text-dracula-blue line-clamp-2">{task.description}</p>
+        <p className="text-xs text-dracula-comment line-clamp-1">{task.description}</p>
       )}
 
       {task.reviewNotes && task.status === 'changes-requested' && (
-        <div className="rounded bg-dracula-red/10 border border-dracula-red/30 p-2">
-          <p className="text-xs text-dracula-red font-medium mb-1">Review Notes</p>
+        <div className="rounded bg-dracula-red/10 border border-dracula-red/30 p-1.5">
+          <p className="text-xs text-dracula-red font-medium mb-0.5">Review Notes</p>
           <p className="text-xs text-dracula-light/80 line-clamp-3">{task.reviewNotes}</p>
         </div>
       )}
 
-      <div className="flex flex-wrap gap-1.5 pt-1">
-        {showAssignResearcher && (
-          <ActionButton
-            onClick={() => assign('researcher')}
-            loading={loading === 'researcher'}
-            color="cyan"
-          >
-            Assign Researcher
-          </ActionButton>
-        )}
-        {showAssignCoder && (
-          <ActionButton
-            onClick={() => assign('coder')}
-            loading={loading === 'coder'}
-            color="green"
-          >
-            Assign Coder
-          </ActionButton>
-        )}
-        {showAssignSeniorCoder && (
-          <ActionButton
-            onClick={() => assign('senior-coder')}
-            loading={loading === 'senior-coder'}
-            color="orange"
-          >
-            Assign Senior Coder
-          </ActionButton>
-        )}
-        {activeAgent && (activeAgent.status === 'done' || activeAgent.status === 'failed') && (
-          <Link
-            href={`/agents/${activeAgent.id}`}
-            className="text-xs text-dracula-cyan hover:text-dracula-light underline"
-          >
-            View Output
-          </Link>
-        )}
-      </div>
+      {hasBottomMeta && (
+        <div className="flex items-center gap-2 pt-1.5 mt-1.5 border-t border-dracula-dark/40">
+          {activeAgent && isAgentRunning && <StatusBadge status={activeAgent.status} />}
+          {activeAgent && (activeAgent.status === 'done' || activeAgent.status === 'failed') && (
+            <Link
+              href={`/agents/${activeAgent.id}`}
+              className="text-xs text-dracula-cyan hover:text-dracula-light"
+              onClick={(e) => e.stopPropagation()}
+            >
+              View Output →
+            </Link>
+          )}
+        </div>
+      )}
     </div>
   )
-}
 
-function ActionButton({
-  onClick,
-  loading,
-  color,
-  children,
-}: {
-  onClick: () => void
-  loading: boolean
-  color: 'cyan' | 'green' | 'orange'
-  children: React.ReactNode
-}) {
-  const colorClass = {
-    cyan: 'bg-dracula-cyan/15 text-dracula-cyan hover:bg-dracula-cyan/25 border-dracula-cyan/30',
-    green: 'bg-dracula-green/15 text-dracula-green hover:bg-dracula-green/25 border-dracula-green/30',
-    orange: 'bg-dracula-orange/15 text-dracula-orange hover:bg-dracula-orange/25 border-dracula-orange/30',
-  }[color]
+  if (isOverlay) {
+    return (
+      <div className="rounded-lg border border-dracula-dark/40 bg-dracula-dark p-3 shadow-2xl opacity-90">
+        {cardContent}
+      </div>
+    )
+  }
 
   return (
-    <button
-      onClick={onClick}
-      disabled={loading}
-      className={`rounded px-2 py-1 text-xs font-medium border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${colorClass}`}
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={`group rounded-lg border border-dracula-dark/40 bg-dracula-dark p-3 hover:border-dracula-purple/30 transition-all cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-40' : ''}`}
     >
-      {loading ? 'Assigning...' : children}
-    </button>
+      {cardContent}
+    </div>
   )
 }
