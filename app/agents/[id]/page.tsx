@@ -18,11 +18,11 @@ export default async function AgentDetailPage({
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Link href="/" className="text-sm text-gray-500 hover:text-gray-300">
+        <Link href="/" className="text-sm text-dracula-cyan hover:text-dracula-light">
           ← Dashboard
         </Link>
-        <span className="text-gray-700">/</span>
-        <span className="text-sm text-gray-400 font-mono">{id.slice(0, 8)}</span>
+        <span className="text-dracula-dark">/</span>
+        <span className="text-sm text-dracula-blue font-mono">{id.slice(0, 8)}</span>
       </div>
       <AgentLog agentId={id} />
     </div>

@@ -1,1 +1,6 @@
 @import "tailwindcss";
+@config "../tailwind.config.js";
+
+@theme {
+  --color-dracula-surface: #21222c;
+}

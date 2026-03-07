@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { StreamProvider } from '@/components/StreamProvider'
+import { Sidebar } from '@/components/Sidebar'
 import { getAllAgents } from '@/lib/store'
 
 const geistSans = Geist({
@@ -28,16 +29,16 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-950 text-gray-100 min-h-screen`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-dracula-darker text-dracula-light`}>
         <StreamProvider initial={initialAgents}>
-          <nav className="border-b border-gray-800 bg-gray-900 px-6 py-4">
-            <a href="/" className="text-lg font-bold text-white">
-              Agents Galore
-            </a>
-          </nav>
-          <main className="mx-auto max-w-6xl px-6 py-8">
-            {children}
-          </main>
+          <div className="flex min-h-screen">
+            <Sidebar />
+            <main className="flex-1 overflow-auto p-8">
+              <div className="max-w-5xl mx-auto">
+                {children}
+              </div>
+            </main>
+          </div>
         </StreamProvider>
       </body>
     </html>
