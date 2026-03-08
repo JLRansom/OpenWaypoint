@@ -6,6 +6,8 @@ import { dbAddTaskRun } from '@/lib/db/repositories/taskRunRepo'
 
 export type AssignRole = 'researcher' | 'coder' | 'senior-coder'
 
+const MAX_REVIEW_CYCLES = 3
+
 const STATUS_FOR_ROLE: Record<AssignRole, TaskStatus> = {
   researcher: 'planning',
   coder: 'in-progress',
@@ -78,7 +80,8 @@ function buildUserPrompt(
 
 export async function assignAgentToTask(
   taskId: string,
-  role: AssignRole
+  role: AssignRole,
+  _cycle = 0
 ): Promise<Agent | { error: string }> {
   const task = getTask(taskId)
   if (!task) return { error: 'task not found' }
@@ -137,8 +140,14 @@ export async function assignAgentToTask(
 
     if (role === 'researcher') {
       updateTask(task.id, { researcherOutput: output })
+      if (completed.status === 'done') {
+        assignAgentToTask(taskId, 'coder', 0).catch(console.error)
+      }
     } else if (role === 'coder') {
       updateTask(task.id, { coderOutput: output })
+      if (completed.status === 'done') {
+        assignAgentToTask(taskId, 'senior-coder', _cycle).catch(console.error)
+      }
     } else if (role === 'senior-coder') {
       if (output.includes('VERDICT: APPROVED')) {
         updateTask(task.id, { status: 'done' })
@@ -146,6 +155,9 @@ export async function assignAgentToTask(
         const changesMatch = output.match(/##\s*Changes Required([\s\S]*)/)
         const reviewNotes = changesMatch ? changesMatch[1].trim() : output
         updateTask(task.id, { status: 'changes-requested', reviewNotes })
+        if (completed.status === 'done' && _cycle < MAX_REVIEW_CYCLES) {
+          assignAgentToTask(taskId, 'coder', _cycle + 1).catch(console.error)
+        }
       }
     }
 
