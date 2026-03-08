@@ -1,0 +1,1 @@
+ALTER TABLE `projects` ADD `executor_config` text;
