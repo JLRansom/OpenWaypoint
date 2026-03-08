@@ -4,6 +4,12 @@ import { updateAgent, appendEvent } from '@/lib/store'
 
 const client = new Anthropic()
 
+const runControllers = new Map<string, AbortController>()
+
+export function cancelAgent(agentId: string): void {
+  runControllers.get(agentId)?.abort()
+}
+
 const MODEL_MAP: Record<AgentType, string> = {
   researcher: 'claude-opus-4-6',
   coder: 'claude-sonnet-4-6',
@@ -23,18 +29,23 @@ const SYSTEM_PROMPTS: Record<AgentType, string> = {
 }
 
 export async function runAgent(agent: Agent): Promise<void> {
+  const controller = new AbortController()
+  runControllers.set(agent.id, controller)
   updateAgent(agent.id, { status: 'running' })
 
   const systemPrompt = agent.systemPromptOverride ?? SYSTEM_PROMPTS[agent.type]
   const model = MODEL_MAP[agent.type]
 
   try {
-    const stream = client.messages.stream({
-      model,
-      max_tokens: 8192,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: agent.prompt }],
-    })
+    const stream = client.messages.stream(
+      {
+        model,
+        max_tokens: 8192,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: agent.prompt }],
+      },
+      { signal: controller.signal }
+    )
 
     for await (const event of stream) {
       if (
@@ -50,11 +61,13 @@ export async function runAgent(agent: Agent): Promise<void> {
 
     updateAgent(agent.id, { status: 'done', completedAt: Date.now() })
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
+    const isCancelled = err instanceof Error && err.name === 'AbortError'
     updateAgent(agent.id, {
       status: 'failed',
-      error: message,
+      error: isCancelled ? 'Cancelled by user' : (err instanceof Error ? err.message : String(err)),
       completedAt: Date.now(),
     })
+  } finally {
+    runControllers.delete(agent.id)
   }
 }

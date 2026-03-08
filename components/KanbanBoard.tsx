@@ -50,6 +50,24 @@ export function KanbanBoard({ projectId, initialCardId }: { projectId: string; i
     const newStatus = over.id as TaskStatus
     const task = projectTasks.find((t) => t.id === taskId)
     if (!task || task.status === newStatus) return
+
+    if (newStatus === 'planning' && task.status === 'backlog') {
+      const res = await fetch(`/api/tasks/${taskId}/assign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'researcher' }),
+      })
+      if (!res.ok) {
+        // No idle researcher — fall back to manual status move
+        await fetch(`/api/tasks/${taskId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus }),
+        })
+      }
+      return
+    }
+
     await fetch(`/api/tasks/${taskId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
