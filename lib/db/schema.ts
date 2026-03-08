@@ -41,6 +41,7 @@ export const taskRuns = sqliteTable('task_runs', {
   status:      text('status').notNull(),
   output:      text('output').notNull().default(''),
   error:       text('error'),
+  rawLog:      text('raw_log'),
   startedAt:   integer('started_at').notNull(),
   completedAt: integer('completed_at').notNull(),
 })

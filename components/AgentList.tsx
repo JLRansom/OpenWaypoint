@@ -1,11 +1,15 @@
 'use client'
 
+import { useState } from 'react'
 import { Bot } from 'lucide-react'
 import { useStream } from '@/components/StreamProvider'
 import { AgentRow } from '@/components/AgentRow'
+import { AgentTerminalModal } from '@/components/AgentTerminalModal'
 
 export function AgentList() {
   const { agents } = useStream()
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const selectedAgent = agents.find((a) => a.id === selectedId)
 
   if (agents.length === 0) {
     return (
@@ -18,24 +22,35 @@ export function AgentList() {
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-dracula-dark">
-      <table className="w-full text-left text-sm">
-        <thead className="bg-dracula-dark text-xs font-medium uppercase text-dracula-blue">
-          <tr>
-            <th className="py-3 px-4">ID</th>
-            <th className="py-3 px-4">Type</th>
-            <th className="py-3 px-4">Project</th>
-            <th className="py-3 px-4">Status</th>
-            <th className="py-3 px-4">Created</th>
-            <th className="py-3 px-4">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {agents.map((agent) => (
-            <AgentRow key={agent.id} agent={agent} />
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <>
+      <div className="overflow-x-auto rounded-lg border border-dracula-dark">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-dracula-dark text-xs font-medium uppercase text-dracula-blue">
+            <tr>
+              <th className="py-3 px-4">ID</th>
+              <th className="py-3 px-4">Type</th>
+              <th className="py-3 px-4">Project</th>
+              <th className="py-3 px-4">Status</th>
+              <th className="py-3 px-4">Created</th>
+              <th className="py-3 px-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {agents.map((agent) => (
+              <AgentRow
+                key={agent.id}
+                agent={agent}
+                onSelect={() => setSelectedId(agent.id)}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <AgentTerminalModal
+        agent={selectedAgent}
+        onClose={() => setSelectedId(null)}
+      />
+    </>
   )
 }

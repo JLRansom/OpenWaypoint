@@ -50,6 +50,8 @@ export class LocalClaudeCliExecutor implements Executor {
       stdio: ['ignore', 'pipe', 'pipe'],
     })
 
+    const { onRawLine } = options
+
     const onAbort = () => {
       child.kill('SIGTERM')
       setTimeout(() => child.kill('SIGKILL'), 2000)
@@ -79,6 +81,7 @@ export class LocalClaudeCliExecutor implements Executor {
           if (!trimmed) continue
           let parsed: Record<string, unknown>
           try { parsed = JSON.parse(trimmed) } catch { continue }
+          onRawLine?.(trimmed)
 
           // Incremental text token
           if (parsed.type === 'stream_event') {

@@ -116,8 +116,9 @@ export async function assignAgentToTask(
 
   const agentToRun = getAgent(idleAgent.id)!
   const startedAt = Date.now()
+  const rawLines: string[] = []
 
-  runAgent(agentToRun).then(() => {
+  runAgent(agentToRun, (line) => rawLines.push(line)).then(() => {
     const completed = getAgent(idleAgent.id)
     if (!completed) return
 
@@ -134,6 +135,7 @@ export async function assignAgentToTask(
       status: completed.status as 'done' | 'failed',
       output,
       error: completed.error,
+      rawLog: rawLines.join('\n'),
       startedAt,
       completedAt: completed.completedAt ?? Date.now(),
     })

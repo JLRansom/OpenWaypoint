@@ -9,6 +9,35 @@ import { MarkdownOutput } from '@/components/ui/MarkdownOutput'
 type RoleFilter = 'all' | 'researcher' | 'coder' | 'senior-coder'
 type StatusFilter = 'all' | 'done' | 'failed'
 
+type TerminalEvent =
+  | { kind: 'tool_use'; name: string; input: unknown }
+  | { kind: 'tool_result'; content: string }
+
+function parseTerminalEvents(rawLog: string): TerminalEvent[] {
+  const events: TerminalEvent[] = []
+  for (const line of rawLog.split('\n')) {
+    try {
+      const obj = JSON.parse(line)
+      if (obj.type === 'assistant' && Array.isArray(obj.message?.content)) {
+        for (const block of obj.message.content) {
+          if (block.type === 'tool_use') {
+            events.push({ kind: 'tool_use', name: block.name, input: block.input })
+          }
+        }
+      }
+      if (obj.type === 'tool_result') {
+        const content = Array.isArray(obj.content)
+          ? obj.content.map((c: { text?: string }) => c.text ?? '').join('')
+          : String(obj.content ?? '')
+        events.push({ kind: 'tool_result', content })
+      }
+    } catch {
+      continue
+    }
+  }
+  return events
+}
+
 function formatDuration(startedAt: number, completedAt: number): string {
   const seconds = Math.round((completedAt - startedAt) / 1000)
   if (seconds < 60) return `${seconds}s`
@@ -75,6 +104,7 @@ export function HistoryList() {
   const [runs, setRuns] = useState<TaskRun[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [expandedTab, setExpandedTab] = useState<'result' | 'terminal'>('result')
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [search, setSearch] = useState('')
@@ -91,6 +121,7 @@ export function HistoryList() {
   }, [])
 
   useEffect(() => { fetchRuns() }, [fetchRuns])
+  useEffect(() => { setExpandedTab('result') }, [expandedId])
 
   const filtered = runs.filter((r) => {
     if (roleFilter !== 'all' && r.role !== roleFilter) return false
@@ -203,10 +234,61 @@ export function HistoryList() {
                   {expandedId === run.id && (
                     <tr key={`${run.id}-output`} className="border-b border-dracula-dark bg-dracula-darker">
                       <td colSpan={7} className="px-4 py-3">
-                        <MarkdownOutput
-                          output={run.output || '(no output)'}
-                          className="max-h-64 bg-dracula-dark rounded p-3"
-                        />
+                        {/* Tab bar */}
+                        <div className="flex gap-1 mb-3 border-b border-dracula-dark pb-2">
+                          {(['result', 'terminal'] as const).map((tab) => (
+                            <button
+                              key={tab}
+                              onClick={() => setExpandedTab(tab)}
+                              className={`px-3 py-1 text-xs font-medium rounded-t transition-colors ${
+                                expandedTab === tab
+                                  ? 'bg-dracula-purple text-dracula-darker'
+                                  : 'text-dracula-blue hover:text-dracula-light'
+                              }`}
+                            >
+                              {tab === 'result' ? 'Result' : 'Terminal'}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Result tab */}
+                        {expandedTab === 'result' && (
+                          <MarkdownOutput
+                            output={run.output || '(no output)'}
+                            className="max-h-64 bg-dracula-dark rounded p-3"
+                          />
+                        )}
+
+                        {/* Terminal tab */}
+                        {expandedTab === 'terminal' && (
+                          <div className="max-h-64 overflow-y-auto bg-dracula-darker rounded p-3 font-mono text-xs space-y-2">
+                            {!run.rawLog ? (
+                              <span className="text-dracula-comment italic">
+                                No terminal log available for this run.
+                              </span>
+                            ) : (
+                              parseTerminalEvents(run.rawLog).map((ev, i) =>
+                                ev.kind === 'tool_use' ? (
+                                  <div key={i}>
+                                    <span className="text-dracula-green font-semibold">
+                                      {'> '}{ev.name}
+                                    </span>
+                                    {ev.input != null && (
+                                      <pre className="mt-0.5 ml-4 text-dracula-yellow whitespace-pre-wrap break-all">
+                                        {JSON.stringify(ev.input as Record<string, unknown>, null, 2)}
+                                      </pre>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <pre key={i} className="ml-4 text-dracula-comment whitespace-pre-wrap break-all border-l-2 border-dracula-dark pl-2">
+                                    {ev.content || '(empty)'}
+                                  </pre>
+                                )
+                              )
+                            )}
+                          </div>
+                        )}
+
                         {run.error && (
                           <p className="mt-2 text-xs text-dracula-red font-mono">{run.error}</p>
                         )}
