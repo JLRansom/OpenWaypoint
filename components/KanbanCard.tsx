@@ -6,6 +6,7 @@ import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { Task, Agent } from '@/lib/types'
 import { StatusBadge } from '@/components/StatusBadge'
+import { TaskDetailModal } from '@/components/TaskDetailModal'
 
 type AssignRole = 'researcher' | 'coder' | 'senior-coder'
 
@@ -18,6 +19,7 @@ export function KanbanCard({ task, activeAgent }: KanbanCardProps) {
   const [loading, setLoading] = useState<AssignRole | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [assignError, setAssignError] = useState<string | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -88,7 +90,7 @@ export function KanbanCard({ task, activeAgent }: KanbanCardProps) {
     <div className="space-y-1.5">
       <div className="flex items-start justify-between gap-1.5">
         <p className="text-sm font-medium text-dracula-light line-clamp-2 leading-snug">{task.title}</p>
-        <div ref={menuRef} className="relative shrink-0">
+        <div ref={menuRef} className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o) }}
             className="rounded p-0.5 text-dracula-blue/60 hover:text-dracula-light hover:bg-dracula-dark/60 transition-colors opacity-0 group-hover:opacity-100"
@@ -184,14 +186,18 @@ export function KanbanCard({ task, activeAgent }: KanbanCardProps) {
   )
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
-      className={`group rounded-lg border border-dracula-dark/60 bg-dracula-dark shadow-sm p-3 hover:border-dracula-purple/40 hover:shadow-md transition-all cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-40' : ''}`}
-    >
-      {cardContent}
-    </div>
+    <>
+      <div
+        ref={setNodeRef}
+        style={style}
+        {...listeners}
+        {...attributes}
+        onClick={() => setModalOpen(true)}
+        className={`group rounded-lg border border-dracula-dark/60 bg-dracula-dark shadow-sm p-3 hover:border-dracula-purple/40 hover:shadow-md transition-all cursor-pointer ${isDragging ? 'opacity-40' : ''}`}
+      >
+        {cardContent}
+      </div>
+      {modalOpen && <TaskDetailModal task={task} onClose={() => setModalOpen(false)} />}
+    </>
   )
 }
