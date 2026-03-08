@@ -14,6 +14,7 @@ export function NewProjectModal() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [directory, setDirectory] = useState('')
+  const [browseError, setBrowseError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
@@ -38,12 +39,17 @@ export function NewProjectModal() {
   }
 
   async function handleBrowse() {
+    if (!('showDirectoryPicker' in window)) {
+      setBrowseError('Folder picker is not supported in this browser. Please type the path manually.')
+      return
+    }
+    setBrowseError('')
     try {
       // @ts-expect-error File System Access API not in all TS lib versions
       const handle = await window.showDirectoryPicker()
       setDirectory(handle.name)
     } catch {
-      // user cancelled or API unavailable
+      // user cancelled
     }
   }
 
@@ -51,6 +57,7 @@ export function NewProjectModal() {
     setName('')
     setDescription('')
     setDirectory('')
+    setBrowseError('')
     setOpen(false)
   }
 
@@ -140,9 +147,13 @@ export function NewProjectModal() {
                     Browse
                   </button>
                 </div>
-                <p className="mt-1 text-xs text-dracula-comment">
-                  Agents will reference this path when planning and implementing tasks.
-                </p>
+                {browseError ? (
+                  <p className="mt-1 text-xs text-dracula-red">{browseError}</p>
+                ) : (
+                  <p className="mt-1 text-xs text-dracula-comment">
+                    Agents will reference this path when planning and implementing tasks.
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-end gap-2 pt-1">
