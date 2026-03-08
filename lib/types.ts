@@ -43,6 +43,8 @@ export interface Task {
   archived?: boolean
 }
 
+import type { ExecutorConfig } from '@/lib/executors/types'
+
 export interface Project {
   id: string
   name: string
@@ -50,6 +52,8 @@ export interface Project {
   directory?: string
   createdAt: number
   updatedAt: number
+  /** If absent, local-cli executor is used. */
+  executorConfig?: ExecutorConfig
 }
 
 export interface StreamPayload {

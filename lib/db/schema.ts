@@ -21,12 +21,13 @@ export const agentEvents = sqliteTable('agent_events', {
 })
 
 export const projects = sqliteTable('projects', {
-  id:          text('id').primaryKey(),
-  name:        text('name').notNull(),
-  description: text('description').notNull().default(''),
-  directory:   text('directory'),
-  createdAt:   integer('created_at').notNull(),
-  updatedAt:   integer('updated_at').notNull(),
+  id:             text('id').primaryKey(),
+  name:           text('name').notNull(),
+  description:    text('description').notNull().default(''),
+  directory:      text('directory'),
+  executorConfig: text('executor_config'),   // JSON-serialised ExecutorConfig
+  createdAt:      integer('created_at').notNull(),
+  updatedAt:      integer('updated_at').notNull(),
 })
 
 export const taskRuns = sqliteTable('task_runs', {
