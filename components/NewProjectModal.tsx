@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { FolderOpen, X } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 
 const NAME_MAX = 60
 const NAME_WARN = 50
@@ -63,12 +64,9 @@ export function NewProjectModal() {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="rounded-lg bg-dracula-purple px-4 py-2 text-sm font-medium text-dracula-darker hover:bg-dracula-purple/90 transition-colors"
-      >
+      <Button variant="primary" size="md" onClick={() => setOpen(true)}>
         + New Project
-      </button>
+      </Button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-dracula-darker/80">
@@ -137,15 +135,17 @@ export function NewProjectModal() {
                     placeholder="E:\path\to\project"
                     className="flex-1 rounded-lg border border-dracula-dark bg-dracula-dark text-dracula-light placeholder:text-dracula-blue/50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dracula-purple font-mono"
                   />
-                  <button
+                  <Button
                     type="button"
+                    variant="secondary"
+                    size="md"
                     onClick={handleBrowse}
                     title="Pick a folder"
-                    className="flex items-center gap-1.5 rounded-lg border border-dracula-dark bg-dracula-dark px-3 py-2 text-sm text-dracula-blue hover:text-dracula-light hover:border-dracula-purple/50 transition-colors shrink-0"
+                    className="flex items-center gap-1.5 shrink-0"
                   >
                     <FolderOpen className="w-4 h-4" />
                     Browse
-                  </button>
+                  </Button>
                 </div>
                 {browseError ? (
                   <p className="mt-1 text-xs text-dracula-red">{browseError}</p>
@@ -157,20 +157,12 @@ export function NewProjectModal() {
               </div>
 
               <div className="flex justify-end gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  className="rounded-lg px-4 py-2 text-sm text-dracula-blue hover:text-dracula-light transition-colors"
-                >
+                <Button type="button" variant="secondary" size="md" onClick={handleClose}>
                   Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading || !name.trim()}
-                  className="rounded-lg bg-dracula-purple px-4 py-2 text-sm font-medium text-dracula-darker hover:bg-dracula-purple/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
+                </Button>
+                <Button type="submit" variant="primary" size="md" disabled={loading || !name.trim()}>
                   {loading ? 'Creating...' : 'Create Project'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

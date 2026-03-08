@@ -13,14 +13,24 @@ type AssignRole = 'researcher' | 'coder' | 'senior-coder'
 interface KanbanCardProps {
   task: Task
   activeAgent?: Agent
+  autoOpen?: boolean
+  onAutoOpenConsumed?: () => void
 }
 
-export function KanbanCard({ task, activeAgent }: KanbanCardProps) {
+export function KanbanCard({ task, activeAgent, autoOpen, onAutoOpenConsumed }: KanbanCardProps) {
   const [loading, setLoading] = useState<AssignRole | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [assignError, setAssignError] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (autoOpen) {
+      setModalOpen(true)
+      onAutoOpenConsumed?.()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,

@@ -7,10 +7,13 @@ import { ArchivedCards } from '@/components/ArchivedCards'
 
 export default async function ProjectBoardPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ card?: string }>
 }) {
   const { id } = await params
+  const { card } = await searchParams
   const project = getProject(id)
 
   if (!project) notFound()
@@ -35,7 +38,7 @@ export default async function ProjectBoardPage({
         )}
       </div>
 
-      <KanbanBoard projectId={id} />
+      <KanbanBoard projectId={id} initialCardId={card} />
       <ArchivedCards projectId={id} />
     </div>
   )

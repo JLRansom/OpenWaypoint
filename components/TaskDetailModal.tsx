@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Task, TaskStatus } from '@/lib/types'
+import { Task, TaskStatus, TaskRun } from '@/lib/types'
+import { Button } from '@/components/ui/Button'
+import { MarkdownOutput } from '@/components/ui/MarkdownOutput'
 
 const COLUMN_LABELS: Record<TaskStatus, string> = {
   backlog: 'Backlog',
@@ -21,6 +23,13 @@ const COLUMN_ACCENT: Record<TaskStatus, string> = {
   done: 'text-dracula-purple',
 }
 
+const ROLE_COLORS: Record<string, string> = {
+  researcher: 'text-dracula-cyan bg-dracula-cyan/10',
+  coder: 'text-dracula-green bg-dracula-green/10',
+  'senior-coder': 'text-dracula-orange bg-dracula-orange/10',
+  writer: 'text-dracula-purple bg-dracula-purple/10',
+}
+
 function formatDate(ts: number) {
   return new Date(ts).toLocaleString('en-US', {
     month: 'short',
@@ -31,6 +40,22 @@ function formatDate(ts: number) {
   })
 }
 
+function formatDuration(startedAt: number, completedAt: number): string {
+  const seconds = Math.round((completedAt - startedAt) / 1000)
+  if (seconds < 60) return `${seconds}s`
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}m ${s}s`
+}
+
+function formatTotalTime(ms: number): string {
+  const seconds = Math.round(ms / 1000)
+  if (seconds < 60) return `${seconds}s`
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}m ${s}s`
+}
+
 interface TaskDetailModalProps {
   task: Task
   onClose: () => void
@@ -39,6 +64,9 @@ interface TaskDetailModalProps {
 export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description)
+  const [runs, setRuns] = useState<TaskRun[]>([])
+  const [runsLoading, setRunsLoading] = useState(true)
+  const [expandedRunId, setExpandedRunId] = useState<string | null>(null)
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -47,6 +75,14 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [onClose])
+
+  useEffect(() => {
+    setRunsLoading(true)
+    fetch(`/api/tasks/${task.id}/runs`)
+      .then((r) => r.json())
+      .then((data: TaskRun[]) => setRuns(data))
+      .finally(() => setRunsLoading(false))
+  }, [task.id])
 
   async function save() {
     if (title === task.title && description === task.description) {
@@ -61,13 +97,15 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     onClose()
   }
 
+  const totalTimeMs = runs.reduce((sum, r) => sum + (r.completedAt - r.startedAt), 0)
+
   return (
     <div
       className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
       onClick={onClose}
     >
       <div
-        className="bg-dracula-darker rounded-xl border border-dracula-dark/60 w-full max-w-lg p-6 space-y-4"
+        className="bg-dracula-darker rounded-xl border border-dracula-dark/60 w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Title */}
@@ -122,20 +160,72 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
           </div>
         </div>
 
+        {/* Run History */}
+        <div className="space-y-2 pt-2 border-t border-dracula-dark/40">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-dracula-comment">
+              Run History
+            </p>
+            {runs.length > 0 && (
+              <span className="text-xs text-dracula-blue">
+                Total time: {formatTotalTime(totalTimeMs)}
+              </span>
+            )}
+          </div>
+
+          {runsLoading ? (
+            <p className="text-xs text-dracula-blue">Loading…</p>
+          ) : runs.length === 0 ? (
+            <p className="text-xs text-dracula-comment">No runs yet.</p>
+          ) : (
+            <div className="space-y-1">
+              {runs.map((run) => (
+                <div key={run.id} className="rounded-lg border border-dracula-dark/60 overflow-hidden">
+                  <button
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-dracula-dark/40 transition-colors"
+                    onClick={() => setExpandedRunId(expandedRunId === run.id ? null : run.id)}
+                  >
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium capitalize ${ROLE_COLORS[run.role] ?? 'text-dracula-light bg-dracula-dark'}`}>
+                      {run.role}
+                    </span>
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${run.status === 'done' ? 'text-dracula-green bg-dracula-green/10' : 'text-dracula-red bg-dracula-red/10'}`}>
+                      {run.status}
+                    </span>
+                    <span className="text-xs text-dracula-blue ml-auto">
+                      {formatDuration(run.startedAt, run.completedAt)}
+                    </span>
+                    <span className="text-xs text-dracula-comment">
+                      {formatDate(run.completedAt)}
+                    </span>
+                    <span className="text-xs text-dracula-blue/60 ml-1">
+                      {expandedRunId === run.id ? '▲' : '▼'}
+                    </span>
+                  </button>
+                  {expandedRunId === run.id && (
+                    <div className="border-t border-dracula-dark/40 px-3 py-2">
+                      <MarkdownOutput
+                        output={run.output || '(no output)'}
+                        className="max-h-48"
+                      />
+                      {run.error && (
+                        <p className="mt-2 text-xs text-dracula-red font-mono">{run.error}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Actions */}
         <div className="flex justify-end gap-2 pt-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 text-sm text-dracula-comment hover:text-dracula-light rounded-lg hover:bg-dracula-dark/60 transition-colors"
-          >
+          <Button variant="secondary" size="md" onClick={onClose}>
             Cancel
-          </button>
-          <button
-            onClick={save}
-            className="px-4 py-1.5 text-sm font-semibold bg-dracula-purple/20 text-dracula-purple border border-dracula-purple/40 rounded-lg hover:bg-dracula-purple/30 transition-colors"
-          >
+          </Button>
+          <Button variant="primary" size="md" onClick={save}>
             Save
-          </button>
+          </Button>
         </div>
       </div>
     </div>

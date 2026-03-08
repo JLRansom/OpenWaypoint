@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ChevronDown, ChevronRight, ArchiveRestore } from 'lucide-react'
 import { useStream } from '@/components/StreamProvider'
 import { TaskStatus } from '@/lib/types'
+import { Button } from '@/components/ui/Button'
 
 const COLUMN_LABELS: Record<TaskStatus, string> = {
   backlog: 'Backlog',
@@ -66,13 +67,15 @@ export function ArchivedCards({ projectId }: { projectId: string }) {
               <span className={`text-[10px] font-semibold uppercase ${COLUMN_ACCENT[task.status]}`}>
                 {COLUMN_LABELS[task.status]}
               </span>
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => unarchive(task.id)}
                 title={`Restore to ${COLUMN_LABELS[task.status]}`}
-                className="text-dracula-comment hover:text-dracula-green transition-colors"
+                className="p-1 px-1"
               >
                 <ArchiveRestore className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
           ))}
         </div>

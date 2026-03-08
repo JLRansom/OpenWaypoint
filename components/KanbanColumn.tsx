@@ -30,9 +30,11 @@ interface KanbanColumnProps {
   isAddActive: boolean
   onAddActivate: () => void
   onAddDeactivate: () => void
+  autoOpenCardId?: string
+  onAutoOpenConsumed: () => void
 }
 
-export function KanbanColumn({ status, tasks, agents, projectId, isAddActive, onAddActivate, onAddDeactivate }: KanbanColumnProps) {
+export function KanbanColumn({ status, tasks, agents, projectId, isAddActive, onAddActivate, onAddDeactivate, autoOpenCardId, onAutoOpenConsumed }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
   const label = COLUMN_LABELS[status]
   const accentClass = COLUMN_ACCENT[status]
@@ -64,7 +66,13 @@ export function KanbanColumn({ status, tasks, agents, projectId, isAddActive, on
             ? agents.find((a) => a.id === task.activeAgentId)
             : undefined
           return (
-            <KanbanCard key={task.id} task={task} activeAgent={activeAgent} />
+            <KanbanCard
+              key={task.id}
+              task={task}
+              activeAgent={activeAgent}
+              autoOpen={autoOpenCardId === task.id}
+              onAutoOpenConsumed={onAutoOpenConsumed}
+            />
           )
         })}
       </div>

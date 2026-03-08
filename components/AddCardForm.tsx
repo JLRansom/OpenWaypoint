@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Plus, Check, X } from 'lucide-react'
 import { TaskStatus } from '@/lib/types'
+import { Button } from '@/components/ui/Button'
 
 interface AddCardFormProps {
   projectId: string
@@ -57,20 +58,19 @@ export function AddCardForm({ projectId, status, isActive, onActivate, onDeactiv
           className="w-full bg-transparent text-sm text-dracula-light placeholder:text-dracula-comment focus:outline-none"
         />
         <div className="flex items-center gap-1.5 mt-2">
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={handleSubmit}
             disabled={!title.trim() || loading}
-            className="flex items-center gap-1 rounded-md bg-dracula-purple px-2 py-1 text-xs font-medium text-dracula-darker hover:bg-dracula-purple/90 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-1"
           >
             <Check className="w-3 h-3" />
             {loading ? 'Adding…' : 'Add'}
-          </button>
-          <button
-            onClick={cancel}
-            className="rounded-md p-1 text-dracula-comment hover:text-dracula-red hover:bg-dracula-red/10 transition-colors"
-          >
+          </Button>
+          <Button variant="danger" size="sm" onClick={cancel} className="p-1 px-1">
             <X className="w-3 h-3" />
-          </button>
+          </Button>
         </div>
       </div>
     )
