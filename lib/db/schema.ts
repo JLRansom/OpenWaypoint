@@ -1,0 +1,60 @@
+import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core'
+
+export const agents = sqliteTable('agents', {
+  id:                   text('id').primaryKey(),
+  type:                 text('type').notNull(),
+  prompt:               text('prompt').notNull().default(''),
+  status:               text('status').notNull().default('idle'),
+  projectId:            text('project_id'),
+  taskId:               text('task_id'),
+  systemPromptOverride: text('system_prompt_override'),
+  error:                text('error'),
+  createdAt:            integer('created_at').notNull(),
+  completedAt:          integer('completed_at'),
+})
+
+export const agentEvents = sqliteTable('agent_events', {
+  id:        integer('id').primaryKey({ autoIncrement: true }),
+  agentId:   text('agent_id').notNull().references(() => agents.id, { onDelete: 'cascade' }),
+  timestamp: integer('timestamp').notNull(),
+  text:      text('text').notNull(),
+})
+
+export const projects = sqliteTable('projects', {
+  id:          text('id').primaryKey(),
+  name:        text('name').notNull(),
+  description: text('description').notNull().default(''),
+  directory:   text('directory'),
+  createdAt:   integer('created_at').notNull(),
+  updatedAt:   integer('updated_at').notNull(),
+})
+
+export const taskRuns = sqliteTable('task_runs', {
+  id:          text('id').primaryKey(),
+  taskId:      text('task_id').notNull(),
+  taskTitle:   text('task_title').notNull(),
+  projectId:   text('project_id').notNull(),
+  projectName: text('project_name').notNull(),
+  agentId:     text('agent_id').notNull(),
+  role:        text('role').notNull(),
+  status:      text('status').notNull(),
+  output:      text('output').notNull().default(''),
+  error:       text('error'),
+  startedAt:   integer('started_at').notNull(),
+  completedAt: integer('completed_at').notNull(),
+})
+
+export const tasks = sqliteTable('tasks', {
+  id:               text('id').primaryKey(),
+  projectId:        text('project_id').notNull().references(() => projects.id),
+  title:            text('title').notNull(),
+  description:      text('description').notNull().default(''),
+  status:           text('status').notNull().default('backlog'),
+  activeAgentId:    text('active_agent_id'),
+  researcherOutput: text('researcher_output'),
+  coderOutput:      text('coder_output'),
+  reviewNotes:      text('review_notes'),
+  archived:         integer('archived', { mode: 'boolean' }).default(false),
+  createdAt:        integer('created_at').notNull(),
+  updatedAt:        integer('updated_at').notNull(),
+})

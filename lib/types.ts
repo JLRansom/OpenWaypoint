@@ -57,3 +57,18 @@ export interface StreamPayload {
   projects: Project[]
   tasks: Task[]
 }
+
+export interface TaskRun {
+  id: string
+  taskId: string
+  taskTitle: string
+  projectId: string
+  projectName: string
+  agentId: string
+  role: string
+  status: 'done' | 'failed'
+  output: string
+  error?: string
+  startedAt: number
+  completedAt: number
+}

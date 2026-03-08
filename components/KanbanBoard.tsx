@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import {
   DndContext,
   PointerSensor,
@@ -21,9 +22,20 @@ const COLUMNS: TaskStatus[] = [
   'done',
 ]
 
-export function KanbanBoard({ projectId }: { projectId: string }) {
+export function KanbanBoard({ projectId, initialCardId }: { projectId: string; initialCardId?: string }) {
   const { tasks, agents } = useStream()
   const [activeAddColumn, setActiveAddColumn] = useState<TaskStatus | null>(null)
+  const [autoOpenCardId, setAutoOpenCardId] = useState<string | undefined>(initialCardId)
+  const router = useRouter()
+  const pathname = usePathname()
+
+  // Clear the ?card= param from the URL after we've consumed it
+  useEffect(() => {
+    if (initialCardId) {
+      router.replace(pathname)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -59,6 +71,8 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
               isAddActive={activeAddColumn === status}
               onAddActivate={() => setActiveAddColumn(status)}
               onAddDeactivate={() => setActiveAddColumn(null)}
+              autoOpenCardId={autoOpenCardId}
+              onAutoOpenConsumed={() => setAutoOpenCardId(undefined)}
             />
           ))}
         </div>

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import { AgentType } from '@/lib/types'
 import { useStream } from '@/components/StreamProvider'
+import { Button } from '@/components/ui/Button'
 
 export function NewAgentModal() {
   const { projects } = useStream()
@@ -42,12 +43,9 @@ export function NewAgentModal() {
 
   return (
     <>
-      <button
-        onClick={handleOpen}
-        className="rounded-lg bg-dracula-purple px-4 py-2 text-sm font-medium text-dracula-darker hover:bg-dracula-purple/90 transition-colors"
-      >
+      <Button variant="primary" size="md" onClick={handleOpen}>
         + New Agent
-      </button>
+      </Button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-dracula-darker/80">
@@ -101,20 +99,12 @@ export function NewAgentModal() {
                 </div>
 
                 <div className="flex justify-end gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={handleClose}
-                    className="rounded-lg px-4 py-2 text-sm text-dracula-blue hover:text-dracula-light transition-colors"
-                  >
+                  <Button type="button" variant="secondary" size="md" onClick={handleClose}>
                     Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading || !projectId}
-                    className="rounded-lg bg-dracula-purple px-4 py-2 text-sm font-medium text-dracula-darker hover:bg-dracula-purple/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
+                  </Button>
+                  <Button type="submit" variant="primary" size="md" disabled={loading || !projectId}>
                     {loading ? 'Spawning…' : 'Spawn Agent'}
-                  </button>
+                  </Button>
                 </div>
               </form>
             )}

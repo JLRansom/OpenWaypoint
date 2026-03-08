@@ -31,7 +31,7 @@ export async function runAgent(agent: Agent): Promise<void> {
   try {
     const stream = client.messages.stream({
       model,
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: systemPrompt,
       messages: [{ role: 'user', content: agent.prompt }],
     })

@@ -3,6 +3,7 @@
 import { Agent } from '@/lib/types'
 import { StatusBadge } from '@/components/StatusBadge'
 import { useStream } from '@/components/StreamProvider'
+import { Button } from '@/components/ui/Button'
 
 export function AgentRow({ agent }: { agent: Agent }) {
   const { projects } = useStream()
@@ -31,12 +32,9 @@ export function AgentRow({ agent }: { agent: Agent }) {
       </td>
       <td className="py-3 px-4">
         {agent.status === 'running' && (
-          <button
-            onClick={handleStop}
-            className="text-xs text-dracula-red hover:text-dracula-red/80"
-          >
+          <Button variant="danger" size="sm" onClick={handleStop}>
             Stop
-          </button>
+          </Button>
         )}
       </td>
     </tr>
