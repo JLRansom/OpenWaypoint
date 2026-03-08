@@ -17,6 +17,7 @@ function rowToTaskRun(row: TaskRunRow): TaskRun {
     status: row.status as TaskRun['status'],
     output: row.output,
     error: row.error ?? undefined,
+    rawLog: row.rawLog ?? undefined,
     startedAt: row.startedAt,
     completedAt: row.completedAt,
   }
@@ -34,6 +35,7 @@ export function dbAddTaskRun(run: TaskRun): void {
     status: run.status,
     output: run.output,
     error: run.error ?? null,
+    rawLog: run.rawLog ?? null,
     startedAt: run.startedAt,
     completedAt: run.completedAt,
   }).run()

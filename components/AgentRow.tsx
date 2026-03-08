@@ -5,7 +5,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { useStream } from '@/components/StreamProvider'
 import { Button } from '@/components/ui/Button'
 
-export function AgentRow({ agent }: { agent: Agent }) {
+export function AgentRow({ agent, onSelect }: { agent: Agent; onSelect: () => void }) {
   const { projects } = useStream()
   const project = projects.find((p) => p.id === agent.projectId)
 
@@ -14,7 +14,10 @@ export function AgentRow({ agent }: { agent: Agent }) {
   }
 
   return (
-    <tr className="border-b border-dracula-dark hover:bg-dracula-dark/30 transition-colors">
+    <tr
+      className="border-b border-dracula-dark hover:bg-dracula-dark/30 transition-colors cursor-pointer"
+      onClick={onSelect}
+    >
       <td className="py-3 px-4 font-mono text-xs text-dracula-blue">{agent.id.slice(0, 8)}</td>
       <td className="py-3 px-4">
         <span className="rounded bg-dracula-dark px-2 py-0.5 text-xs font-medium text-dracula-light capitalize">
@@ -31,11 +34,13 @@ export function AgentRow({ agent }: { agent: Agent }) {
         {new Date(agent.createdAt).toLocaleTimeString()}
       </td>
       <td className="py-3 px-4">
-        {agent.status === 'running' && (
-          <Button variant="danger" size="sm" onClick={handleStop}>
-            Stop
-          </Button>
-        )}
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          {agent.status === 'running' && (
+            <Button variant="danger" size="sm" onClick={handleStop}>
+              Stop
+            </Button>
+          )}
+        </div>
       </td>
     </tr>
   )

@@ -10,6 +10,7 @@ export interface ExecutorRunOptions {
   /** Absolute path — executor sets this as the subprocess cwd. */
   workingDirectory?: string
   onChunk: (chunk: TextChunk) => void
+  onRawLine?: (line: string) => void
   signal: AbortSignal
 }
 

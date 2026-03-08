@@ -8,7 +8,7 @@ export function cancelAgent(agentId: string): void {
   runControllers.get(agentId)?.abort()
 }
 
-export async function runAgent(agent: Agent): Promise<void> {
+export async function runAgent(agent: Agent, onRawLine?: (line: string) => void): Promise<void> {
   const controller = new AbortController()
   runControllers.set(agent.id, controller)
   updateAgent(agent.id, { status: 'running' })
@@ -22,6 +22,7 @@ export async function runAgent(agent: Agent): Promise<void> {
       agent,
       workingDirectory,
       onChunk: (chunk) => appendEvent(agent.id, { timestamp: chunk.timestamp, text: chunk.text }),
+      onRawLine,
       signal: controller.signal,
     })
     updateAgent(agent.id, { status: 'done', completedAt: Date.now() })

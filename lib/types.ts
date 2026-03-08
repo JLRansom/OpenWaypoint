@@ -73,6 +73,7 @@ export interface TaskRun {
   status: 'done' | 'failed'
   output: string
   error?: string
+  rawLog?: string
   startedAt: number
   completedAt: number
 }
