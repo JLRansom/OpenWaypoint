@@ -4,6 +4,7 @@ import { ChevronLeft } from 'lucide-react'
 import { getProject } from '@/lib/store'
 import { KanbanBoard } from '@/components/KanbanBoard'
 import { ArchivedCards } from '@/components/ArchivedCards'
+import { EditProjectModal } from '@/components/EditProjectModal'
 
 export default async function ProjectBoardPage({
   params,
@@ -29,7 +30,10 @@ export default async function ProjectBoardPage({
           Projects
         </Link>
         <p className="text-[11px] font-bold uppercase tracking-widest text-dracula-comment mb-1 mt-2">Project</p>
-        <h1 className="text-2xl font-bold text-dracula-light">{project.name}</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-dracula-light">{project.name}</h1>
+          <EditProjectModal project={project} />
+        </div>
         {project.description && (
           <div className="mt-2">
             <p className="text-[11px] font-bold uppercase tracking-widest text-dracula-comment mb-0.5">Description</p>
