@@ -7,21 +7,23 @@ import { TaskStatus } from '@/lib/types'
 interface AddCardFormProps {
   projectId: string
   status: TaskStatus
+  isActive: boolean
+  onActivate: () => void
+  onDeactivate: () => void
 }
 
-export function AddCardForm({ projectId, status }: AddCardFormProps) {
-  const [active, setActive] = useState(false)
+export function AddCardForm({ projectId, status, isActive, onActivate, onDeactivate }: AddCardFormProps) {
   const [title, setTitle] = useState('')
   const [loading, setLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (active) inputRef.current?.focus()
-  }, [active])
+    if (isActive) inputRef.current?.focus()
+  }, [isActive])
 
   function cancel() {
     setTitle('')
-    setActive(false)
+    onDeactivate()
   }
 
   async function handleSubmit() {
@@ -34,13 +36,13 @@ export function AddCardForm({ projectId, status }: AddCardFormProps) {
         body: JSON.stringify({ title: title.trim(), status }),
       })
       setTitle('')
-      setActive(false)
+      onDeactivate()
     } finally {
       setLoading(false)
     }
   }
 
-  if (active) {
+  if (isActive) {
     return (
       <div className="rounded-lg border border-dracula-purple/40 bg-dracula-dark p-2">
         <input
@@ -65,7 +67,7 @@ export function AddCardForm({ projectId, status }: AddCardFormProps) {
           </button>
           <button
             onClick={cancel}
-            className="rounded-md p-1 text-dracula-blue/60 hover:text-dracula-light hover:bg-dracula-dark/60 transition-colors"
+            className="rounded-md p-1 text-dracula-comment hover:text-dracula-red hover:bg-dracula-red/10 transition-colors"
           >
             <X className="w-3 h-3" />
           </button>
@@ -76,7 +78,7 @@ export function AddCardForm({ projectId, status }: AddCardFormProps) {
 
   return (
     <button
-      onClick={() => setActive(true)}
+      onClick={onActivate}
       className="flex items-center gap-1.5 w-full rounded-lg border border-dashed border-dracula-dark/50 px-2 py-1.5 text-xs text-dracula-comment hover:text-dracula-blue hover:border-dracula-dark transition-colors"
     >
       <Plus className="w-3 h-3" />

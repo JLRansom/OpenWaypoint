@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import {
   DndContext,
   PointerSensor,
@@ -22,6 +23,7 @@ const COLUMNS: TaskStatus[] = [
 
 export function KanbanBoard({ projectId }: { projectId: string }) {
   const { tasks, agents } = useStream()
+  const [activeAddColumn, setActiveAddColumn] = useState<TaskStatus | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -54,6 +56,9 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
               tasks={projectTasks.filter((t) => t.status === status)}
               agents={agents}
               projectId={projectId}
+              isAddActive={activeAddColumn === status}
+              onAddActivate={() => setActiveAddColumn(status)}
+              onAddDeactivate={() => setActiveAddColumn(null)}
             />
           ))}
         </div>
