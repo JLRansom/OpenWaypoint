@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { getProject } from '@/lib/store'
 import { KanbanBoard } from '@/components/KanbanBoard'
+import { ArchivedCards } from '@/components/ArchivedCards'
 
 export default async function ProjectBoardPage({
   params,
@@ -19,18 +20,23 @@ export default async function ProjectBoardPage({
       <div className="mb-6">
         <Link
           href="/projects"
-          className="flex items-center gap-1 text-xs text-dracula-blue hover:text-dracula-light mb-2 transition-colors"
+          className="flex items-center gap-1 text-xs text-dracula-cyan hover:text-dracula-light mb-2 transition-colors"
         >
           <ChevronLeft className="w-3 h-3" />
           Projects
         </Link>
+        <p className="text-[11px] font-bold uppercase tracking-widest text-dracula-comment mb-1 mt-2">Project</p>
         <h1 className="text-2xl font-bold text-dracula-light">{project.name}</h1>
         {project.description && (
-          <p className="text-sm text-dracula-blue mt-1">{project.description}</p>
+          <div className="mt-2">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-dracula-comment mb-0.5">Description</p>
+            <p className="text-sm text-dracula-comment">{project.description}</p>
+          </div>
         )}
       </div>
 
       <KanbanBoard projectId={id} />
+      <ArchivedCards projectId={id} />
     </div>
   )
 }
