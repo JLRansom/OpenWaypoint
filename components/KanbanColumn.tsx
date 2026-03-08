@@ -27,9 +27,12 @@ interface KanbanColumnProps {
   tasks: Task[]
   agents: Agent[]
   projectId: string
+  isAddActive: boolean
+  onAddActivate: () => void
+  onAddDeactivate: () => void
 }
 
-export function KanbanColumn({ status, tasks, agents, projectId }: KanbanColumnProps) {
+export function KanbanColumn({ status, tasks, agents, projectId, isAddActive, onAddActivate, onAddDeactivate }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
   const label = COLUMN_LABELS[status]
   const accentClass = COLUMN_ACCENT[status]
@@ -37,7 +40,7 @@ export function KanbanColumn({ status, tasks, agents, projectId }: KanbanColumnP
   const isEmpty = tasks.length === 0
 
   return (
-    <div className={`flex flex-col flex-1 min-w-[150px] rounded-xl border transition-all ${isOver ? 'bg-dracula-current/20 border-dracula-purple/40 ring-1 ring-dracula-purple/30' : 'bg-dracula-current/10 border-dracula-dark/50'}`}>
+    <div className={`flex flex-col flex-1 min-w-[150px] rounded-xl border transition-all ${isOver ? 'bg-dracula-surface/80 border-dracula-purple/40 ring-1 ring-dracula-purple/30' : 'bg-dracula-surface border-dracula-dark/50'}`}>
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-dracula-dark/40">
         <h3 className={`text-[11px] font-bold uppercase tracking-widest truncate ${accentClass}`}>
@@ -68,7 +71,13 @@ export function KanbanColumn({ status, tasks, agents, projectId }: KanbanColumnP
 
       {/* Add card */}
       <div className="p-2 pt-0">
-        <AddCardForm projectId={projectId} status={status} />
+        <AddCardForm
+          projectId={projectId}
+          status={status}
+          isActive={isAddActive}
+          onActivate={onAddActivate}
+          onDeactivate={onAddDeactivate}
+        />
       </div>
     </div>
   )
