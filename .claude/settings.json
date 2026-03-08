@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'input=$(cat); file=$(echo \"$input\" | jq -r \".tool_input.file_path // empty\"); [[ \"$file\" == *.ts || \"$file\" == *.tsx ]] && cd /e/agents-galore && npx prettier --write \"$file\" 2>/dev/null; exit 0'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'cd /e/agents-galore || exit 0; [ -z \"$(git status --porcelain)\" ] && exit 0; npx tsc --noEmit 2>/dev/null || exit 0; git add -A && git commit -m \"chore: apply claude session changes\"'"
+          }
+        ]
+      }
+    ]
+  }
+}
