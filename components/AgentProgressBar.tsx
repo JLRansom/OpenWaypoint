@@ -101,13 +101,17 @@ export function AgentProgressBar({ task, activeAgent, boardType }: AgentProgress
   const isRunning = activeAgent?.status === 'running' || activeAgent?.status === 'queued'
 
   useEffect(() => {
-    if (!isRunning || !activeAgent?.createdAt) {
+    // activeAgent is optional; createdAt is always a number on Agent.
+    // Guard both: no agent → nothing to time; not running → reset.
+    if (!activeAgent || !isRunning) {
       setElapsed(0)
       return
     }
-    setElapsed(Date.now() - activeAgent.createdAt)
+
+    const { createdAt } = activeAgent
+    setElapsed(Date.now() - createdAt)
     const id = setInterval(() => {
-      setElapsed(Date.now() - activeAgent.createdAt)
+      setElapsed(Date.now() - createdAt)
     }, 1000)
     return () => clearInterval(id)
   }, [isRunning, activeAgent?.createdAt])
