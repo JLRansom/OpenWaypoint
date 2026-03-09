@@ -1,0 +1,49 @@
+# Architecture Decision Records
+
+> Append new entries at the top. Keep each entry ≤ 10 lines.
+
+## ADR-009 — Multi-agent pipeline with review cycles (2026-03-08)
+**Context:** Projects need structured multi-agent workflows without manual hand-offs.
+**Decision:** Automated researcher → coder → senior-coder pipeline; each stage hands output to the next; senior-coder can trigger review cycles back to coder. Real cancellation cancels the active stage.
+**Status:** Accepted.
+
+## ADR-008 — Executor abstraction layer (2026-03-08)
+**Context:** Different projects may need different model configs, system prompts, or provider backends.
+**Decision:** `executor` interface wraps model call details; each project can bind a different executor config without changing pipeline logic.
+**Status:** Accepted.
+
+## ADR-007 — Idle agent pool model (2026-03-08)
+**Context:** Spawning a new agent process per task introduced latency and wasted resources.
+**Decision:** Agents are spawned once into an idle pool and assigned tasks on demand; they return to idle after completion rather than being destroyed.
+**Status:** Accepted.
+
+## ADR-006 — SQLite + Drizzle ORM (2026-03-08)
+**Context:** In-memory singleton store (ADR-002) couldn't survive server restarts and blocked multi-process deployments.
+**Decision:** Migrate to SQLite via Drizzle ORM; schema lives in `/lib/db`; all state access goes through Drizzle queries instead of `getStore()`.
+**Supersedes:** ADR-002.
+**Status:** Accepted.
+
+## ADR-005 — Project context system + brain skill (2026-03-08)
+**Context:** Needed a structured way to maintain project memory across sessions.
+**Decision:** `context/` directory with roadmap, decisions, and sprint files; `.agents/skills/brain/` skill manages them.
+**Status:** Accepted.
+
+## ADR-004 — Tailwind + Dracula theme (2026-03-08)
+**Context:** Needed consistent dark-mode styling across the dashboard.
+**Decision:** Use Tailwind CSS with `tailwind-dracula` plugin for a unified colour palette.
+**Status:** Accepted.
+
+## ADR-003 — Server-Sent Events for real-time updates (2026-03-08)
+**Context:** Needed push updates for agent status without WebSocket complexity.
+**Decision:** SSE endpoint at `/api/stream` — simpler, HTTP-native, no extra infrastructure.
+**Status:** Accepted.
+
+## ADR-002 — In-memory singleton store (2026-03-08)
+**Context:** Need shared state across API routes during prototype phase.
+**Decision:** `getStore()` singleton in `/lib/store.ts`. Will replace with a database when persistence is needed.
+**Status:** Superseded by ADR-006.
+
+## ADR-001 — Next.js 15 App Router (2026-03-08)
+**Context:** Need server components, streaming, and API routes in one framework.
+**Decision:** Next.js 15 with App Router, TypeScript, and Tailwind CSS.
+**Status:** Accepted.
