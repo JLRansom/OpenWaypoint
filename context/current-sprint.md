@@ -1,6 +1,6 @@
 # Current Sprint
 
-> Last updated: 2026-03-08
+> Last updated: 2026-03-08 (KanbanCard indentation review feedback fully resolved)
 
 ## In Progress
 - [ ] Authentication & role-based access (protect dashboard + API routes)
@@ -9,9 +9,10 @@
 ## Up Next
 - [ ] Deployment pipeline (Docker / Vercel)
 - [ ] Persistent working directory integration (agent file system access)
-- [ ] Error handling & retry UX improvements
+- [ ] Error handling & retry UX improvements (phase 2: structured error objects, replace split-string convention)
 
 ## Recently Done
+- [x] Error classification UI (reason + recovery hint), graceful failure cards, auto-merge on senior sign-off, backlog minor-issue parsing — merged + review fixes applied (2026-03-08)
 - [x] Agent terminal modal + history terminal tab
 - [x] Edit project modal (name, description, directory fields)
 - [x] Executor abstraction layer (pluggable model configs per project)
