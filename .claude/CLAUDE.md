@@ -12,6 +12,16 @@ npm run lint:fix     # eslint auto-fix
 npm run type-check   # tsc --noEmit
 ```
 
+## Workflow
+
+**All code changes MUST be made in a git worktree** — never edit directly on the main working tree.
+
+- Before making any code edits, create or enter a worktree (`isolation: "worktree"` for agents, or `git worktree add` manually).
+- This allows multiple agents/developers to work in parallel without file conflicts.
+- Each worktree gets its own branch — name it descriptively (e.g., `feat/add-dashboard-filters`).
+- When finished, open a PR from the worktree branch. Do NOT merge directly into main.
+- Clean up worktrees after the branch is merged: `git worktree remove <path>`.
+
 ## Architecture
 
 - API routes live in `/app/api/[resource]/route.ts`
