@@ -1,8 +1,9 @@
 import { randomUUID } from 'crypto'
 import { Agent, TaskStatus, BoardType } from '@/lib/types'
-import { getTask, getProject, getAllAgents, updateAgent, updateTask, getAgent } from '@/lib/store'
+import { getTask, getProject, getAllAgents, updateAgent, updateTask, getAgent, addTask } from '@/lib/store'
 import { runAgent } from '@/lib/agent-runner'
 import { dbAddTaskRun } from '@/lib/db/repositories/taskRunRepo'
+import { mergeWorktreeBranch } from '@/lib/git-utils'
 
 export type AssignRole = 'researcher' | 'coder' | 'senior-coder' | 'tester'
 
@@ -52,7 +53,10 @@ function buildSystemPrompt(role: AssignRole): string {
     'Evaluate the implementation for correctness, edge cases, and code quality. ' +
     'Be specific in your feedback. ' +
     'End your review with exactly one of: "VERDICT: APPROVED" or "VERDICT: CHANGES REQUESTED". ' +
-    'If requesting changes, include a "## Changes Required" section listing specific items to fix.'
+    'If requesting changes, include a "## Changes Required" section listing specific items to fix. ' +
+    'If you approve but notice minor issues, non-blocking improvements, or future cleanup tasks, ' +
+    'include a "## Minor Issues" section listing each item as a bullet point. ' +
+    'These will be logged as backlog items automatically.'
   )
 }
 
@@ -188,6 +192,37 @@ export async function assignAgentToTask(
       // won't have emitted a proper VERDICT line, so we'd misread the output.
       if (completed.status === 'done') {
         if (output.includes('VERDICT: APPROVED')) {
+          // Merge the worktree branch into master (best-effort)
+          if (directory) {
+            try {
+              await mergeWorktreeBranch(directory, task.title)
+            } catch (err) {
+              console.error('[agentService] Worktree merge failed (non-blocking):', err)
+            }
+          }
+
+          // Parse any minor issues the senior coder flagged and log them as backlog tasks
+          const minorMatch = output.match(/##\s*Minor Issues([\s\S]*?)(?=\n##|\s*$)/)
+          if (minorMatch) {
+            const items = minorMatch[1]
+              .split(/\n[-*]\s+/)
+              .map((s) => s.trim())
+              .filter(Boolean)
+
+            for (const item of items) {
+              const title = item.length > 80 ? item.slice(0, 77) + '...' : item
+              addTask({
+                id: randomUUID(),
+                projectId: task.projectId,
+                title,
+                description: `Auto-logged from senior review of "${task.title}":\n\n${item}`,
+                status: 'backlog',
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+              })
+            }
+          }
+
           if (boardType === 'coding') {
             // If no idle tester is available, fall back to done rather than
             // leaving the task permanently stuck in review.
