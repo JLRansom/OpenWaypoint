@@ -101,16 +101,17 @@ export function AgentProgressBar({ task, activeAgent, boardType }: AgentProgress
   const isRunning = activeAgent?.status === 'running' || activeAgent?.status === 'queued'
 
   useEffect(() => {
-    if (!isRunning || !activeAgent?.createdAt) {
+    const startTime = activeAgent?.taskStartedAt ?? activeAgent?.createdAt
+    if (!isRunning || !startTime) {
       setElapsed(0)
       return
     }
-    setElapsed(Date.now() - activeAgent.createdAt)
+    setElapsed(Date.now() - startTime)
     const id = setInterval(() => {
-      setElapsed(Date.now() - activeAgent.createdAt)
+      setElapsed(Date.now() - startTime)
     }, 1000)
     return () => clearInterval(id)
-  }, [isRunning, activeAgent?.createdAt])
+  }, [isRunning, activeAgent?.taskStartedAt, activeAgent?.createdAt])
 
   // ── General boards ─────────────────────────────────────────────────────────
   // No pipeline stages — just show role chip + elapsed time while running.
