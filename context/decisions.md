@@ -2,6 +2,12 @@
 
 > Append new entries at the top. Keep each entry ≤ 10 lines.
 
+## ADR-010 — AgentProgressBar: pipeline stages on KanbanCard (2026-03-09)
+**Decision:** New `AgentProgressBar` component shows segmented pipeline (Research→Code→Review→Test for coding boards, single stage for research, role chip + timer only for general). Renders in KanbanCard bottom-meta section.
+**Key constraint:** `showProgressBar` guards against general boards with no active agent to prevent an empty border container — `isAgentRunning || (boardType !== 'general' && MID_PIPELINE.includes(task.status))`.
+**Affects:** `components/AgentProgressBar.tsx` (new), `components/KanbanCard.tsx`.
+**Status:** Accepted.
+
 ## ADR-009 — Multi-agent pipeline with review cycles (2026-03-08)
 **Context:** Projects need structured multi-agent workflows without manual hand-offs.
 **Decision:** Automated researcher → coder → senior-coder pipeline; each stage hands output to the next; senior-coder can trigger review cycles back to coder. Real cancellation cancels the active stage.

@@ -1,6 +1,9 @@
 # Current Sprint
 
-> Last updated: 2026-03-08 (KanbanCard indentation review feedback fully resolved)
+> Last updated: 2026-03-09
+
+## Active Worktrees
+- `worktree-agent-af0e5f3e` — feat: card progress bar — committed, awaiting PR
 
 ## In Progress
 - [ ] Authentication & role-based access (protect dashboard + API routes)
@@ -12,6 +15,7 @@
 - [ ] Error handling & retry UX improvements (phase 2: structured error objects, replace split-string convention)
 
 ## Recently Done
+- [x] KanbanCard progress bar — AgentProgressBar with segmented pipeline stages, role label, elapsed timer; review fix for empty general-board container (2026-03-09)
 - [x] Error classification UI (reason + recovery hint), graceful failure cards, auto-merge on senior sign-off, backlog minor-issue parsing — merged + review fixes applied (2026-03-08)
 - [x] Agent terminal modal + history terminal tab
 - [x] Edit project modal (name, description, directory fields)
