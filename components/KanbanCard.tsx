@@ -114,8 +114,8 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
   const cardContent = (
     <div className="space-y-1.5">
       <div className="flex items-start justify-between gap-1.5">
-            <p className="text-sm font-medium text-dracula-light line-clamp-2 leading-snug">{task.title}</p>
-      <div ref={menuRef} className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
+        <p className="text-sm font-medium text-dracula-light line-clamp-2 leading-snug">{task.title}</p>
+        <div ref={menuRef} className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o) }}
             className="rounded p-0.5 text-dracula-blue/60 hover:text-dracula-light hover:bg-dracula-dark/60 transition-colors opacity-0 group-hover:opacity-100"
