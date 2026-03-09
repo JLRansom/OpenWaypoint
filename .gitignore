@@ -23,3 +23,6 @@ next-env.d.ts
 
 # SQLite database
 /data/
+
+# Git worktrees
+.worktrees/

@@ -87,7 +87,14 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
     await fetch(`/api/tasks/${task.id}`, { method: 'DELETE' })
   }
 
+  function retryLastRole() {
+    if (activeAgent?.type) {
+      assign(activeAgent.type as AssignRole)
+    }
+  }
+
   const isAgentRunning = activeAgent?.status === 'running' || activeAgent?.status === 'queued'
+  const isAgentFailed = activeAgent?.status === 'failed'
 
   const showAssignResearcher = task.status === 'backlog' && boardType !== 'general'
   const showAssignCoder = boardType === 'coding' && ((task.status === 'planning' && !isAgentRunning) || task.status === 'changes-requested')
@@ -99,11 +106,16 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
   const hasBottomMeta =
     (activeAgent && (isAgentRunning || activeAgent.status === 'done' || activeAgent.status === 'failed'))
 
+  // Split error message into reason + recovery (separated by ' — ')
+  const errorParts = activeAgent?.error?.split(' — ') ?? []
+  const errorReason = errorParts[0] ?? activeAgent?.error ?? ''
+  const errorRecovery = errorParts.length > 1 ? errorParts.slice(1).join(' — ') : null
+
   const cardContent = (
     <div className="space-y-1.5">
       <div className="flex items-start justify-between gap-1.5">
-        <p className="text-sm font-medium text-dracula-light line-clamp-2 leading-snug">{task.title}</p>
-        <div ref={menuRef} className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
+      <p className="text-sm font-medium text-dracula-light line-clamp-2 leading-snug">{task.title}</p>
+      <div ref={menuRef} className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o) }}
             className="rounded p-0.5 text-dracula-blue/60 hover:text-dracula-light hover:bg-dracula-dark/60 transition-colors opacity-0 group-hover:opacity-100"
@@ -205,6 +217,22 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
               View Output →
             </Link>
           )}
+        </div>
+      )}
+
+      {isAgentFailed && activeAgent?.error && (
+        <div className="rounded bg-dracula-red/10 border border-dracula-red/30 p-1.5 mt-1.5">
+          <p className="text-xs text-dracula-red font-medium">⚠ Agent Failed</p>
+          <p className="text-xs text-dracula-light/80 mt-0.5 line-clamp-2">{errorReason}</p>
+          {errorRecovery && (
+            <p className="text-xs text-dracula-orange/80 mt-0.5 line-clamp-2">💡 {errorRecovery}</p>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); retryLastRole() }}
+            className="text-xs text-dracula-cyan hover:text-dracula-light mt-1 transition-colors"
+          >
+            ↻ Retry
+          </button>
         </div>
       )}
 

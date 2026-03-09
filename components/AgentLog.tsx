@@ -19,6 +19,11 @@ export function AgentLog({ agentId }: { agentId: string }) {
 
   const fullText = agent.events.map((e) => e.text).join('')
 
+  // Split "reason — recovery" format stored by agent-runner
+  const errorParts = agent.error?.split(' — ') ?? []
+  const errorReason = errorParts[0] ?? agent.error ?? ''
+  const errorRecovery = errorParts.length > 1 ? errorParts.slice(1).join(' — ') : null
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
@@ -37,8 +42,13 @@ export function AgentLog({ agentId }: { agentId: string }) {
       </div>
 
       {agent.error && (
-        <div className="rounded-lg bg-dracula-red/10 border border-dracula-red p-4 text-sm text-dracula-red">
-          {agent.error}
+        <div className="rounded-lg bg-dracula-red/10 border border-dracula-red p-4 text-sm space-y-1">
+          <p className="text-dracula-red font-medium">{errorReason}</p>
+          {errorRecovery && (
+            <p className="text-dracula-orange text-xs">
+              💡 {errorRecovery}
+            </p>
+          )}
         </div>
       )}
 
