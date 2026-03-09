@@ -10,16 +10,6 @@
           }
         ]
       }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash -c 'cd /e/agents-galore || exit 0; [ -z \"$(git status --porcelain)\" ] && exit 0; npx tsc --noEmit 2>/dev/null || exit 0; git add -A && git commit -m \"chore: apply claude session changes\"'"
-          }
-        ]
-      }
     ]
   }
 }
