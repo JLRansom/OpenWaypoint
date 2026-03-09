@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../client'
 import { projects } from '../schema'
-import { Project } from '@/lib/types'
+import { Project, BoardType } from '@/lib/types'
 import type { ExecutorConfig } from '@/lib/executors/types'
 
 type ProjectRow = typeof projects.$inferSelect
@@ -12,6 +12,7 @@ function rowToProject(row: ProjectRow): Project {
     name: row.name,
     description: row.description,
     directory: row.directory ?? undefined,
+    boardType: row.boardType as BoardType,
     executorConfig: row.executorConfig
       ? (JSON.parse(row.executorConfig) as ExecutorConfig)
       : undefined,
@@ -41,6 +42,7 @@ export function dbAddProject(project: Project): void {
     name: project.name,
     description: project.description,
     directory: project.directory ?? null,
+    boardType: project.boardType ?? 'coding',
     executorConfig: project.executorConfig ? JSON.stringify(project.executorConfig) : null,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
@@ -53,6 +55,7 @@ export function dbUpdateProject(id: string, patch: Partial<Project>): void {
   if (patch.name !== undefined) update.name = patch.name
   if (patch.description !== undefined) update.description = patch.description
   if ('directory' in patch) update.directory = patch.directory ?? null
+  if (patch.boardType !== undefined) update.boardType = patch.boardType
   if ('executorConfig' in patch) update.executorConfig = patch.executorConfig ? JSON.stringify(patch.executorConfig) : null
   if (patch.updatedAt !== undefined) update.updatedAt = patch.updatedAt
 

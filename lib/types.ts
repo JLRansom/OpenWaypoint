@@ -1,4 +1,5 @@
-export type AgentType = 'researcher' | 'coder' | 'writer' | 'senior-coder'
+export type AgentType = 'researcher' | 'coder' | 'writer' | 'senior-coder' | 'tester'
+export type BoardType = 'coding' | 'research' | 'general'
 export type AgentStatus = 'idle' | 'queued' | 'running' | 'done' | 'failed'
 
 export interface AgentEvent {
@@ -25,6 +26,7 @@ export type TaskStatus =
   | 'planning'
   | 'in-progress'
   | 'review'
+  | 'testing'
   | 'changes-requested'
   | 'done'
 
@@ -40,6 +42,7 @@ export interface Task {
   researcherOutput?: string
   coderOutput?: string
   reviewNotes?: string
+  testerOutput?: string
   archived?: boolean
 }
 
@@ -50,6 +53,7 @@ export interface Project {
   name: string
   description: string
   directory?: string
+  boardType: BoardType
   createdAt: number
   updatedAt: number
   /** If absent, local-cli executor is used. */
@@ -76,4 +80,12 @@ export interface TaskRun {
   rawLog?: string
   startedAt: number
   completedAt: number
+}
+
+export interface PaginatedRunsResponse {
+  runs: TaskRun[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
 }

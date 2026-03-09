@@ -11,18 +11,15 @@ import {
 } from '@dnd-kit/core'
 import { useStream } from '@/components/StreamProvider'
 import { KanbanColumn } from '@/components/KanbanColumn'
-import { TaskStatus } from '@/lib/types'
+import { TaskStatus, BoardType } from '@/lib/types'
 
-const COLUMNS: TaskStatus[] = [
-  'backlog',
-  'planning',
-  'in-progress',
-  'review',
-  'changes-requested',
-  'done',
-]
+const BOARD_COLUMNS: Record<BoardType, TaskStatus[]> = {
+  coding:   ['backlog', 'planning', 'in-progress', 'review', 'testing', 'changes-requested', 'done'],
+  research: ['backlog', 'in-progress', 'done'],
+  general:  ['backlog', 'in-progress', 'done'],
+}
 
-export function KanbanBoard({ projectId, initialCardId }: { projectId: string; initialCardId?: string }) {
+export function KanbanBoard({ projectId, initialCardId, boardType }: { projectId: string; initialCardId?: string; boardType: BoardType }) {
   const { tasks, agents } = useStream()
   const [activeAddColumn, setActiveAddColumn] = useState<TaskStatus | null>(null)
   const [autoOpenCardId, setAutoOpenCardId] = useState<string | undefined>(initialCardId)
@@ -51,7 +48,11 @@ export function KanbanBoard({ projectId, initialCardId }: { projectId: string; i
     const task = projectTasks.find((t) => t.id === taskId)
     if (!task || task.status === newStatus) return
 
-    if (newStatus === 'planning' && task.status === 'backlog') {
+    const triggerResearcher =
+      (boardType === 'coding' && task.status === 'backlog' && newStatus === 'planning') ||
+      (boardType === 'research' && task.status === 'backlog' && newStatus === 'in-progress')
+
+    if (triggerResearcher) {
       const res = await fetch(`/api/tasks/${taskId}/assign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -75,17 +76,20 @@ export function KanbanBoard({ projectId, initialCardId }: { projectId: string; i
     })
   }
 
+  const columns = BOARD_COLUMNS[boardType]
+
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <div className="overflow-x-auto pb-6 min-h-[70vh] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-dracula-darker [&::-webkit-scrollbar-thumb]:bg-dracula-dark [&::-webkit-scrollbar-thumb]:rounded-full">
         <div className="flex gap-3 w-full items-start">
-          {COLUMNS.map((status) => (
+          {columns.map((status) => (
             <KanbanColumn
               key={status}
               status={status}
               tasks={projectTasks.filter((t) => t.status === status)}
               agents={agents}
               projectId={projectId}
+              boardType={boardType}
               isAddActive={activeAddColumn === status}
               onAddActivate={() => setActiveAddColumn(status)}
               onAddDeactivate={() => setActiveAddColumn(null)}

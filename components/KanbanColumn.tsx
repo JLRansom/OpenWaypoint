@@ -1,5 +1,5 @@
 import { useDroppable } from '@dnd-kit/core'
-import { Task, Agent, TaskStatus } from '@/lib/types'
+import { Task, Agent, TaskStatus, BoardType } from '@/lib/types'
 import { KanbanCard } from '@/components/KanbanCard'
 import { AddCardForm } from '@/components/AddCardForm'
 
@@ -8,6 +8,7 @@ const COLUMN_LABELS: Record<TaskStatus, string> = {
   planning: 'Planning',
   'in-progress': 'In Progress',
   review: 'Review',
+  testing: 'Testing',
   'changes-requested': 'Changes Requested',
   done: 'Done',
 }
@@ -17,6 +18,7 @@ const COLUMN_ACCENT: Record<TaskStatus, string> = {
   planning: 'text-dracula-cyan',
   'in-progress': 'text-dracula-green',
   review: 'text-dracula-orange',
+  testing: 'text-dracula-pink',
   'changes-requested': 'text-dracula-red',
   done: 'text-dracula-purple',
 }
@@ -27,6 +29,7 @@ interface KanbanColumnProps {
   tasks: Task[]
   agents: Agent[]
   projectId: string
+  boardType: BoardType
   isAddActive: boolean
   onAddActivate: () => void
   onAddDeactivate: () => void
@@ -34,9 +37,10 @@ interface KanbanColumnProps {
   onAutoOpenConsumed: () => void
 }
 
-export function KanbanColumn({ status, tasks, agents, projectId, isAddActive, onAddActivate, onAddDeactivate, autoOpenCardId, onAutoOpenConsumed }: KanbanColumnProps) {
+export function KanbanColumn({ status, tasks, agents, projectId, boardType, isAddActive, onAddActivate, onAddDeactivate, autoOpenCardId, onAutoOpenConsumed }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
-  const label = COLUMN_LABELS[status]
+  const baseLabel = COLUMN_LABELS[status]
+  const label = status === 'backlog' && boardType === 'general' ? 'To Do' : baseLabel
   const accentClass = COLUMN_ACCENT[status]
 
   const isEmpty = tasks.length === 0
@@ -70,6 +74,7 @@ export function KanbanColumn({ status, tasks, agents, projectId, isAddActive, on
               key={task.id}
               task={task}
               activeAgent={activeAgent}
+              boardType={boardType}
               autoOpen={autoOpenCardId === task.id}
               onAutoOpenConsumed={onAutoOpenConsumed}
             />

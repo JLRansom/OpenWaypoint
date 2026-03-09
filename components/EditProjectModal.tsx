@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Pencil, FolderOpen, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import type { Project } from '@/lib/types'
+import type { Project, BoardType } from '@/lib/types'
 
 const NAME_MAX = 60
 const NAME_WARN = 50
@@ -16,6 +16,7 @@ export function EditProjectModal({ project }: { project: Project }) {
   const [name, setName] = useState(project.name)
   const [description, setDescription] = useState(project.description)
   const [directory, setDirectory] = useState(project.directory ?? '')
+  const [boardType, setBoardType] = useState<BoardType>(project.boardType ?? 'coding')
   const [browseError, setBrowseError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -28,7 +29,7 @@ export function EditProjectModal({ project }: { project: Project }) {
       await fetch(`/api/projects/${project.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, directory }),
+        body: JSON.stringify({ name, description, directory, boardType }),
       })
       setOpen(false)
       router.refresh()
@@ -56,6 +57,7 @@ export function EditProjectModal({ project }: { project: Project }) {
     setName(project.name)
     setDescription(project.description)
     setDirectory(project.directory ?? '')
+    setBoardType(project.boardType ?? 'coding')
     setBrowseError('')
     setOpen(false)
   }
@@ -117,6 +119,25 @@ export function EditProjectModal({ project }: { project: Project }) {
                   <span className={`text-xs ${description.length >= DESC_WARN ? 'text-dracula-red' : 'text-dracula-comment'}`}>
                     {description.length}/{DESC_MAX}
                   </span>
+                </div>
+              </div>
+
+              {/* Board Type */}
+              <div>
+                <label className="mb-1 block text-sm font-medium text-dracula-blue">
+                  Board Type
+                </label>
+                <div className="flex gap-2">
+                  {(['coding', 'research', 'general'] as BoardType[]).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setBoardType(type)}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors capitalize ${boardType === type ? 'border-dracula-purple bg-dracula-purple/20 text-dracula-purple' : 'border-dracula-dark bg-dracula-dark text-dracula-comment hover:text-dracula-light'}`}
+                    >
+                      {type === 'coding' ? '💻 Coding' : type === 'research' ? '🔬 Research' : '📋 General'}
+                    </button>
+                  ))}
                 </div>
               </div>
 

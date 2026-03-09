@@ -4,20 +4,21 @@ import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { Task, Agent } from '@/lib/types'
+import { Task, Agent, BoardType } from '@/lib/types'
 import { StatusBadge } from '@/components/StatusBadge'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
 
-type AssignRole = 'researcher' | 'coder' | 'senior-coder'
+type AssignRole = 'researcher' | 'coder' | 'senior-coder' | 'tester'
 
 interface KanbanCardProps {
   task: Task
   activeAgent?: Agent
+  boardType: BoardType
   autoOpen?: boolean
   onAutoOpenConsumed?: () => void
 }
 
-export function KanbanCard({ task, activeAgent, autoOpen, onAutoOpenConsumed }: KanbanCardProps) {
+export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenConsumed }: KanbanCardProps) {
   const [loading, setLoading] = useState<AssignRole | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [assignError, setAssignError] = useState<string | null>(null)
@@ -87,11 +88,13 @@ export function KanbanCard({ task, activeAgent, autoOpen, onAutoOpenConsumed }: 
   }
 
   const isAgentRunning = activeAgent?.status === 'running' || activeAgent?.status === 'queued'
-  const showAssignResearcher = task.status === 'backlog'
-  const showAssignCoder =
-    (task.status === 'planning' && !isAgentRunning) || task.status === 'changes-requested'
-  const showAssignSeniorCoder = task.status === 'in-progress' && !isAgentRunning
-  const hasAssignAction = showAssignResearcher || showAssignCoder || showAssignSeniorCoder
+
+  const showAssignResearcher = task.status === 'backlog' && boardType !== 'general'
+  const showAssignCoder = boardType === 'coding' && ((task.status === 'planning' && !isAgentRunning) || task.status === 'changes-requested')
+  const showAssignSeniorCoder = boardType === 'coding' && task.status === 'in-progress' && !isAgentRunning
+  const showAssignTester = boardType === 'coding' && task.status === 'testing' && !isAgentRunning
+
+  const hasAssignAction = showAssignResearcher || showAssignCoder || showAssignSeniorCoder || showAssignTester
 
   const hasBottomMeta =
     (activeAgent && (isAgentRunning || activeAgent.status === 'done' || activeAgent.status === 'failed'))
@@ -143,6 +146,15 @@ export function KanbanCard({ task, activeAgent, autoOpen, onAutoOpenConsumed }: 
                       {loading === 'senior-coder' ? 'Assigning…' : 'Assign Senior Coder'}
                     </button>
                   )}
+                  {showAssignTester && (
+                    <button
+                      onClick={() => { setMenuOpen(false); assign('tester') }}
+                      disabled={loading === 'tester'}
+                      className="w-full text-left px-3 py-1.5 text-xs text-dracula-pink hover:bg-dracula-dark/60 hover:text-dracula-light transition-colors disabled:opacity-50"
+                    >
+                      {loading === 'tester' ? 'Assigning…' : 'Assign Tester'}
+                    </button>
+                  )}
                   <div className="border-t border-dracula-dark/60 my-1" />
                 </>
               )}
@@ -171,6 +183,13 @@ export function KanbanCard({ task, activeAgent, autoOpen, onAutoOpenConsumed }: 
         <div className="rounded bg-dracula-red/10 border border-dracula-red/30 p-1.5">
           <p className="text-xs text-dracula-red font-medium mb-0.5">Review Notes</p>
           <p className="text-xs text-dracula-light/80 line-clamp-3">{task.reviewNotes}</p>
+        </div>
+      )}
+
+      {task.testerOutput && task.status === 'testing' && (
+        <div className="rounded bg-dracula-orange/10 border border-dracula-orange/30 p-1.5">
+          <p className="text-xs text-dracula-orange font-medium mb-0.5">Test Failures</p>
+          <p className="text-xs text-dracula-light/80 line-clamp-3">{task.testerOutput}</p>
         </div>
       )}
 

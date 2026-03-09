@@ -25,6 +25,7 @@ export const projects = sqliteTable('projects', {
   name:           text('name').notNull(),
   description:    text('description').notNull().default(''),
   directory:      text('directory'),
+  boardType:      text('board_type').notNull().default('coding'),
   executorConfig: text('executor_config'),   // JSON-serialised ExecutorConfig
   createdAt:      integer('created_at').notNull(),
   updatedAt:      integer('updated_at').notNull(),
@@ -56,6 +57,7 @@ export const tasks = sqliteTable('tasks', {
   researcherOutput: text('researcher_output'),
   coderOutput:      text('coder_output'),
   reviewNotes:      text('review_notes'),
+  testerOutput:     text('tester_output'),
   archived:         integer('archived', { mode: 'boolean' }).default(false),
   createdAt:        integer('created_at').notNull(),
   updatedAt:        integer('updated_at').notNull(),

@@ -1,17 +1,23 @@
 import { randomUUID } from 'crypto'
-import { Agent, TaskStatus } from '@/lib/types'
+import { Agent, TaskStatus, BoardType } from '@/lib/types'
 import { getTask, getProject, getAllAgents, updateAgent, updateTask, getAgent } from '@/lib/store'
 import { runAgent } from '@/lib/agent-runner'
 import { dbAddTaskRun } from '@/lib/db/repositories/taskRunRepo'
 
-export type AssignRole = 'researcher' | 'coder' | 'senior-coder'
+export type AssignRole = 'researcher' | 'coder' | 'senior-coder' | 'tester'
 
 const MAX_REVIEW_CYCLES = 3
+const MAX_TEST_CYCLES = 2
 
-const STATUS_FOR_ROLE: Record<AssignRole, TaskStatus> = {
-  researcher: 'planning',
-  coder: 'in-progress',
-  'senior-coder': 'review',
+function getStatusForRole(role: AssignRole, boardType: BoardType): TaskStatus {
+  if (boardType === 'research' && role === 'researcher') return 'in-progress'
+  const defaults: Record<AssignRole, TaskStatus> = {
+    researcher: 'planning',
+    coder: 'in-progress',
+    'senior-coder': 'review',
+    tester: 'testing',
+  }
+  return defaults[role]
 }
 
 function buildSystemPrompt(role: AssignRole): string {
@@ -29,6 +35,16 @@ function buildSystemPrompt(role: AssignRole): string {
       'Implement the task according to the provided specification. ' +
       'Write clean, well-structured code. Explain your design decisions. ' +
       'Handle edge cases. Prefer clarity over cleverness.'
+    )
+  }
+  if (role === 'tester') {
+    return (
+      'You are an expert QA engineer. ' +
+      'Write comprehensive test cases for the implementation provided. ' +
+      'Run the tests using available tools (bash, etc.). ' +
+      'Report all failures with detail. ' +
+      'End your response with exactly one of: "VERDICT: TESTS PASSED" or "VERDICT: TESTS FAILED". ' +
+      'If tests failed, include a "## Test Failures" section listing each failure.'
     )
   }
   return (
@@ -62,7 +78,18 @@ function buildUserPrompt(
     if (task.reviewNotes) {
       prompt += `\n\n## Review Feedback (Changes Required)\n\n${task.reviewNotes}\n\nPlease address all of the above review feedback in your implementation.`
     }
+    if (task.testerOutput) {
+      prompt += `\n\n## Test Failures to Fix\n\n${task.testerOutput}\n\nPlease fix all failing tests.`
+    }
     prompt += '\n\nImplement this task.'
+    return prompt
+  }
+
+  if (role === 'tester') {
+    let prompt = header
+    if (task.coderOutput) prompt += `\n\n## Implementation\n\n${task.coderOutput}`
+    if (task.testerOutput) prompt += `\n\n## Previous Test Failures (retry)\n\n${task.testerOutput}`
+    prompt += '\n\nWrite and run tests for this implementation.'
     return prompt
   }
 
@@ -81,13 +108,15 @@ function buildUserPrompt(
 export async function assignAgentToTask(
   taskId: string,
   role: AssignRole,
-  _cycle = 0
+  _cycle = 0,
+  _testCycle = 0
 ): Promise<Agent | { error: string }> {
   const task = getTask(taskId)
   if (!task) return { error: 'task not found' }
 
   const project = task.projectId ? getProject(task.projectId) : null
   const directory = project?.directory || undefined
+  const boardType: BoardType = project?.boardType ?? 'coding'
 
   const idleAgent = getAllAgents().find(
     (a) => a.type === role && a.status === 'idle' && a.projectId === task.projectId
@@ -110,7 +139,7 @@ export async function assignAgentToTask(
   })
 
   updateTask(task.id, {
-    status: STATUS_FOR_ROLE[role],
+    status: getStatusForRole(role, boardType),
     activeAgentId: idleAgent.id,
   })
 
@@ -118,7 +147,7 @@ export async function assignAgentToTask(
   const startedAt = Date.now()
   const rawLines: string[] = []
 
-  runAgent(agentToRun, (line) => rawLines.push(line)).then(() => {
+  runAgent(agentToRun, (line) => rawLines.push(line)).then(async () => {
     const completed = getAgent(idleAgent.id)
     if (!completed) return
 
@@ -143,24 +172,68 @@ export async function assignAgentToTask(
     if (role === 'researcher') {
       updateTask(task.id, { researcherOutput: output })
       if (completed.status === 'done') {
-        assignAgentToTask(taskId, 'coder', 0).catch(console.error)
+        if (boardType === 'research') {
+          updateTask(task.id, { status: 'done' })
+        } else {
+          assignAgentToTask(taskId, 'coder', 0, 0).catch(console.error)
+        }
       }
     } else if (role === 'coder') {
       updateTask(task.id, { coderOutput: output })
       if (completed.status === 'done') {
-        assignAgentToTask(taskId, 'senior-coder', _cycle).catch(console.error)
+        assignAgentToTask(taskId, 'senior-coder', _cycle, _testCycle).catch(console.error)
       }
     } else if (role === 'senior-coder') {
-      if (output.includes('VERDICT: APPROVED')) {
-        updateTask(task.id, { status: 'done' })
-      } else {
-        const changesMatch = output.match(/##\s*Changes Required([\s\S]*)/)
-        const reviewNotes = changesMatch ? changesMatch[1].trim() : output
-        updateTask(task.id, { status: 'changes-requested', reviewNotes })
-        if (completed.status === 'done' && _cycle < MAX_REVIEW_CYCLES) {
-          assignAgentToTask(taskId, 'coder', _cycle + 1).catch(console.error)
+      // Only process verdict if the agent actually succeeded — a failed agent
+      // won't have emitted a proper VERDICT line, so we'd misread the output.
+      if (completed.status === 'done') {
+        if (output.includes('VERDICT: APPROVED')) {
+          if (boardType === 'coding') {
+            // If no idle tester is available, fall back to done rather than
+            // leaving the task permanently stuck in review.
+            const result = await assignAgentToTask(taskId, 'tester', _cycle, 0)
+            if ('error' in result) {
+              updateTask(task.id, { status: 'done' })
+            }
+          } else {
+            updateTask(task.id, { status: 'done' })
+          }
+        } else {
+          const changesMatch = output.match(/##\s*Changes Required([\s\S]*)/)
+          const reviewNotes = changesMatch ? changesMatch[1].trim() : output
+          updateTask(task.id, { status: 'changes-requested', reviewNotes })
+          if (_cycle < MAX_REVIEW_CYCLES) {
+            assignAgentToTask(taskId, 'coder', _cycle + 1, _testCycle).catch(console.error)
+          }
         }
       }
+      // If agent failed, task stays in 'review' — user can manually re-assign.
+    } else if (role === 'tester') {
+      updateTask(task.id, { testerOutput: output })
+      // Only process verdict if the agent actually succeeded — a failed agent
+      // won't have emitted a proper VERDICT line, so we'd misread the output.
+      if (completed.status === 'done') {
+        if (output.includes('VERDICT: TESTS PASSED')) {
+          updateTask(task.id, { status: 'done' })
+        } else if (_testCycle < MAX_TEST_CYCLES) {
+          // If no idle coder is available for retry, leave the task in testing
+          // so the user can trigger a manual retry once a coder is free.
+          const result = await assignAgentToTask(taskId, 'coder', _cycle, _testCycle + 1)
+          if ('error' in result) {
+            console.error('Tester retry: no idle coder available —', result.error)
+          }
+        }
+        // else _testCycle >= MAX_TEST_CYCLES — stay in testing, pipeline stops gracefully
+      }
+      // If agent failed, task stays in testing — user can manually re-assign
+    }
+
+    // Bug fix: clear activeAgentId on the task once this agent is done,
+    // but only if it hasn't already been updated to point at a new agent
+    // by a pipeline continuation step (e.g. researcher→coder hand-off).
+    const currentTask = getTask(task.id)
+    if (currentTask && currentTask.activeAgentId === idleAgent.id) {
+      updateTask(task.id, { activeAgentId: undefined })
     }
 
     updateAgent(idleAgent.id, {

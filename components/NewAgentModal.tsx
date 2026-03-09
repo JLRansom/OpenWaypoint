@@ -76,6 +76,7 @@ export function NewAgentModal() {
                     <option value="researcher">Researcher</option>
                     <option value="coder">Coder</option>
                     <option value="senior-coder">Senior Coder</option>
+                    <option value="tester">Tester</option>
                     <option value="writer">Writer</option>
                   </select>
                 </div>

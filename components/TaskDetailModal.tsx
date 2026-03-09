@@ -10,6 +10,7 @@ const COLUMN_LABELS: Record<TaskStatus, string> = {
   planning: 'Planning',
   'in-progress': 'In Progress',
   review: 'Review',
+  testing: 'Testing',
   'changes-requested': 'Changes Requested',
   done: 'Done',
 }
@@ -19,6 +20,7 @@ const COLUMN_ACCENT: Record<TaskStatus, string> = {
   planning: 'text-dracula-cyan',
   'in-progress': 'text-dracula-green',
   review: 'text-dracula-orange',
+  testing: 'text-dracula-pink',
   'changes-requested': 'text-dracula-red',
   done: 'text-dracula-purple',
 }

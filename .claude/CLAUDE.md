@@ -22,7 +22,20 @@ npm run type-check   # tsc --noEmit
 - Components are pure UI — no direct store access, receive data as props
 - Page-level data fetching happens in `page.tsx` Server Components only
 
+## Project Context
+
+Living project memory lives in `context/` — updated via the `brain` skill:
+
+- `context/roadmap.md` — high-level goals & priorities
+- `context/decisions.md` — ADR-style log of key past choices (newest first)
+- `context/current-sprint.md` — what's in flight right now
+
+Run the brain skill (`/brain`) after significant changes to keep context current and pruned.
+
 ## @imports
 
 @docs/architecture.md
 @docs/agent-types.md
+@context/roadmap.md
+@context/decisions.md
+@context/current-sprint.md
