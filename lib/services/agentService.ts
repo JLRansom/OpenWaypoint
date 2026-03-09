@@ -138,6 +138,7 @@ export async function assignAgentToTask(
     prompt,
     status: 'queued',
     taskId: task.id,
+    taskStartedAt: Date.now(),
     events: [],
     systemPromptOverride: systemPrompt,
   })
@@ -274,6 +275,7 @@ export async function assignAgentToTask(
     updateAgent(idleAgent.id, {
       status: 'idle',
       taskId: undefined,
+      taskStartedAt: undefined,
       prompt: '',
     })
   }).catch(console.error)
