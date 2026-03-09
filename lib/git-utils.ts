@@ -8,8 +8,12 @@ const execFileAsync = promisify(execFile)
  * Throws on non-zero exit.
  */
 async function git(cwd: string, args: string[]): Promise<string> {
-  const { stdout } = await execFileAsync('git', args, { cwd })
-  return stdout.trim()
+  try {
+    const { stdout } = await execFileAsync('git', args, { cwd })
+    return stdout.trim()
+  } catch (err: any) {
+    throw new Error(`git ${args[0]} failed: ${err.stderr || err.message}`)
+  }
 }
 
 /**
@@ -43,6 +47,10 @@ export async function mergeWorktreeBranch(
   taskTitle: string
 ): Promise<void> {
   const mainWorktree = await getMainWorktreePath(worktreeDir)
+  const mainBranch = await git(mainWorktree, ['rev-parse', '--abbrev-ref', 'HEAD'])
+  if (mainBranch !== 'main' && mainBranch !== 'master') {
+    throw new Error(`Main worktree is on "${mainBranch}", expected main/master. Aborting merge.`)
+  }
   const branch = await git(worktreeDir, ['rev-parse', '--abbrev-ref', 'HEAD'])
 
   if (branch === 'main' || branch === 'master') {
