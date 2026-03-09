@@ -114,7 +114,7 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
   const cardContent = (
     <div className="space-y-1.5">
       <div className="flex items-start justify-between gap-1.5">
-      <p className="text-sm font-medium text-dracula-light line-clamp-2 leading-snug">{task.title}</p>
+            <p className="text-sm font-medium text-dracula-light line-clamp-2 leading-snug">{task.title}</p>
       <div ref={menuRef} className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o) }}
