@@ -1,9 +1,9 @@
 # Current Sprint
 
-> Last updated: 2026-03-09
+> Last updated: 2026-03-09 (AgentProgressBar merged into master, worktree removed)
 
 ## Active Worktrees
-- `worktree-agent-af0e5f3e` — feat: card progress bar — committed, awaiting PR
+_None — all worktrees merged and cleaned up._
 
 ## In Progress
 - [ ] Authentication & role-based access (protect dashboard + API routes)
