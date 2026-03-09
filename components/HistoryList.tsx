@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { TaskRun } from '@/lib/types'
+import { TaskRun, PaginatedRunsResponse } from '@/lib/types'
 import { Button } from '@/components/ui/Button'
 import { MarkdownOutput } from '@/components/ui/MarkdownOutput'
 
@@ -99,6 +99,8 @@ function PillButton({
   )
 }
 
+const LIMIT = 20
+
 export function HistoryList() {
   const router = useRouter()
   const [runs, setRuns] = useState<TaskRun[]>([])
@@ -107,31 +109,50 @@ export function HistoryList() {
   const [expandedTab, setExpandedTab] = useState<'result' | 'terminal'>('result')
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
+  const [dateFrom, setDateFrom] = useState<number | undefined>()
+  const [dateTo, setDateTo] = useState<number | undefined>()
 
   const fetchRuns = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/runs')
-      const data: TaskRun[] = await res.json()
-      setRuns(data)
+      const params = new URLSearchParams()
+      params.set('page', String(page))
+      params.set('limit', String(LIMIT))
+      if (roleFilter !== 'all') params.set('role', roleFilter)
+      if (statusFilter !== 'all') params.set('status', statusFilter)
+      if (search.trim()) params.set('q', search.trim())
+      if (dateFrom !== undefined) params.set('from', String(dateFrom))
+      if (dateTo !== undefined) params.set('to', String(dateTo))
+
+      const res = await fetch(`/api/runs?${params}`)
+      const data: PaginatedRunsResponse = await res.json()
+      setRuns(data.runs)
+      setTotalPages(data.totalPages)
+      setTotal(data.total)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [page, roleFilter, statusFilter, search, dateFrom, dateTo])
 
   useEffect(() => { fetchRuns() }, [fetchRuns])
   useEffect(() => { setExpandedTab('result') }, [expandedId])
 
-  const filtered = runs.filter((r) => {
-    if (roleFilter !== 'all' && r.role !== roleFilter) return false
-    if (statusFilter !== 'all' && r.status !== statusFilter) return false
-    if (search) {
-      const q = search.toLowerCase()
-      if (!r.taskTitle.toLowerCase().includes(q) && !r.projectName.toLowerCase().includes(q)) return false
-    }
-    return true
-  })
+  // Debounce searchInput → search (300ms)
+  useEffect(() => {
+    const id = setTimeout(() => setSearch(searchInput), 300)
+    return () => clearTimeout(id)
+  }, [searchInput])
+
+  // Reset page to 1 when filters change
+  useEffect(() => { setPage(1) }, [roleFilter, statusFilter, search, dateFrom, dateTo])
+
+  // Collapse expanded row on page change
+  useEffect(() => { setExpandedId(null) }, [page])
 
   return (
     <div>
@@ -153,16 +174,52 @@ export function HistoryList() {
             </PillButton>
           ))}
         </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-dracula-blue mr-1">From:</span>
+          <input
+            type="date"
+            value={dateFrom !== undefined ? new Date(dateFrom).toISOString().slice(0, 10) : ''}
+            onChange={(e) => {
+              setDateFrom(e.target.value ? new Date(e.target.value).getTime() : undefined)
+            }}
+            className="rounded-lg bg-dracula-dark border border-dracula-dark/80 px-2 py-1 text-xs text-dracula-light focus:outline-none focus:border-dracula-purple/60"
+          />
+          <span className="text-xs text-dracula-blue">To:</span>
+          <input
+            type="date"
+            value={dateTo !== undefined ? new Date(dateTo - 86399999).toISOString().slice(0, 10) : ''}
+            onChange={(e) => {
+              setDateTo(e.target.value ? new Date(e.target.value).getTime() + 86399999 : undefined)
+            }}
+            className="rounded-lg bg-dracula-dark border border-dracula-dark/80 px-2 py-1 text-xs text-dracula-light focus:outline-none focus:border-dracula-purple/60"
+          />
+        </div>
         <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search task or project…"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Search tasks, projects, and logs…"
           className="ml-2 rounded-lg bg-dracula-dark border border-dracula-dark/80 px-3 py-1 text-xs text-dracula-light placeholder-dracula-comment focus:outline-none focus:border-dracula-purple/60"
         />
         <div className="ml-auto flex items-center gap-3">
           <span className="text-xs text-dracula-blue">
-            {filtered.length} run{filtered.length !== 1 ? 's' : ''}
+            {total} run{total !== 1 ? 's' : ''}
           </span>
+          {(roleFilter !== 'all' || statusFilter !== 'all' || searchInput || dateFrom !== undefined || dateTo !== undefined) && (
+            <button
+              onClick={() => {
+                setRoleFilter('all')
+                setStatusFilter('all')
+                setSearchInput('')
+                setSearch('')
+                setDateFrom(undefined)
+                setDateTo(undefined)
+                setPage(1)
+              }}
+              className="text-xs text-dracula-red hover:text-dracula-red/80 transition-colors"
+            >
+              Clear all
+            </button>
+          )}
           <Button variant="ghost" size="sm" onClick={fetchRuns}>
             Refresh
           </Button>
@@ -171,135 +228,164 @@ export function HistoryList() {
 
       {loading ? (
         <p className="text-dracula-blue text-sm mt-8 text-center">Loading…</p>
-      ) : filtered.length === 0 ? (
-        <p className="text-dracula-blue text-sm mt-8 text-center">No runs yet.</p>
+      ) : runs.length === 0 ? (
+        <p className="text-dracula-blue text-sm mt-8 text-center">
+          {roleFilter !== 'all' || statusFilter !== 'all' || search || dateFrom !== undefined || dateTo !== undefined
+            ? 'No runs match your filters.'
+            : 'No runs yet.'}
+        </p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-dracula-dark">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-dracula-dark bg-dracula-dark text-left text-xs text-dracula-blue uppercase tracking-wider">
-                <th className="py-3 px-4">Date</th>
-                <th className="py-3 px-4">Task</th>
-                <th className="py-3 px-4">Project</th>
-                <th className="py-3 px-4">Role</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4">Duration</th>
-                <th className="py-3 px-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((run) => (
-                <>
-                  <tr
-                    key={run.id}
-                    className="border-b border-dracula-dark hover:bg-dracula-dark/30 transition-colors cursor-pointer"
-                    onClick={() => setExpandedId(expandedId === run.id ? null : run.id)}
-                  >
-                    <td className="py-3 px-4 text-xs text-dracula-comment whitespace-nowrap">
-                      {formatDate(run.completedAt)}
-                    </td>
-                    <td className="py-3 px-4 max-w-[180px] truncate text-dracula-light">
-                      {run.taskTitle}
-                    </td>
-                    <td className="py-3 px-4 max-w-[140px] truncate text-dracula-comment">
-                      {run.projectName}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`rounded px-2 py-0.5 text-xs font-medium capitalize ${ROLE_COLORS[run.role] ?? 'text-dracula-light bg-dracula-dark'}`}>
-                        {run.role}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`rounded px-2 py-0.5 text-xs font-semibold uppercase ${run.status === 'done' ? 'text-dracula-green bg-dracula-green/10' : 'text-dracula-red bg-dracula-red/10'}`}>
-                        {run.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-xs text-dracula-blue whitespace-nowrap">
-                      {formatDuration(run.startedAt, run.completedAt)}
-                    </td>
-                    <td className="py-3 px-4">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          router.push(`/projects/${run.projectId}?card=${run.taskId}`)
-                        }}
-                        className="whitespace-nowrap"
-                      >
-                        Go to Card
-                      </Button>
-                    </td>
-                  </tr>
-                  {expandedId === run.id && (
-                    <tr key={`${run.id}-output`} className="border-b border-dracula-dark bg-dracula-darker">
-                      <td colSpan={7} className="px-4 py-3">
-                        {/* Tab bar */}
-                        <div className="flex gap-1 mb-3 border-b border-dracula-dark pb-2">
-                          {(['result', 'terminal'] as const).map((tab) => (
-                            <button
-                              key={tab}
-                              onClick={() => setExpandedTab(tab)}
-                              className={`px-3 py-1 text-xs font-medium rounded-t transition-colors ${
-                                expandedTab === tab
-                                  ? 'bg-dracula-purple text-dracula-darker'
-                                  : 'text-dracula-blue hover:text-dracula-light'
-                              }`}
-                            >
-                              {tab === 'result' ? 'Result' : 'Terminal'}
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* Result tab */}
-                        {expandedTab === 'result' && (
-                          <MarkdownOutput
-                            output={run.output || '(no output)'}
-                            className="max-h-64 bg-dracula-dark rounded p-3"
-                          />
-                        )}
-
-                        {/* Terminal tab */}
-                        {expandedTab === 'terminal' && (
-                          <div className="max-h-64 overflow-y-auto bg-dracula-darker rounded p-3 font-mono text-xs space-y-2">
-                            {!run.rawLog ? (
-                              <span className="text-dracula-comment italic">
-                                No terminal log available for this run.
-                              </span>
-                            ) : (
-                              parseTerminalEvents(run.rawLog).map((ev, i) =>
-                                ev.kind === 'tool_use' ? (
-                                  <div key={i}>
-                                    <span className="text-dracula-green font-semibold">
-                                      {'> '}{ev.name}
-                                    </span>
-                                    {ev.input != null && (
-                                      <pre className="mt-0.5 ml-4 text-dracula-yellow whitespace-pre-wrap break-all">
-                                        {JSON.stringify(ev.input as Record<string, unknown>, null, 2)}
-                                      </pre>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <pre key={i} className="ml-4 text-dracula-comment whitespace-pre-wrap break-all border-l-2 border-dracula-dark pl-2">
-                                    {ev.content || '(empty)'}
-                                  </pre>
-                                )
-                              )
-                            )}
-                          </div>
-                        )}
-
-                        {run.error && (
-                          <p className="mt-2 text-xs text-dracula-red font-mono">{run.error}</p>
-                        )}
+        <>
+          <div className="overflow-x-auto rounded-lg border border-dracula-dark">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-dracula-dark bg-dracula-dark text-left text-xs text-dracula-blue uppercase tracking-wider">
+                  <th className="py-3 px-4">Date</th>
+                  <th className="py-3 px-4">Task</th>
+                  <th className="py-3 px-4">Project</th>
+                  <th className="py-3 px-4">Role</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">Duration</th>
+                  <th className="py-3 px-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {runs.map((run) => (
+                  <React.Fragment key={run.id}>
+                    <tr
+                      className="border-b border-dracula-dark hover:bg-dracula-dark/30 transition-colors cursor-pointer"
+                      onClick={() => setExpandedId(expandedId === run.id ? null : run.id)}
+                    >
+                      <td className="py-3 px-4 text-xs text-dracula-comment whitespace-nowrap">
+                        {formatDate(run.completedAt)}
+                      </td>
+                      <td className="py-3 px-4 max-w-[180px] truncate text-dracula-light">
+                        {run.taskTitle}
+                      </td>
+                      <td className="py-3 px-4 max-w-[140px] truncate text-dracula-comment">
+                        {run.projectName}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`rounded px-2 py-0.5 text-xs font-medium capitalize ${ROLE_COLORS[run.role] ?? 'text-dracula-light bg-dracula-dark'}`}>
+                          {run.role}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`rounded px-2 py-0.5 text-xs font-semibold uppercase ${run.status === 'done' ? 'text-dracula-green bg-dracula-green/10' : 'text-dracula-red bg-dracula-red/10'}`}>
+                          {run.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-xs text-dracula-blue whitespace-nowrap">
+                        {formatDuration(run.startedAt, run.completedAt)}
+                      </td>
+                      <td className="py-3 px-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            router.push(`/projects/${run.projectId}?card=${run.taskId}`)
+                          }}
+                          className="whitespace-nowrap"
+                        >
+                          Go to Card
+                        </Button>
                       </td>
                     </tr>
-                  )}
-                </>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    {expandedId === run.id && (
+                      <tr className="border-b border-dracula-dark bg-dracula-darker">
+                        <td colSpan={7} className="px-4 py-3">
+                          {/* Tab bar */}
+                          <div className="flex gap-1 mb-3 border-b border-dracula-dark pb-2">
+                            {(['result', 'terminal'] as const).map((tab) => (
+                              <button
+                                key={tab}
+                                onClick={() => setExpandedTab(tab)}
+                                className={`px-3 py-1 text-xs font-medium rounded-t transition-colors ${
+                                  expandedTab === tab
+                                    ? 'bg-dracula-purple text-dracula-darker'
+                                    : 'text-dracula-blue hover:text-dracula-light'
+                                }`}
+                              >
+                                {tab === 'result' ? 'Result' : 'Terminal'}
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Result tab */}
+                          {expandedTab === 'result' && (
+                            <MarkdownOutput
+                              output={run.output || '(no output)'}
+                              className="max-h-64 bg-dracula-dark rounded p-3"
+                            />
+                          )}
+
+                          {/* Terminal tab */}
+                          {expandedTab === 'terminal' && (
+                            <div className="max-h-64 overflow-y-auto bg-dracula-darker rounded p-3 font-mono text-xs space-y-2">
+                              {!run.rawLog ? (
+                                <span className="text-dracula-comment italic">
+                                  No terminal log available for this run.
+                                </span>
+                              ) : (
+                                parseTerminalEvents(run.rawLog).map((ev, i) =>
+                                  ev.kind === 'tool_use' ? (
+                                    <div key={i}>
+                                      <span className="text-dracula-green font-semibold">
+                                        {'> '}{ev.name}
+                                      </span>
+                                      {ev.input != null && (
+                                        <pre className="mt-0.5 ml-4 text-dracula-yellow whitespace-pre-wrap break-all">
+                                          {JSON.stringify(ev.input as Record<string, unknown>, null, 2)}
+                                        </pre>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <pre key={i} className="ml-4 text-dracula-comment whitespace-pre-wrap break-all border-l-2 border-dracula-dark pl-2">
+                                      {ev.content || '(empty)'}
+                                    </pre>
+                                  )
+                                )
+                              )}
+                            </div>
+                          )}
+
+                          {run.error && (
+                            <p className="mt-2 text-xs text-dracula-red font-mono">{run.error}</p>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="mt-4 flex items-center justify-between">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                ← Previous
+              </Button>
+              <span className="text-xs text-dracula-blue">
+                Page {page} of {totalPages} · {total} total run{total !== 1 ? 's' : ''}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                Next →
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
