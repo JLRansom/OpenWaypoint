@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { Task, Agent, BoardType } from '@/lib/types'
-import { StatusBadge } from '@/components/StatusBadge'
+import { AgentProgressBar } from '@/components/AgentProgressBar'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
 
 type AssignRole = 'researcher' | 'coder' | 'senior-coder' | 'tester'
@@ -95,6 +95,11 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
 
   const isAgentRunning = activeAgent?.status === 'running' || activeAgent?.status === 'queued'
   const isAgentFailed = activeAgent?.status === 'failed'
+
+  const MID_PIPELINE = ['planning', 'in-progress', 'review', 'changes-requested', 'testing']
+  // General boards have no pipeline stages — only show when an agent is actively running.
+  // For research/coding boards, also show while transitioning between pipeline stages.
+  const showProgressBar = isAgentRunning || (boardType !== 'general' && MID_PIPELINE.includes(task.status))
 
   const showAssignResearcher = task.status === 'backlog' && boardType !== 'general'
   const showAssignCoder = boardType === 'coding' && ((task.status === 'planning' && !isAgentRunning) || task.status === 'changes-requested')
@@ -205,9 +210,11 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
         </div>
       )}
 
-      {hasBottomMeta && (
-        <div className="flex items-center gap-2 pt-1.5 mt-1.5 border-t border-dracula-dark/40">
-          {activeAgent && isAgentRunning && <StatusBadge status={activeAgent.status} />}
+      {(hasBottomMeta || showProgressBar) && (
+        <div className="pt-1.5 mt-1.5 border-t border-dracula-dark/40 space-y-1.5">
+          {showProgressBar && (
+            <AgentProgressBar task={task} activeAgent={activeAgent} boardType={boardType} />
+          )}
           {activeAgent && (activeAgent.status === 'done' || activeAgent.status === 'failed') && (
             <Link
               href={`/agents/${activeAgent.id}`}
