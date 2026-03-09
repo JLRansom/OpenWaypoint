@@ -1,4 +1,5 @@
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, and, or, like, gte, lte, count } from 'drizzle-orm'
+import type { SQL } from 'drizzle-orm'
 import { db } from '../client'
 import { taskRuns } from '../schema'
 import { TaskRun } from '@/lib/types'
@@ -58,4 +59,79 @@ export function dbGetTaskRunsByTask(taskId: string): TaskRun[] {
     .orderBy(desc(taskRuns.completedAt))
     .all()
     .map(rowToTaskRun)
+}
+
+export interface GetTaskRunsOpts {
+  page: number
+  limit: number
+  role?: string
+  status?: string
+  /** Full-text search across title, project, output, and error fields */
+  q?: string
+  /** completedAt >= from (epoch ms) */
+  from?: number
+  /** completedAt <= to (epoch ms) */
+  to?: number
+}
+
+/**
+ * Returns a paginated slice of task runs, plus the total matching count.
+ * All filtering is done in SQLite so the client only receives one page of data.
+ */
+export function dbGetTaskRunsPaginated(opts: GetTaskRunsOpts): { runs: TaskRun[]; total: number } {
+  // Build WHERE conditions incrementally
+  const conditions: (SQL | undefined)[] = []
+
+  if (opts.role && opts.role !== 'all') {
+    conditions.push(eq(taskRuns.role, opts.role))
+  }
+
+  if (opts.status && opts.status !== 'all') {
+    conditions.push(eq(taskRuns.status, opts.status))
+  }
+
+  if (opts.q) {
+    // SQLite LIKE is case-insensitive for ASCII characters by default.
+    // Search across all text fields that a user might care about.
+    const pattern = `%${opts.q}%`
+    const textMatch = or(
+      like(taskRuns.taskTitle, pattern),
+      like(taskRuns.projectName, pattern),
+      like(taskRuns.output, pattern),
+      like(taskRuns.error, pattern),
+    )
+    if (textMatch) conditions.push(textMatch)
+  }
+
+  if (opts.from !== undefined) {
+    conditions.push(gte(taskRuns.completedAt, opts.from))
+  }
+
+  if (opts.to !== undefined) {
+    conditions.push(lte(taskRuns.completedAt, opts.to))
+  }
+
+  // and() returns undefined when given an empty array, which is fine — .where(undefined) means no filter
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+
+  // Run a lightweight COUNT(*) first so we know the total for pagination UI
+  const countResult = db
+    .select({ count: count() })
+    .from(taskRuns)
+    .where(whereClause)
+    .get()
+  const total = countResult?.count ?? 0
+
+  // Fetch exactly one page of results
+  const offset = (opts.page - 1) * opts.limit
+  const rows = db
+    .select()
+    .from(taskRuns)
+    .where(whereClause)
+    .orderBy(desc(taskRuns.completedAt))
+    .limit(opts.limit)
+    .offset(offset)
+    .all()
+
+  return { runs: rows.map(rowToTaskRun), total }
 }

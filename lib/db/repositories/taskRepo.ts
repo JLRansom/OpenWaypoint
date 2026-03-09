@@ -16,6 +16,7 @@ function rowToTask(row: TaskRow): Task {
     researcherOutput: row.researcherOutput ?? undefined,
     coderOutput: row.coderOutput ?? undefined,
     reviewNotes: row.reviewNotes ?? undefined,
+    testerOutput: row.testerOutput ?? undefined,
     archived: row.archived ?? false,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -58,6 +59,7 @@ export function dbAddTask(task: Task): void {
     researcherOutput: task.researcherOutput ?? null,
     coderOutput: task.coderOutput ?? null,
     reviewNotes: task.reviewNotes ?? null,
+    testerOutput: task.testerOutput ?? null,
     archived: task.archived ?? false,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
@@ -76,6 +78,7 @@ export function dbUpdateTask(id: string, patch: Partial<Task>): void {
   if ('researcherOutput' in patch) update.researcherOutput = patch.researcherOutput ?? null
   if ('coderOutput' in patch) update.coderOutput = patch.coderOutput ?? null
   if ('reviewNotes' in patch) update.reviewNotes = patch.reviewNotes ?? null
+  if ('testerOutput' in patch) update.testerOutput = patch.testerOutput ?? null
   if (patch.archived !== undefined) update.archived = patch.archived
   if (patch.updatedAt !== undefined) update.updatedAt = patch.updatedAt
 

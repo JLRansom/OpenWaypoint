@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import {
   Zap,
+  Home,
   LayoutDashboard,
   FolderKanban,
   History,
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react'
 
 const navLinks = [
+  { href: '/welcome', label: 'Welcome', icon: Home },
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/projects', label: 'Projects', icon: FolderKanban },
   { href: '/history', label: 'History', icon: History },

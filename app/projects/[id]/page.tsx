@@ -42,7 +42,7 @@ export default async function ProjectBoardPage({
         )}
       </div>
 
-      <KanbanBoard projectId={id} initialCardId={card} />
+      <KanbanBoard projectId={id} initialCardId={card} boardType={project.boardType ?? 'coding'} />
       <ArchivedCards projectId={id} />
     </div>
   )

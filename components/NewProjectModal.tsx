@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { FolderOpen, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import type { BoardType } from '@/lib/types'
 
 const NAME_MAX = 60
 const NAME_WARN = 50
@@ -15,6 +16,7 @@ export function NewProjectModal() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [directory, setDirectory] = useState('')
+  const [boardType, setBoardType] = useState<BoardType>('coding')
   const [browseError, setBrowseError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -27,11 +29,12 @@ export function NewProjectModal() {
       await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description, directory }),
+        body: JSON.stringify({ name, description, directory, boardType }),
       })
       setName('')
       setDescription('')
       setDirectory('')
+      setBoardType('coding')
       setOpen(false)
       router.refresh()
     } finally {
@@ -58,6 +61,7 @@ export function NewProjectModal() {
     setName('')
     setDescription('')
     setDirectory('')
+    setBoardType('coding')
     setBrowseError('')
     setOpen(false)
   }
@@ -119,6 +123,25 @@ export function NewProjectModal() {
                   <span className={`text-xs ${description.length >= DESC_WARN ? 'text-dracula-red' : 'text-dracula-comment'}`}>
                     {description.length}/{DESC_MAX}
                   </span>
+                </div>
+              </div>
+
+              {/* Board Type */}
+              <div>
+                <label className="mb-1 block text-sm font-medium text-dracula-blue">
+                  Board Type
+                </label>
+                <div className="flex gap-2">
+                  {(['coding', 'research', 'general'] as BoardType[]).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setBoardType(type)}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors capitalize ${boardType === type ? 'border-dracula-purple bg-dracula-purple/20 text-dracula-purple' : 'border-dracula-dark bg-dracula-dark text-dracula-comment hover:text-dracula-light'}`}
+                    >
+                      {type === 'coding' ? '💻 Coding' : type === 'research' ? '🔬 Research' : '📋 General'}
+                    </button>
+                  ))}
                 </div>
               </div>
 
