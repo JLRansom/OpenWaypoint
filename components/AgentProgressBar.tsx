@@ -51,10 +51,9 @@ const ROLE_LABEL: Record<AgentType, string> = {
  */
 function getCodingProgress(
   task: Task,
-  activeAgent?: Agent,
+  activeAgent: Agent | undefined,
+  isRunning: boolean,
 ): { completedCount: number; activeIndex: number } {
-  const isRunning = activeAgent?.status === 'running' || activeAgent?.status === 'queued'
-
   switch (task.status) {
     case 'planning':
       // Researcher is (or was) working
@@ -80,9 +79,9 @@ function getCodingProgress(
 
 function getResearchProgress(
   task: Task,
-  activeAgent?: Agent,
+  activeAgent: Agent | undefined,
+  isRunning: boolean,
 ): { completedCount: number; activeIndex: number } {
-  const isRunning = activeAgent?.status === 'running' || activeAgent?.status === 'queued'
   if (task.status === 'done') return { completedCount: 1, activeIndex: -1 }
   return { completedCount: 0, activeIndex: isRunning ? 0 : -1 }
 }
@@ -132,8 +131,8 @@ export function AgentProgressBar({ task, activeAgent, boardType }: AgentProgress
   const pipeline = boardType === 'research' ? RESEARCH_PIPELINE : CODING_PIPELINE
   const { completedCount, activeIndex } =
     boardType === 'research'
-      ? getResearchProgress(task, activeAgent)
-      : getCodingProgress(task, activeAgent)
+      ? getResearchProgress(task, activeAgent, isRunning)
+      : getCodingProgress(task, activeAgent, isRunning)
 
   // Nothing to show yet (backlog with no active agent)
   if (completedCount === 0 && activeIndex === -1) return null
