@@ -2,6 +2,15 @@
 
 > Append new entries at the top. Keep each entry ≤ 10 lines.
 
+## ADR-020 — Vitest test suite for file I/O (2026-03-10)
+**Decision:** Installed Vitest 3 (native ESM + TS, no Babel) as the test framework. 75 tests across 6 files cover `lib/file-utils.ts` units, all four file route handlers (upload/download/delete/list), and an E2E round-trip test.
+**DB isolation:** `setupFiles` sets a unique `SQLITE_DB_PATH` per worker before any module loads. `lib/db/client.ts` reads this at module-init time, so each test file gets a fresh SQLite DB (migrations run automatically). No dev-DB pollution.
+**Disk isolation:** Tests write to the real `data/uploads/` tree in the worktree using unique task UUIDs; `afterAll` removes the task-specific subdirectory. No `fs` mocking needed.
+**Windows gotcha:** Content-Disposition sanitisation tests store malicious filenames (`"`, `\n`, `\`) only in the DB `filename` field — never in the actual on-disk filename (illegal chars crash `writeFileSync` on Windows). `seedFile()` always uses a UUID-only disk name.
+**Path-alias:** `vitest.config.ts` maps `@/*` → `./` to match `tsconfig.json` paths.
+**Affects:** `vitest.config.ts` (new), `package.json` (+test scripts), `__tests__/` tree (new).
+**Status:** Accepted.
+
 ## ADR-019 — Server-side token pricing table (2026-03-10)
 **Decision:** Added `lib/pricing.ts` with a `MODEL_PRICING` table (keyed by model ID prefix) and `calculateCost(inputTokens, outputTokens, model)` utility. Cost is now computed server-side for every run, not just when the Claude CLI emits `cost_usd` in the result line.
 **Why:** `cost_usd` in the CLI result line is optional and absent for many runs; this left `costUsd` blank in the UI. Prefix-matching handles snapshot-dated model IDs (e.g. `claude-opus-4-6-20260301`); longest-prefix wins so `claude-opus-4-6` beats `claude-opus-4`.
