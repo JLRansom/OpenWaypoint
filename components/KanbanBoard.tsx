@@ -11,9 +11,11 @@ import {
 } from '@dnd-kit/core'
 import { useStream } from '@/components/StreamProvider'
 import { KanbanColumn } from '@/components/KanbanColumn'
+import { BulkActionBar } from '@/components/BulkActionBar'
+import { BulkDeleteModal } from '@/components/BulkDeleteModal'
 import { TaskStatus, BoardType } from '@/lib/types'
 
-const BOARD_COLUMNS: Record<BoardType, TaskStatus[]> = {
+const COLUMNS_BY_TYPE: Record<BoardType, TaskStatus[]> = {
   coding:   ['backlog', 'planning', 'in-progress', 'review', 'testing', 'changes-requested', 'done'],
   research: ['backlog', 'in-progress', 'done'],
   general:  ['backlog', 'in-progress', 'done'],
@@ -23,6 +25,8 @@ export function KanbanBoard({ projectId, initialCardId, boardType }: { projectId
   const { tasks, agents } = useStream()
   const [activeAddColumn, setActiveAddColumn] = useState<TaskStatus | null>(null)
   const [autoOpenCardId, setAutoOpenCardId] = useState<string | undefined>(initialCardId)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
 
@@ -39,6 +43,36 @@ export function KanbanBoard({ projectId, initialCardId, boardType }: { projectId
   )
 
   const projectTasks = tasks.filter((t) => t.projectId === projectId && !t.archived)
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  async function bulkFetch(body: object) {
+    await fetch('/api/tasks/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    setSelectedIds(new Set())
+  }
+
+  async function handleBulkArchive() {
+    await bulkFetch({ action: 'archive', taskIds: [...selectedIds] })
+  }
+
+  async function handleBulkMove(status: string) {
+    await bulkFetch({ action: 'move', taskIds: [...selectedIds], status })
+  }
+
+  async function handleBulkDelete() {
+    setShowDeleteModal(false)
+    await bulkFetch({ action: 'delete', taskIds: [...selectedIds] })
+  }
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
@@ -76,29 +110,50 @@ export function KanbanBoard({ projectId, initialCardId, boardType }: { projectId
     })
   }
 
-  const columns = BOARD_COLUMNS[boardType]
+  const columns = COLUMNS_BY_TYPE[boardType]
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className="overflow-x-auto pb-6 min-h-[70vh] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-dracula-darker [&::-webkit-scrollbar-thumb]:bg-dracula-dark [&::-webkit-scrollbar-thumb]:rounded-full">
-        <div className="flex gap-3 w-full items-start">
-          {columns.map((status) => (
-            <KanbanColumn
-              key={status}
-              status={status}
-              tasks={projectTasks.filter((t) => t.status === status)}
-              agents={agents}
-              projectId={projectId}
-              boardType={boardType}
-              isAddActive={activeAddColumn === status}
-              onAddActivate={() => setActiveAddColumn(status)}
-              onAddDeactivate={() => setActiveAddColumn(null)}
-              autoOpenCardId={autoOpenCardId}
-              onAutoOpenConsumed={() => setAutoOpenCardId(undefined)}
-            />
-          ))}
+    <>
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        <div className="overflow-x-auto pb-6 min-h-[70vh] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-dracula-darker [&::-webkit-scrollbar-thumb]:bg-dracula-dark [&::-webkit-scrollbar-thumb]:rounded-full">
+          <div className="flex gap-3 w-full items-start">
+            {columns.map((status) => (
+              <KanbanColumn
+                key={status}
+                status={status}
+                tasks={projectTasks.filter((t) => t.status === status)}
+                agents={agents}
+                projectId={projectId}
+                boardType={boardType}
+                isAddActive={activeAddColumn === status}
+                onAddActivate={() => setActiveAddColumn(status)}
+                onAddDeactivate={() => setActiveAddColumn(null)}
+                autoOpenCardId={autoOpenCardId}
+                onAutoOpenConsumed={() => setAutoOpenCardId(undefined)}
+                selectedIds={selectedIds}
+                onToggleSelect={toggleSelect}
+              />
+            ))}
+          </div>
         </div>
-      </div>
-    </DndContext>
+      </DndContext>
+
+      <BulkActionBar
+        selectedIds={selectedIds}
+        boardType={boardType}
+        onArchive={handleBulkArchive}
+        onMove={handleBulkMove}
+        onDelete={() => setShowDeleteModal(true)}
+        onClear={() => setSelectedIds(new Set())}
+      />
+
+      {showDeleteModal && (
+        <BulkDeleteModal
+          count={selectedIds.size}
+          onConfirm={handleBulkDelete}
+          onCancel={() => setShowDeleteModal(false)}
+        />
+      )}
+    </>
   )
 }
