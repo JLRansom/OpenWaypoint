@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Task, Agent, BoardType, AgentType } from '@/lib/types'
+import { Task, Agent, BoardType, AgentType, isAgentActive } from '@/lib/types'
 
 interface AgentProgressBarProps {
   task: Task
@@ -97,7 +97,7 @@ function formatElapsed(ms: number): string {
 export function AgentProgressBar({ task, activeAgent, boardType }: AgentProgressBarProps) {
   const [elapsed, setElapsed] = useState(0)
 
-  const isRunning = activeAgent?.status === 'running' || activeAgent?.status === 'queued'
+  const isRunning = isAgentActive(activeAgent)
 
   useEffect(() => {
     // Guard: no agent or not running → reset
