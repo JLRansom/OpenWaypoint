@@ -1,4 +1,4 @@
-import type { Agent } from '@/lib/types'
+import type { Agent, AgentStats } from '@/lib/types'
 import { updateAgent, appendEvent, getProject } from '@/lib/store'
 import { getExecutor } from '@/lib/executors/registry'
 
@@ -61,7 +61,11 @@ function classifyError(err: unknown): { reason: string; recovery: string } {
   }
 }
 
-export async function runAgent(agent: Agent, onRawLine?: (line: string) => void): Promise<void> {
+export async function runAgent(
+  agent: Agent,
+  onRawLine?: (line: string) => void,
+  onStats?: (stats: AgentStats) => void,
+): Promise<void> {
   const controller = new AbortController()
   runControllers.set(agent.id, controller)
   updateAgent(agent.id, { status: 'running' })
@@ -76,6 +80,11 @@ export async function runAgent(agent: Agent, onRawLine?: (line: string) => void)
       workingDirectory,
       onChunk: (chunk) => appendEvent(agent.id, { timestamp: chunk.timestamp, text: chunk.text }),
       onRawLine,
+      onStats: (stats) => {
+        // Persist stats to DB so SSE broadcasts include them.
+        updateAgent(agent.id, { stats })
+        onStats?.(stats)
+      },
       signal: controller.signal,
     })
     updateAgent(agent.id, { status: 'done', completedAt: Date.now() })

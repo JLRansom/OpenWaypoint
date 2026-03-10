@@ -7,6 +7,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { Task, Agent, BoardType } from '@/lib/types'
 import { AgentProgressBar } from '@/components/AgentProgressBar'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
+import { formatTokens } from '@/lib/format-utils'
 
 type AssignRole = 'researcher' | 'coder' | 'senior-coder' | 'tester'
 
@@ -215,6 +216,48 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
           {showProgressBar && (
             <AgentProgressBar task={task} activeAgent={activeAgent} boardType={boardType} />
           )}
+
+          {/* Stats row — shown whenever the agent has emitted any token data */}
+          {activeAgent?.stats && (activeAgent.stats.totalTokens > 0 || activeAgent.stats.inputTokens > 0) && (
+            <div className="flex items-center gap-x-2 flex-wrap gap-y-0.5">
+              <span className="text-[10px] text-dracula-comment">
+                {formatTokens(activeAgent.stats.inputTokens)} in
+              </span>
+              <span className="text-[10px] text-dracula-comment">·</span>
+              <span className="text-[10px] text-dracula-comment">
+                {formatTokens(activeAgent.stats.outputTokens)} out
+              </span>
+              <span className="text-[10px] text-dracula-comment">·</span>
+              <span className="text-[10px] text-dracula-blue font-medium">
+                {formatTokens(activeAgent.stats.totalTokens)} tokens
+              </span>
+              {activeAgent.stats.numTurns > 0 && (
+                <>
+                  <span className="text-[10px] text-dracula-comment">·</span>
+                  <span className="text-[10px] text-dracula-comment">
+                    {activeAgent.stats.numTurns} {activeAgent.stats.numTurns === 1 ? 'turn' : 'turns'}
+                  </span>
+                </>
+              )}
+              {activeAgent.stats.costUsd != null && activeAgent.stats.costUsd > 0 && (
+                <>
+                  <span className="text-[10px] text-dracula-comment">·</span>
+                  <span className="text-[10px] text-dracula-green">
+                    ${activeAgent.stats.costUsd.toFixed(4)}
+                  </span>
+                </>
+              )}
+              {activeAgent.stats.model && (
+                <span
+                  className="text-[10px] text-dracula-comment/70 truncate max-w-[100px]"
+                  title={activeAgent.stats.model}
+                >
+                  {activeAgent.stats.model}
+                </span>
+              )}
+            </div>
+          )}
+
           {activeAgent && (activeAgent.status === 'done' || activeAgent.status === 'failed') && (
             <Link
               href={`/agents/${activeAgent.id}`}

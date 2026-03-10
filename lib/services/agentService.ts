@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { Agent, TaskStatus, BoardType } from '@/lib/types'
+import { Agent, AgentStats, TaskStatus, BoardType } from '@/lib/types'
 import { getTask, getProject, getAllAgents, updateAgent, updateTask, getAgent, addTask } from '@/lib/store'
 import { runAgent } from '@/lib/agent-runner'
 import { dbAddTaskRun } from '@/lib/db/repositories/taskRunRepo'
@@ -151,8 +151,13 @@ export async function assignAgentToTask(
   const agentToRun = getAgent(idleAgent.id)!
   const startedAt = Date.now()
   const rawLines: string[] = []
+  let finalStats: AgentStats | undefined
 
-  runAgent(agentToRun, (line) => rawLines.push(line)).then(async () => {
+  runAgent(
+    agentToRun,
+    (line) => rawLines.push(line),
+    (stats) => { finalStats = stats },
+  ).then(async () => {
     const completed = getAgent(idleAgent.id)
     if (!completed) return
 
@@ -172,6 +177,12 @@ export async function assignAgentToTask(
       rawLog: rawLines.join('\n'),
       startedAt,
       completedAt: completed.completedAt ?? Date.now(),
+      inputTokens: finalStats?.inputTokens,
+      outputTokens: finalStats?.outputTokens,
+      totalTokens: finalStats?.totalTokens,
+      numTurns: finalStats?.numTurns,
+      costUsd: finalStats?.costUsd,
+      model: finalStats?.model,
     })
 
     if (role === 'researcher') {

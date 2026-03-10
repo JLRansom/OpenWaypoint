@@ -21,6 +21,15 @@ function rowToTaskRun(row: TaskRunRow): TaskRun {
     rawLog: row.rawLog ?? undefined,
     startedAt: row.startedAt,
     completedAt: row.completedAt,
+    inputTokens: row.inputTokens ?? undefined,
+    outputTokens: row.outputTokens ?? undefined,
+    totalTokens:
+      row.inputTokens != null && row.outputTokens != null
+        ? row.inputTokens + row.outputTokens
+        : undefined,
+    numTurns: row.numTurns ?? undefined,
+    costUsd: row.costUsd ?? undefined,
+    model: row.model ?? undefined,
   }
 }
 
@@ -39,6 +48,11 @@ export function dbAddTaskRun(run: TaskRun): void {
     rawLog: run.rawLog ?? null,
     startedAt: run.startedAt,
     completedAt: run.completedAt,
+    inputTokens: run.inputTokens ?? null,
+    outputTokens: run.outputTokens ?? null,
+    numTurns: run.numTurns ?? null,
+    costUsd: run.costUsd ?? null,
+    model: run.model ?? null,
   }).run()
 }
 

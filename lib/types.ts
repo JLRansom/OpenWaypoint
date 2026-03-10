@@ -7,6 +7,22 @@ export interface AgentEvent {
   text: string
 }
 
+/** Usage statistics extracted from Claude CLI execution. */
+export interface AgentStats {
+  /** Prompt / input tokens consumed. */
+  inputTokens: number
+  /** Completion / output tokens generated. */
+  outputTokens: number
+  /** inputTokens + outputTokens */
+  totalTokens: number
+  /** Number of agent conversation turns. */
+  numTurns: number
+  /** Estimated API cost in USD (may be absent if CLI doesn't emit it). */
+  costUsd?: number
+  /** Model identifier used for the run (e.g. "claude-opus-4-5"). */
+  model?: string
+}
+
 export interface Agent {
   id: string
   type: AgentType
@@ -20,6 +36,8 @@ export interface Agent {
   projectId?: string
   taskId?: string
   systemPromptOverride?: string
+  /** Live stats updated during and after a run; broadcast via SSE. */
+  stats?: AgentStats
 }
 
 export type TaskStatus =
@@ -81,6 +99,13 @@ export interface TaskRun {
   rawLog?: string
   startedAt: number
   completedAt: number
+  /** Token and cost stats persisted from the completed run. */
+  inputTokens?: number
+  outputTokens?: number
+  totalTokens?: number
+  numTurns?: number
+  costUsd?: number
+  model?: string
 }
 
 export interface PaginatedRunsResponse {
