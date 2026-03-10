@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getTask, updateTask, deleteTask } from '@/lib/store'
+import fs from 'fs'
+import path from 'path'
+import { getTask, updateTask, deleteTask, deleteTaskFilesByTask } from '@/lib/store'
 import { TaskStatus } from '@/lib/types'
 
 export async function GET(
@@ -45,6 +47,27 @@ export async function DELETE(
   const { id } = await params
   const task = getTask(id)
   if (!task) return NextResponse.json({ error: 'not found' }, { status: 404 })
+
+  // Clean up file attachments from disk before removing the task row.
+  // deleteTaskFilesByTask() removes DB rows (ON DELETE CASCADE would also handle
+  // this, but we need the storagePaths before they're gone).
+  const deletedFiles = deleteTaskFilesByTask(id)
+  for (const file of deletedFiles) {
+    const diskPath = path.join(process.cwd(), file.storagePath)
+    try {
+      fs.unlinkSync(diskPath)
+    } catch {
+      // Ignore — file may already be gone
+    }
+  }
+  // Remove the now-empty per-task upload directory (best-effort)
+  const uploadDir = path.join(process.cwd(), 'data', 'uploads', id)
+  try {
+    fs.rmdirSync(uploadDir)
+  } catch {
+    // Ignore — directory may not be empty or may not exist
+  }
+
   deleteTask(id)
   return new NextResponse(null, { status: 204 })
 }
