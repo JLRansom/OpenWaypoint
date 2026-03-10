@@ -1,17 +1,31 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { useStream } from '@/components/StreamProvider'
 import { StatusBadge } from '@/components/StatusBadge'
+import { Button } from '@/components/ui/Button'
+import { Trash2 } from 'lucide-react'
 
 export function AgentLog({ agentId }: { agentId: string }) {
   const { agents } = useStream()
   const agent = agents.find((a) => a.id === agentId)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [agent?.events.length])
+
+  async function handleDelete() {
+    if (!window.confirm('Delete this agent permanently? This cannot be undone.')) return
+    await fetch(`/api/agents/${agentId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete' }),
+    })
+    router.push('/')
+  }
 
   if (!agent) {
     return <div className="text-dracula-blue text-sm">Loading agent...</div>
@@ -24,6 +38,8 @@ export function AgentLog({ agentId }: { agentId: string }) {
   const errorReason = errorParts[0] ?? agent.error ?? ''
   const errorRecovery = errorParts.length > 1 ? errorParts.slice(1).join(' — ') : null
 
+  const isDeletable = agent.status === 'idle' || agent.status === 'done' || agent.status === 'failed'
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
@@ -33,6 +49,12 @@ export function AgentLog({ agentId }: { agentId: string }) {
           <span className="text-xs text-dracula-blue">
             Completed {new Date(agent.completedAt).toLocaleTimeString()}
           </span>
+        )}
+        {isDeletable && (
+          <Button variant="danger" size="sm" onClick={handleDelete}>
+            <Trash2 className="w-3.5 h-3.5 mr-1" />
+            Delete
+          </Button>
         )}
       </div>
 

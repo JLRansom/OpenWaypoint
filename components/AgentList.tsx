@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Bot } from 'lucide-react'
 import { useStream } from '@/components/StreamProvider'
 import { AgentRow } from '@/components/AgentRow'
@@ -10,6 +10,12 @@ export function AgentList() {
   const { agents } = useStream()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const selectedAgent = agents.find((a) => a.id === selectedId)
+
+  useEffect(() => {
+    if (selectedId && !agents.find((a) => a.id === selectedId)) {
+      setSelectedId(null)
+    }
+  }, [agents, selectedId])
 
   if (agents.length === 0) {
     return (

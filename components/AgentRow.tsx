@@ -4,14 +4,30 @@ import { Agent } from '@/lib/types'
 import { StatusBadge } from '@/components/StatusBadge'
 import { useStream } from '@/components/StreamProvider'
 import { Button } from '@/components/ui/Button'
+import { Trash2 } from 'lucide-react'
 
 export function AgentRow({ agent, onSelect }: { agent: Agent; onSelect: () => void }) {
   const { projects } = useStream()
   const project = projects.find((p) => p.id === agent.projectId)
 
   async function handleStop() {
-    await fetch(`/api/agents/${agent.id}`, { method: 'DELETE' })
+    await fetch(`/api/agents/${agent.id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'cancel' }),
+    })
   }
+
+  async function handleDelete() {
+    if (!window.confirm('Delete this agent permanently? This cannot be undone.')) return
+    await fetch(`/api/agents/${agent.id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete' }),
+    })
+  }
+
+  const isDeletable = agent.status === 'idle' || agent.status === 'done' || agent.status === 'failed'
 
   return (
     <tr
@@ -38,6 +54,11 @@ export function AgentRow({ agent, onSelect }: { agent: Agent; onSelect: () => vo
           {agent.status === 'running' && (
             <Button variant="danger" size="sm" onClick={handleStop}>
               Stop
+            </Button>
+          )}
+          {isDeletable && (
+            <Button variant="danger" size="sm" onClick={handleDelete}>
+              <Trash2 className="w-3.5 h-3.5" />
             </Button>
           )}
         </div>
