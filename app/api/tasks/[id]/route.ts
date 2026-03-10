@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 import { getTask, updateTask, deleteTask, deleteTaskFilesByTask } from '@/lib/store'
+import { uploadsRoot } from '@/lib/file-utils'
 import { TaskStatus } from '@/lib/types'
 
 export async function GET(
@@ -52,8 +53,11 @@ export async function DELETE(
   // deleteTaskFilesByTask() removes DB rows (ON DELETE CASCADE would also handle
   // this, but we need the storagePaths before they're gone).
   const deletedFiles = deleteTaskFilesByTask(id)
+  const root = uploadsRoot()
   for (const file of deletedFiles) {
     const diskPath = path.join(process.cwd(), file.storagePath)
+    // Path traversal guard — only delete files that live inside the uploads root
+    if (!diskPath.startsWith(root + path.sep)) continue
     try {
       fs.unlinkSync(diskPath)
     } catch {
