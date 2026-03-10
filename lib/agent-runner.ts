@@ -55,6 +55,12 @@ function classifyError(err: unknown): { reason: string; recovery: string } {
       recovery: 'Check agent logs for details. Re-assign to retry.',
     }
   }
+  if (msg.startsWith('Claude CLI result:')) {
+    return {
+      reason: 'Claude CLI refused to run (possible nested session conflict)',
+      recovery: 'Open the agent terminal log to see the CLI output. If the dev server runs inside a Claude Code session, this is a nested-session conflict — restart the dev server outside of Claude Code.',
+    }
+  }
   return {
     reason: msg,
     recovery: 'Check agent logs for details. Re-assign to retry.',
