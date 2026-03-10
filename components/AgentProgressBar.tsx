@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Task, Agent, BoardType, AgentType, isAgentActive } from '@/lib/types'
-import { formatElapsed, formatTokens } from '@/lib/format-utils'
+import { formatElapsed, formatTokens, formatCost } from '@/lib/format-utils'
 
 interface AgentProgressBarProps {
   task: Task
@@ -124,6 +124,11 @@ export function AgentProgressBar({ task, activeAgent, boardType }: AgentProgress
             · {formatTokens(activeAgent.stats.totalTokens)} tokens
           </span>
         )}
+        {activeAgent.stats?.costUsd != null && activeAgent.stats.costUsd > 0 && (
+          <span className="text-[10px] text-dracula-green shrink-0">
+            · {formatCost(activeAgent.stats.costUsd)}
+          </span>
+        )}
       </div>
     )
   }
@@ -193,6 +198,11 @@ export function AgentProgressBar({ task, activeAgent, boardType }: AgentProgress
           {isRunning && activeAgent?.stats && activeAgent.stats.totalTokens > 0 && (
             <span className="text-[10px] text-dracula-comment shrink-0">
               · {formatTokens(activeAgent.stats.totalTokens)} tokens
+            </span>
+          )}
+          {isRunning && activeAgent?.stats?.costUsd != null && activeAgent.stats.costUsd > 0 && (
+            <span className="text-[10px] text-dracula-green shrink-0">
+              · {formatCost(activeAgent.stats.costUsd)}
             </span>
           )}
         </div>
