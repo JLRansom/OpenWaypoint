@@ -90,3 +90,8 @@ export interface PaginatedRunsResponse {
   limit: number
   totalPages: number
 }
+
+/** Whether an agent is actively running or waiting to start. */
+export function isAgentActive(agent?: Agent | null): boolean {
+  return agent?.status === 'running' || agent?.status === 'queued'
+}
