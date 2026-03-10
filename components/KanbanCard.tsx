@@ -7,7 +7,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { Task, Agent, BoardType } from '@/lib/types'
 import { AgentProgressBar } from '@/components/AgentProgressBar'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
-import { formatTokens } from '@/lib/format-utils'
+import { formatTokens, formatCost } from '@/lib/format-utils'
 
 type AssignRole = 'researcher' | 'coder' | 'senior-coder' | 'tester'
 
@@ -267,7 +267,7 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
                 <>
                   <span className="text-[10px] text-dracula-comment">·</span>
                   <span className="text-[10px] text-dracula-green">
-                    ${activeAgent.stats.costUsd.toFixed(4)}
+                    {formatCost(activeAgent.stats.costUsd)}
                   </span>
                 </>
               )}

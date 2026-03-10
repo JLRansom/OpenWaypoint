@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Task, TaskStatus, TaskRun } from '@/lib/types'
 import { Button } from '@/components/ui/Button'
 import { MarkdownOutput } from '@/components/ui/MarkdownOutput'
-import { formatDuration, formatElapsed, formatTokens } from '@/lib/format-utils'
+import { formatDuration, formatElapsed, formatTokens, formatCost } from '@/lib/format-utils'
 
 const COLUMN_LABELS: Record<TaskStatus, string> = {
   backlog: 'Backlog',
@@ -195,7 +195,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                       <>
                         <span className="text-xs text-dracula-comment">·</span>
                         <span className="text-xs text-dracula-green">
-                          ${totalCost.toFixed(4)}
+                          {formatCost(totalCost)}
                         </span>
                       </>
                     )}
@@ -229,7 +229,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                         )}
                         {run.costUsd != null && run.costUsd > 0 && (
                           <span className="text-[10px] text-dracula-green">
-                            ${run.costUsd.toFixed(4)}
+                            {formatCost(run.costUsd)}
                           </span>
                         )}
                         <span className="text-xs text-dracula-blue ml-auto shrink-0">
