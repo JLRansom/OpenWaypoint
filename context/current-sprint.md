@@ -3,7 +3,7 @@
 > Last updated: 2026-03-09
 
 ## Active Worktrees
-- `master` (worktree `agent-a717cda2`) — Replace Unicode ▼/▲ with inline SVG triangles in AgentProgressBar + TaskDetailModal; in progress
+- `worktree-agent-a717cda2` — Replace Unicode ▼/▲ with inline SVG triangles in `AgentProgressBar` + `TaskDetailModal`; committed, awaiting review/merge
 
 ## In Progress
 - [ ] Authentication & role-based access (protect dashboard + API routes)
