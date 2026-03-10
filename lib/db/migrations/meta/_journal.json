@@ -50,6 +50,13 @@
       "when": 1773200000000,
       "tag": "0006_agent_stats",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1773300000000,
+      "tag": "0007_task_files",
+      "breakpoints": true
     }
   ]
 }
