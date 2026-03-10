@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { Task, Agent, BoardType } from '@/lib/types'
@@ -112,16 +112,19 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
   const hasBottomMeta =
     (activeAgent && (isAgentRunning || activeAgent.status === 'done' || activeAgent.status === 'failed'))
 
-  // Fallback token estimation (Step 12): when live stats haven't arrived yet
+  // Fallback token estimation: when live stats haven't arrived yet
   // (e.g. agent predates this feature, or stats were cleared on reset),
   // approximate output tokens from streamed event text (~4 chars per token).
   // Displayed with a "~" prefix to signal it's an estimate, not a CLI measurement.
-  const approxOutputTokens =
-    !activeAgent?.stats && (activeAgent?.events?.length ?? 0) > 0
-      ? Math.round(
-          (activeAgent?.events ?? []).reduce((sum, e) => sum + e.text.length, 0) / 4
-        )
-      : 0
+  // Wrapped in useMemo so the .reduce() over potentially large event arrays only
+  // re-runs when stats availability or the events array reference changes, not
+  // on every SSE heartbeat tick that causes the parent to re-render.
+  const approxOutputTokens = useMemo(() => {
+    if (activeAgent?.stats || !activeAgent?.events?.length) return 0
+    return Math.round(
+      activeAgent.events.reduce((sum, e) => sum + e.text.length, 0) / 4
+    )
+  }, [activeAgent?.stats, activeAgent?.events])
 
   // Split error message into reason + recovery (separated by ' — ')
   const errorParts = activeAgent?.error?.split(' — ') ?? []

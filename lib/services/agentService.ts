@@ -295,6 +295,9 @@ export async function assignAgentToTask(
       taskId: undefined,
       taskStartedAt: undefined,
       prompt: '',
+      // Clear stale stats so the next task starts with a blank slate rather
+      // than showing token counts from the previous run on the card.
+      stats: undefined,
     })
   }).catch(console.error)
 
