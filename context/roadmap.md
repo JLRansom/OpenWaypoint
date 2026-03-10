@@ -1,6 +1,6 @@
 # Roadmap
 
-> Last updated: 2026-03-08
+> Last updated: 2026-03-10
 
 ## Current Priorities
 1. Authentication & role-based access (protect dashboard + API routes)
@@ -14,6 +14,8 @@
 - Usage tracking & cost dashboard per project
 
 ## Completed
+- ✅ File attachments for task cards (drag/drop, preview, agent prompt injection, disk storage)
+- ✅ Agent execution stats on cards (live tokens, cost, model, per-run history)
 - ✅ Next.js 15 App Router scaffold
 - ✅ SSE streaming for real-time updates (`/api/stream`)
 - ✅ Agent type system and simulation runner
