@@ -151,6 +151,10 @@ export async function assignAgentToTask(
   const agentToRun = getAgent(idleAgent.id)!
   const startedAt = Date.now()
   const rawLines: string[] = []
+  // `finalStats` is captured via the onStats callback which is called
+  // synchronously from within executor.run() before its Promise resolves.
+  // By the time the .then() handler below executes, finalStats is guaranteed
+  // to hold the last value emitted — no race condition.
   let finalStats: AgentStats | undefined
 
   runAgent(
@@ -179,6 +183,9 @@ export async function assignAgentToTask(
       completedAt: completed.completedAt ?? Date.now(),
       inputTokens: finalStats?.inputTokens,
       outputTokens: finalStats?.outputTokens,
+      // totalTokens is not a stored column — it is derived from inputTokens +
+      // outputTokens in rowToTaskRun() on read. Passing it here is harmless
+      // (dbAddTaskRun ignores it) but is included for type completeness.
       totalTokens: finalStats?.totalTokens,
       numTurns: finalStats?.numTurns,
       costUsd: finalStats?.costUsd,

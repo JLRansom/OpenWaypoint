@@ -135,6 +135,16 @@ export class LocalClaudeCliExecutor implements Executor {
           // ── Final result line ───────────────────────────────────────────────
           if (parsed.type === 'result') {
             if (parsed.is_error || parsed.subtype !== 'success') {
+              // Emit whatever tokens were accumulated so failed runs still show
+              // partial usage data in the UI rather than a blank stats row.
+              if (onStats && (accumInputTokens > 0 || accumOutputTokens > 0)) {
+                onStats({
+                  inputTokens: accumInputTokens,
+                  outputTokens: accumOutputTokens,
+                  totalTokens: accumInputTokens + accumOutputTokens,
+                  numTurns: Math.max(accumTurns, 1),
+                })
+              }
               settle(new Error(
                 (parsed.error as string | undefined) ??
                 `Claude CLI result: ${parsed.subtype}`
@@ -152,8 +162,10 @@ export class LocalClaudeCliExecutor implements Executor {
                 outputTokens,
                 totalTokens: inputTokens + outputTokens,
                 numTurns: (parsed.num_turns as number | undefined) ?? Math.max(accumTurns, 1),
-                costUsd: (parsed.cost_usd as number | undefined) ?? undefined,
-                model: (parsed.model as string | undefined) ?? undefined,
+                // Cast directly — these fields are already `T | undefined`, so
+                // appending `?? undefined` would be a no-op.
+                costUsd: parsed.cost_usd as number | undefined,
+                model: parsed.model as string | undefined,
               })
             }
           }
