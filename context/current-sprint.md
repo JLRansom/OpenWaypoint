@@ -1,11 +1,9 @@
 # Current Sprint
 
-> Last updated: 2026-03-09 (agent stats review feedback addressed)
+> Last updated: 2026-03-09 (all 3 worktrees merged — delete agents, agent stats, isAgentActive)
 
 ## Active Worktrees
-- `feat/extract-is-agent-active` — PR-ready, awaiting merge
-- `feat/delete-agents` — complete, awaiting merge (worktree: `.claude/worktrees/agent-aba00e6f`)
-- `worktree-feat/agent-stats-on-cards` — review feedback resolved, commit `76ed8b6` (worktree: `.claude/worktrees/feat/agent-stats-on-cards`)
+_None — all worktrees merged and cleaned up._
 
 ## In Progress
 - [ ] Authentication & role-based access (protect dashboard + API routes)
