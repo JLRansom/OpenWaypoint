@@ -5,6 +5,7 @@ import { Task, TaskStatus, TaskRun } from '@/lib/types'
 import { Button } from '@/components/ui/Button'
 import { MarkdownOutput } from '@/components/ui/MarkdownOutput'
 import { formatDuration, formatElapsed, formatTokens, formatCost } from '@/lib/format-utils'
+import { ROLE_COLORS, ROLE_COLOR_FALLBACK } from '@/lib/constants'
 
 const COLUMN_LABELS: Record<TaskStatus, string> = {
   backlog: 'Backlog',
@@ -24,14 +25,6 @@ const COLUMN_ACCENT: Record<TaskStatus, string> = {
   testing: 'text-dracula-pink',
   'changes-requested': 'text-dracula-red',
   done: 'text-dracula-purple',
-}
-
-const ROLE_COLORS: Record<string, string> = {
-  researcher: 'text-dracula-cyan bg-dracula-cyan/10',
-  coder: 'text-dracula-green bg-dracula-green/10',
-  'senior-coder': 'text-dracula-orange bg-dracula-orange/10',
-  writer: 'text-dracula-purple bg-dracula-purple/10',
-  tester: 'text-dracula-pink bg-dracula-pink/10',
 }
 
 function formatDate(ts: number) {
@@ -216,7 +209,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                         className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-dracula-dark/40 transition-colors flex-wrap"
                         onClick={() => setExpandedRunId(expandedRunId === run.id ? null : run.id)}
                       >
-                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium capitalize ${ROLE_COLORS[run.role] ?? 'text-dracula-light bg-dracula-dark'}`}>
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium capitalize ${ROLE_COLORS[run.role] ?? ROLE_COLOR_FALLBACK}`}>
                           {run.role}
                         </span>
                         <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${run.status === 'done' ? 'text-dracula-green bg-dracula-green/10' : 'text-dracula-red bg-dracula-red/10'}`}>
