@@ -13,17 +13,19 @@ interface PipelineStage {
   label: string
   /** Full Tailwind bg-* class */
   color: string
+  /** Full Tailwind text-* class — used for the active-stage arrow indicator */
+  textColor: string
 }
 
 const CODING_PIPELINE: PipelineStage[] = [
-  { label: 'Research', color: 'bg-dracula-cyan' },
-  { label: 'Code',     color: 'bg-dracula-green' },
-  { label: 'Review',   color: 'bg-dracula-orange' },
-  { label: 'Test',     color: 'bg-dracula-pink' },
+  { label: 'Research', color: 'bg-dracula-cyan',   textColor: 'text-dracula-cyan' },
+  { label: 'Code',     color: 'bg-dracula-green',  textColor: 'text-dracula-green' },
+  { label: 'Review',   color: 'bg-dracula-orange', textColor: 'text-dracula-orange' },
+  { label: 'Test',     color: 'bg-dracula-pink',   textColor: 'text-dracula-pink' },
 ]
 
 const RESEARCH_PIPELINE: PipelineStage[] = [
-  { label: 'Research', color: 'bg-dracula-cyan' },
+  { label: 'Research', color: 'bg-dracula-cyan', textColor: 'text-dracula-cyan' },
 ]
 
 const ROLE_TEXT_COLOR: Record<AgentType, string> = {
@@ -151,19 +153,27 @@ export function AgentProgressBar({ task, activeAgent, boardType }: AgentProgress
   }
 
   return (
-    <div className="space-y-1">
-      {/* Segmented pipeline bar */}
+    <div className="space-y-0.5">
+      {/* Segmented pipeline bar with active-stage arrow */}
       <div className="flex gap-0.5">
         {pipeline.map((stage, i) => {
           const isActive    = i === activeIndex
           const isCompleted = i < completedCount
           const bgClass     = isActive || isCompleted ? stage.color : 'bg-dracula-dark/40'
           return (
-            <div
-              key={stage.label}
-              title={stage.label}
-              className={`h-1 flex-1 rounded-full ${bgClass}${isActive ? ' animate-pulse' : ''}`}
-            />
+            <div key={stage.label} className="flex-1 relative">
+              {/* Bar segment */}
+              <div
+                title={stage.label}
+                className={`h-1 rounded-full ${bgClass}${isActive ? ' animate-pulse' : ''}`}
+              />
+              {/* Downward arrow below the active segment */}
+              {isActive && (
+                <div className="flex justify-center">
+                  <span className={`text-[8px] leading-none ${stage.textColor}`}>▼</span>
+                </div>
+              )}
+            </div>
           )
         })}
       </div>
