@@ -1,9 +1,9 @@
 # Current Sprint
 
-> Last updated: 2026-03-10 (review fix pass)
+> Last updated: 2026-03-10 (review fix pass — second round)
 
 ## Active Worktrees
-_(none — all worktrees cleaned up)_
+- `fix/file-attachments-review` — Review fixes in progress (path traversal, React key, sizeBytes)
 
 ## In Progress
 - [ ] Authentication & role-based access (protect dashboard + API routes)
@@ -16,7 +16,8 @@ _(none — all worktrees cleaned up)_
 - [ ] Files API executor integration (upload via `anthropic.beta.files.upload()` for API-based executor when added)
 
 ## Recently Done
-- [x] File attachments for task cards — drag/drop onto cards, image/PDF/text previews in modal, count badge on card, agent prompt injection of file content (inline ≤100KB text, path reference for binaries); `task_files` table + migration 0007; `FileDropZone` + `FileAttachmentList` components; server-only `lib/file-utils.ts`; `formatFileSize` added to `format-utils.ts`; security hardening: path traversal guards on all three disk-delete code paths (file DELETE, task DELETE bulk cleanup, file content serve), ownership check before DB delete, `Content-Disposition` sanitisation, forward-slash path normalization, `UploadState.id` UUID fix (2026-03-10)
+- [x] File attachments — review fix pass: strict path traversal guard (removed `&& diskPath !== root` clause in content route + fileId delete route); `key={u.id}` on UploadToast in both compact and full variants; `sizeBytes: buffer.length` (actual written bytes, not browser-reported `file.size`) (2026-03-10)
+- [x] File attachments for task cards — drag/drop onto cards, image/PDF/text previews in modal, count badge on card, agent prompt injection of file content (inline ≤100KB text, path reference for binaries); `task_files` table + migration 0007; `FileDropZone` + `FileAttachmentList` components; server-only `lib/file-utils.ts`; `formatFileSize` added to `format-utils.ts`; security hardening: path traversal guards on all three disk-delete code paths, ownership check, `Content-Disposition` sanitisation, forward-slash normalization (2026-03-10)
 - [x] Extract `ROLE_COLORS` to `lib/constants.ts` — DRY fix; also extracted `ROLE_COLOR_FALLBACK`; both consumers updated (2026-03-09)
 - [x] Agent stats review fixes — journal entry for 0006_agent_stats added (was missing, would crash at startup); no-op `?? undefined` removed from local.ts; partial stats emitted on error results; `finalStats` capture comment; `totalTokens` clarification in agentService; Step 12 fallback estimation (~tokens) in KanbanCard (2026-03-09)
 - [x] Agent stats on cards — `AgentStats` type, `onStats` pipeline through executor→runner→store→SSE; token/cost columns on `task_runs`; KanbanCard stats row, AgentProgressBar live counter, TaskDetailModal per-run + aggregate stats; new `lib/format-utils.ts` (2026-03-09)

@@ -83,7 +83,7 @@ export async function POST(
       taskId: id,
       filename: file.name,
       mimeType,
-      sizeBytes: file.size,
+      sizeBytes: buffer.length,
       storagePath: relativePath,
       createdAt: Date.now(),
     }
