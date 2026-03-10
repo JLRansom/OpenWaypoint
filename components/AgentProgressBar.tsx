@@ -98,11 +98,13 @@ export function AgentProgressBar({ task, activeAgent, boardType }: AgentProgress
   const isRunning = activeAgent?.status === 'running' || activeAgent?.status === 'queued'
 
   useEffect(() => {
-    const startTime = activeAgent?.taskStartedAt ?? activeAgent?.createdAt
-    if (!isRunning || !startTime) {
+    // Guard: no agent or not running → reset
+    if (!activeAgent || !isRunning) {
       setElapsed(0)
       return
     }
+
+    const startTime = activeAgent.taskStartedAt ?? activeAgent.createdAt
     setElapsed(Date.now() - startTime)
     const id = setInterval(() => {
       setElapsed(Date.now() - startTime)
