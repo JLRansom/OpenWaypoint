@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { TaskRun, PaginatedRunsResponse } from '@/lib/types'
 import { Button } from '@/components/ui/Button'
 import { MarkdownOutput } from '@/components/ui/MarkdownOutput'
+import { ROLE_COLORS, ROLE_COLOR_FALLBACK } from '@/lib/constants'
 
 type RoleFilter = 'all' | 'researcher' | 'coder' | 'senior-coder'
 type StatusFilter = 'all' | 'done' | 'failed'
@@ -68,14 +69,6 @@ const STATUS_OPTIONS: { label: string; value: StatusFilter }[] = [
   { label: 'Done', value: 'done' },
   { label: 'Failed', value: 'failed' },
 ]
-
-const ROLE_COLORS: Record<string, string> = {
-  researcher: 'text-dracula-cyan bg-dracula-cyan/10',
-  coder: 'text-dracula-green bg-dracula-green/10',
-  'senior-coder': 'text-dracula-orange bg-dracula-orange/10',
-  writer: 'text-dracula-purple bg-dracula-purple/10',
-  tester: 'text-dracula-pink bg-dracula-pink/10',
-}
 
 function PillButton({
   active,
@@ -267,7 +260,7 @@ export function HistoryList() {
                         {run.projectName}
                       </td>
                       <td className="py-3 px-4">
-                        <span className={`rounded px-2 py-0.5 text-xs font-medium capitalize ${ROLE_COLORS[run.role] ?? 'text-dracula-light bg-dracula-dark'}`}>
+                        <span className={`rounded px-2 py-0.5 text-xs font-medium capitalize ${ROLE_COLORS[run.role] ?? ROLE_COLOR_FALLBACK}`}>
                           {run.role}
                         </span>
                       </td>
