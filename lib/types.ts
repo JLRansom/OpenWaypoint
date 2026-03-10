@@ -138,3 +138,46 @@ export interface TaskFile {
 export function isAgentActive(agent?: Agent | null): boolean {
   return agent?.status === 'running' || agent?.status === 'queued'
 }
+
+// ---------------------------------------------------------------------------
+// Analytics
+// ---------------------------------------------------------------------------
+
+export interface WeeklyTaskData {
+  weekLabel: string
+  done: number
+  failed: number
+}
+
+export interface DailyTokenData {
+  dateLabel: string
+  inputTokens: number
+  outputTokens: number
+}
+
+export interface DailyCostData {
+  dateLabel: string
+  cumulativeCost: number
+}
+
+export interface RoleCostData {
+  role: string
+  totalCost: number
+}
+
+export interface ProjectAnalyticsSummary {
+  totalRunsDone: number
+  totalRunsFailed: number
+  totalCostUsd: number
+  totalInputTokens: number
+  totalOutputTokens: number
+  avgCostPerRun: number
+}
+
+export interface ProjectAnalyticsResponse {
+  summary: ProjectAnalyticsSummary
+  weeklyTasks: WeeklyTaskData[]
+  dailyTokens: DailyTokenData[]
+  dailyCost: DailyCostData[]
+  costByRole: RoleCostData[]
+}
