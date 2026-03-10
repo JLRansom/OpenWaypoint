@@ -2,6 +2,12 @@
 
 > Append new entries at the top. Keep each entry ≤ 10 lines.
 
+## ADR-013 — PipelineStage textColor + active-stage arrow indicator (2026-03-09)
+**Decision:** Added `textColor: string` to `PipelineStage` interface (explicit Tailwind class, not dynamic string replace). Rendered `▼` (U+25BC) in a `flex justify-center` div below the active segment; `text-[8px] leading-none`; no pulse.
+**Why:** Dynamic `bg-` → `text-` string replace risks Tailwind purge removing classes. Explicit field is safe. Arrow provides an unambiguous visual anchor beyond color+pulse alone.
+**Affects:** `components/AgentProgressBar.tsx` — interface, both pipeline arrays, render loop.
+**Status:** Accepted.
+
 ## ADR-012 — Agent taskStartedAt field for accurate elapsed timer (2026-03-09)
 **Decision:** Added `taskStartedAt: number | null` to the `Agent` type, Drizzle schema (`task_started_at` INTEGER), repo, and service. `AgentProgressBar` uses `taskStartedAt ?? createdAt` as the timer origin.
 **Why:** `createdAt` is set when the agent record is created (may be seconds before task assignment). `taskStartedAt` is set at task dispatch, giving an accurate elapsed duration per task.
