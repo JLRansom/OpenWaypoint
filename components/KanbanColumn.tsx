@@ -35,9 +35,11 @@ interface KanbanColumnProps {
   onAddDeactivate: () => void
   autoOpenCardId?: string
   onAutoOpenConsumed: () => void
+  selectedIds: Set<string>
+  onToggleSelect: (id: string) => void
 }
 
-export function KanbanColumn({ status, tasks, agents, projectId, boardType, isAddActive, onAddActivate, onAddDeactivate, autoOpenCardId, onAutoOpenConsumed }: KanbanColumnProps) {
+export function KanbanColumn({ status, tasks, agents, projectId, boardType, isAddActive, onAddActivate, onAddDeactivate, autoOpenCardId, onAutoOpenConsumed, selectedIds, onToggleSelect }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
   const baseLabel = COLUMN_LABELS[status]
   const label = status === 'backlog' && boardType === 'general' ? 'To Do' : baseLabel
@@ -77,6 +79,8 @@ export function KanbanColumn({ status, tasks, agents, projectId, boardType, isAd
               boardType={boardType}
               autoOpen={autoOpenCardId === task.id}
               onAutoOpenConsumed={onAutoOpenConsumed}
+              isSelected={selectedIds.has(task.id)}
+              onToggleSelect={onToggleSelect}
             />
           )
         })}

@@ -7,6 +7,7 @@
  */
 import path from 'path'
 import fs from 'fs'
+import { deleteTaskFilesByTask } from '@/lib/store'
 
 // ---------------------------------------------------------------------------
 // Allowed MIME types
@@ -66,4 +67,33 @@ export function ensureTaskUploadsDir(taskId: string): string {
 export function sanitiseFilename(raw: string): string {
   const base = path.basename(raw)
   return base.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 200)
+}
+
+/**
+ * Delete a task's file attachments from disk and from the DB.
+ * The task row itself is NOT deleted — call dbDeleteTask separately.
+ *
+ * Safe to call from both the single-delete route and the bulk-delete route.
+ * Does NOT broadcast SSE — the caller is responsible for broadcasting after
+ * all mutations are complete.
+ */
+export async function deleteTaskWithFiles(taskId: string): Promise<void> {
+  const deletedFiles = deleteTaskFilesByTask(taskId)
+  const root = uploadsRoot()
+  for (const file of deletedFiles) {
+    const diskPath = path.join(process.cwd(), file.storagePath)
+    if (!diskPath.startsWith(root + path.sep)) continue
+    try {
+      fs.unlinkSync(diskPath)
+    } catch {
+      // Ignore — file may already be gone
+    }
+  }
+  // Remove the now-empty per-task upload directory (best-effort)
+  const uploadDir = path.join(process.cwd(), 'data', 'uploads', taskId)
+  try {
+    fs.rmdirSync(uploadDir)
+  } catch {
+    // Ignore — directory may not be empty or may not exist
+  }
 }
