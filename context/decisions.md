@@ -2,6 +2,21 @@
 
 > Append new entries at the top. Keep each entry ≤ 10 lines.
 
+## ADR-018 — File attachments for task cards (2026-03-10)
+**Decision:** Store uploaded files on local disk (`data/uploads/{taskId}/{uuid}-{filename}`) tracked in a new `task_files` SQLite table with CASCADE delete. Browser-safe utilities (`formatFileSize`) live in `lib/format-utils.ts`; server-only utilities (`fs`, `path`, MIME allow-list) live in `lib/file-utils.ts` to avoid Next.js bundling Node modules into client chunks.
+**UI:** `FileDropZone` detects file drags via `dataTransfer.types.includes('Files')` so it coexists with dnd-kit card drags without conflict. `FileAttachmentList` has compact (badge) and full (thumbnail + preview) modes.
+**Agent integration:** `buildUserPrompt()` in `agentService.ts` reads `dbGetFilesByTask()` and inlines text/code files ≤100 KB; larger/binary files are referenced by absolute path so a local CLI executor can access them via shell tools.
+**Deferred:** Anthropic Files API (`anthropic.beta.files.api`) integration deferred until an API-based executor is added; pattern documented in spec.
+**Affects:** `lib/types.ts`, `lib/db/schema.ts`, `lib/db/migrations/0007_task_files.sql`, `lib/db/repositories/taskFileRepo.ts`, `lib/store.ts`, `lib/file-utils.ts`, `lib/format-utils.ts`, `lib/services/agentService.ts`, `app/api/tasks/[id]/`, `app/api/files/`, `components/FileDropZone.tsx`, `components/FileAttachmentList.tsx`, `components/KanbanCard.tsx`, `components/TaskDetailModal.tsx`.
+**Status:** Accepted.
+
+## ADR-017 — ROLE_COLORS extracted to lib/constants.ts (2026-03-09)
+**Decision:** Moved `ROLE_COLORS` (Record<string, string>, 5 role entries) and `ROLE_COLOR_FALLBACK` out of `TaskDetailModal.tsx` and `HistoryList.tsx` into a new `lib/constants.ts`.
+**Why:** The map was byte-identical in both files — classic DRY violation. Any new role or color change now needs exactly one edit.
+**Pattern:** `lib/constants.ts` is the canonical home for shared UI constants (Tailwind class maps, fallback strings). Import from there; never redefine locally.
+**Worktree:** `refactor/extract-role-colors`
+**Status:** Accepted.
+
 ## ADR-016 — Agent execution statistics on cards (2026-03-09)
 **Decision:** Added `AgentStats` type to `Agent` (live, JSON-blob in `agents.stats` column, broadcast via SSE) and token/cost columns directly on `task_runs`. Stats accumulate from `message_start`/`message_delta` stream events for live updates; final `result` line takes priority for definitive totals.
 **Why:** Stats column on `agents` must survive SSE re-broadcasts (store reads from DB each broadcast), so in-memory-only wasn't viable. JSON blob keeps migration simple for ephemeral live data. Individual columns on `task_runs` keep historical stats queryable.
