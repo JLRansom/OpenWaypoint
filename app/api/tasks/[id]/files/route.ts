@@ -72,7 +72,7 @@ export async function POST(
     const safe = sanitiseFilename(file.name)
     const diskName = `${uuid}-${safe}`
     const diskPath = path.join(dir, diskName)
-    const relativePath = path.join('data', 'uploads', id, diskName)
+    const relativePath = ['data', 'uploads', id, diskName].join('/')
 
     const buffer = Buffer.from(await file.arrayBuffer())
     fs.writeFileSync(diskPath, buffer)

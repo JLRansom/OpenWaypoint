@@ -3,6 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import { Agent, AgentStats, TaskStatus, BoardType, TaskFile } from '@/lib/types'
 import { getTask, getProject, getAllAgents, updateAgent, updateTask, getAgent, addTask, getFilesByTask } from '@/lib/store'
+import { formatFileSize } from '@/lib/format-utils'
 import { runAgent } from '@/lib/agent-runner'
 import { dbAddTaskRun } from '@/lib/db/repositories/taskRunRepo'
 import { mergeWorktreeBranch } from '@/lib/git-utils'
@@ -96,7 +97,7 @@ function buildFileContext(files: TaskFile[]): string {
         lines.push(`- \`${file.filename}\` (${file.mimeType}) — path: ${absPath}\n`)
       }
     } else {
-      const sizeLabel = formatBytes(file.sizeBytes)
+      const sizeLabel = formatFileSize(file.sizeBytes)
       lines.push(`- \`${file.filename}\` (${file.mimeType}, ${sizeLabel}) — path: ${absPath}\n`)
     }
   }
@@ -119,11 +120,6 @@ function mimeToLang(mime: string): string {
   return MAP[mime] ?? ''
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
 
 function buildUserPrompt(
   role: AssignRole,
