@@ -7,6 +7,8 @@ import { CSS } from '@dnd-kit/utilities'
 import { Task, Agent, BoardType, isAgentActive } from '@/lib/types'
 import { AgentProgressBar } from '@/components/AgentProgressBar'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
+import { FileDropZone } from '@/components/FileDropZone'
+import { FileAttachmentList } from '@/components/FileAttachmentList'
 import { formatTokens, formatCost } from '@/lib/format-utils'
 
 type AssignRole = 'researcher' | 'coder' | 'senior-coder' | 'tester'
@@ -24,6 +26,7 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
   const [menuOpen, setMenuOpen] = useState(false)
   const [assignError, setAssignError] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [fileRefreshKey, setFileRefreshKey] = useState(0)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -211,6 +214,13 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
         <p className="text-xs text-dracula-comment line-clamp-1">{task.description}</p>
       )}
 
+      {/* File attachment count badge — compact pill shown below description */}
+      <FileAttachmentList
+        taskId={task.id}
+        variant="compact"
+        refreshKey={fileRefreshKey}
+      />
+
       {task.reviewNotes && task.status === 'changes-requested' && (
         <div className="rounded bg-dracula-red/10 border border-dracula-red/30 p-1.5">
           <p className="text-xs text-dracula-red font-medium mb-0.5">Review Notes</p>
@@ -318,17 +328,33 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
 
   return (
     <>
-      <div
-        ref={setNodeRef}
-        style={style}
-        {...listeners}
-        {...attributes}
-        onClick={() => setModalOpen(true)}
-        className={`group rounded-lg border border-dracula-dark/60 bg-dracula-dark shadow-sm p-3 hover:border-dracula-purple/40 hover:shadow-md transition-all cursor-pointer ${isDragging ? 'opacity-40' : ''}`}
+      {/*
+        FileDropZone wraps the dnd-kit draggable div.
+        It only intercepts native HTML5 file drops (checks dataTransfer.types includes 'Files'),
+        so dnd-kit card-drag events pass through unaffected.
+      */}
+      <FileDropZone
+        taskId={task.id}
+        variant="compact"
+        onUploaded={() => setFileRefreshKey((k) => k + 1)}
       >
-        {cardContent}
-      </div>
-      {modalOpen && <TaskDetailModal task={task} onClose={() => setModalOpen(false)} />}
+        <div
+          ref={setNodeRef}
+          style={style}
+          {...listeners}
+          {...attributes}
+          onClick={() => setModalOpen(true)}
+          className={`group rounded-lg border border-dracula-dark/60 bg-dracula-dark shadow-sm p-3 hover:border-dracula-purple/40 hover:shadow-md transition-all cursor-pointer ${isDragging ? 'opacity-40' : ''}`}
+        >
+          {cardContent}
+        </div>
+      </FileDropZone>
+      {modalOpen && (
+        <TaskDetailModal
+          task={task}
+          onClose={() => setModalOpen(false)}
+        />
+      )}
     </>
   )
 }

@@ -55,3 +55,15 @@ export function formatCost(usd: number): string {
   if (usd < 1) return `$${usd.toFixed(3)}`
   return `$${usd.toFixed(2)}`
 }
+
+/**
+ * Human-readable file size.
+ *   512        → "512 B"
+ *   1_536      → "1.5 KB"
+ *   1_572_864  → "1.5 MB"
+ */
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}

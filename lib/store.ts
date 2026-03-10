@@ -1,4 +1,4 @@
-import { Agent, AgentEvent, Project, Task, StreamPayload } from '@/lib/types'
+import { Agent, AgentEvent, Project, Task, TaskFile, StreamPayload } from '@/lib/types'
 import { broadcast } from '@/lib/broadcast'
 import {
   dbGetAllAgents,
@@ -22,6 +22,13 @@ import {
   dbUpdateTask,
   dbDeleteTask,
 } from '@/lib/db/repositories/taskRepo'
+import {
+  dbGetFilesByTask,
+  dbGetTaskFile,
+  dbAddTaskFile,
+  dbDeleteTaskFile,
+  dbDeleteTaskFilesByTask,
+} from '@/lib/db/repositories/taskFileRepo'
 
 export { subscribe, unsubscribe } from '@/lib/broadcast'
 
@@ -110,6 +117,39 @@ export function updateTask(id: string, patch: Partial<Task>): void {
 export function deleteTask(id: string): void {
   dbDeleteTask(id)
   broadcast(getStreamPayload())
+}
+
+// --- Task file functions ---
+// Note: file mutations do NOT broadcast SSE — files are fetched on demand by the
+// UI via REST (GET /api/tasks/[id]/files). The task's updatedAt is bumped on
+// upload/delete so the SSE broadcast from updateTask() picks up the change.
+
+export function getFilesByTask(taskId: string): TaskFile[] {
+  return dbGetFilesByTask(taskId)
+}
+
+export function getTaskFile(id: string): TaskFile | undefined {
+  return dbGetTaskFile(id)
+}
+
+export function addTaskFile(file: TaskFile): void {
+  dbAddTaskFile(file)
+}
+
+/**
+ * Delete a file record and return the deleted record so the caller can
+ * also remove the bytes from disk.
+ */
+export function deleteTaskFile(id: string): TaskFile | undefined {
+  return dbDeleteTaskFile(id)
+}
+
+/**
+ * Delete ALL file records for a task (used when the task itself is deleted).
+ * Returns the deleted records so the caller can clean up files on disk.
+ */
+export function deleteTaskFilesByTask(taskId: string): TaskFile[] {
+  return dbDeleteTaskFilesByTask(taskId)
 }
 
 // --- Full payload (for initial SSE load) ---
