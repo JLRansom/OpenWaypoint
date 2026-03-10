@@ -11,6 +11,7 @@ export const agents = sqliteTable('agents', {
   error:                text('error'),
   createdAt:            integer('created_at').notNull(),
   completedAt:          integer('completed_at'),
+  taskStartedAt:        integer('task_started_at'),
 })
 
 export const agentEvents = sqliteTable('agent_events', {

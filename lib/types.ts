@@ -15,6 +15,7 @@ export interface Agent {
   events: AgentEvent[]
   createdAt: number
   completedAt?: number
+  taskStartedAt?: number
   error?: string
   projectId?: string
   taskId?: string
