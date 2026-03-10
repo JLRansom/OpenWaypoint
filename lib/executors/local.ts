@@ -40,10 +40,13 @@ export class LocalClaudeCliExecutor implements Executor {
       agent.prompt,
     ]
 
-    // Remove CLAUDECODE env var so the CLI doesn't refuse to run nested inside
-    // another Claude Code session (the Next.js dev server may have it set).
+    // Remove env vars that cause the Claude CLI to detect a nested session and
+    // refuse to run (the Next.js dev server inherits these from the outer shell).
     const env = { ...process.env }
     delete env.CLAUDECODE
+    delete env.CLAUDE_CODE_SESSION
+    delete env.ANTHROPIC_CLAUDE_CODE_SESSION_ID
+    delete env.CLAUDE_CODE_ENTRYPOINT
 
     const child = spawn(this.cliBin, args, {
       cwd: workingDirectory,
@@ -151,6 +154,7 @@ export class LocalClaudeCliExecutor implements Executor {
               }
               settle(new Error(
                 (parsed.error as string | undefined) ??
+                (parsed.result as string | undefined) ??
                 `Claude CLI result: ${parsed.subtype}`
               ))
             } else if (onStats) {
