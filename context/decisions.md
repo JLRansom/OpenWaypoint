@@ -2,13 +2,13 @@
 
 > Append new entries at the top. Keep each entry ≤ 10 lines.
 
-## ADR-018 — File attachments for task cards (2026-03-10) [updated: security hardening]
+## ADR-018 — File attachments for task cards (2026-03-10) [updated: review fix 2026-03-10]
 **Decision:** Store uploaded files on local disk (`data/uploads/{taskId}/{uuid}-{filename}`) tracked in a new `task_files` SQLite table with CASCADE delete. Browser-safe utilities (`formatFileSize`) live in `lib/format-utils.ts`; server-only utilities (`fs`, `path`, MIME allow-list) live in `lib/file-utils.ts` to avoid Next.js bundling Node modules into client chunks.
 **UI:** `FileDropZone` detects file drags via `dataTransfer.types.includes('Files')` so it coexists with dnd-kit card drags without conflict. `FileAttachmentList` has compact (badge) and full (thumbnail + preview) modes.
 **Agent integration:** `buildUserPrompt()` in `agentService.ts` reads `dbGetFilesByTask()` and inlines text/code files ≤100 KB; larger/binary files are referenced by absolute path so a local CLI executor can access them via shell tools.
-**Security hardening (2026-03-10):** Path traversal guard added to all file-serving/deleting routes — resolved `diskPath` must start with `data/uploads/` root; file ownership verified via `getTaskFile()` before DB delete; `Content-Disposition` filename sanitised (strip `"`, `\r`, `\n`, `\`); `Content-Length` uses `buffer.length` (actual bytes read) not stored metadata; `storagePath` stored with forward slashes (array join) for cross-platform portability; local `formatBytes` in `agentService.ts` removed in favour of shared `formatFileSize`; `UploadState.id` (UUID) added to `FileDropZone` so duplicate filenames don't collide.
+**Security hardening (complete):** Path traversal guard (`diskPath.startsWith(uploadsRoot() + path.sep)`) applied to ALL disk-delete code paths — `DELETE /api/tasks/[id]/files/[fileId]`, `GET /api/files/[id]/content`, and `DELETE /api/tasks/[id]` (bulk cleanup on task delete). File ownership verified before DB delete. `Content-Disposition` filename sanitised. `Content-Length` uses `buffer.length`. `storagePath` stored with forward slashes. `UploadState.id` (UUID) prevents duplicate-filename collision in `FileDropZone`.
 **Deferred:** Anthropic Files API (`anthropic.beta.files.api`) integration deferred until an API-based executor is added; pattern documented in spec.
-**Affects:** `lib/types.ts`, `lib/db/schema.ts`, `lib/db/migrations/0007_task_files.sql`, `lib/db/repositories/taskFileRepo.ts`, `lib/store.ts`, `lib/file-utils.ts`, `lib/format-utils.ts`, `lib/services/agentService.ts`, `app/api/tasks/[id]/`, `app/api/files/`, `components/FileDropZone.tsx`, `components/FileAttachmentList.tsx`, `components/KanbanCard.tsx`, `components/TaskDetailModal.tsx`.
+**Affects:** `lib/types.ts`, `lib/db/schema.ts`, `lib/db/migrations/0007_task_files.sql`, `lib/db/repositories/taskFileRepo.ts`, `lib/store.ts`, `lib/file-utils.ts`, `lib/format-utils.ts`, `lib/services/agentService.ts`, `app/api/tasks/[id]/route.ts`, `app/api/tasks/[id]/files/`, `app/api/files/`, `components/FileDropZone.tsx`, `components/FileAttachmentList.tsx`, `components/KanbanCard.tsx`, `components/TaskDetailModal.tsx`.
 **Status:** Accepted.
 
 ## ADR-017 — ROLE_COLORS extracted to lib/constants.ts (2026-03-09)
