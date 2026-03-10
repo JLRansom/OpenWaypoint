@@ -15,6 +15,7 @@ _None — all worktrees merged and cleaned up._
 - [ ] Error handling & retry UX improvements (phase 2: structured error objects, replace split-string convention)
 
 ## Recently Done
+- [x] SVG triangle refactor — replaced `▼`/`▲` unicode chars with inline SVG in `AgentProgressBar` + `TaskDetailModal`; consistent cross-platform rendering (2026-03-09)
 - [x] Active-stage arrow indicator — `▼` below active pipeline segment; `textColor` field added to `PipelineStage`; merged directly into master (2026-03-09)
 - [x] `taskStartedAt` field — added to Agent type, schema, repo, and service; elapsed timer now uses `taskStartedAt ?? createdAt` for accurate duration tracking (2026-03-09)
 - [x] `isRunning` deduplication — refactored `getCodingProgress`/`getResearchProgress` to accept `isRunning: boolean` param instead of re-deriving from `activeAgent` (2026-03-09)
