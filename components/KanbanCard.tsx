@@ -19,9 +19,11 @@ interface KanbanCardProps {
   boardType: BoardType
   autoOpen?: boolean
   onAutoOpenConsumed?: () => void
+  isSelected?: boolean
+  onToggleSelect?: (id: string) => void
 }
 
-export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenConsumed }: KanbanCardProps) {
+export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenConsumed, isSelected = false, onToggleSelect }: KanbanCardProps) {
   const [loading, setLoading] = useState<AssignRole | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [assignError, setAssignError] = useState<string | null>(null)
@@ -344,8 +346,21 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
           {...listeners}
           {...attributes}
           onClick={() => setModalOpen(true)}
-          className={`group rounded-lg border border-dracula-dark/60 bg-dracula-dark shadow-sm p-3 hover:border-dracula-purple/40 hover:shadow-md transition-all cursor-pointer ${isDragging ? 'opacity-40' : ''}`}
+          className={`relative group rounded-lg border bg-dracula-dark shadow-sm p-3 hover:border-dracula-purple/40 hover:shadow-md transition-all cursor-pointer ${isDragging ? 'opacity-40' : ''} ${isSelected ? 'border-dracula-purple/60 ring-1 ring-dracula-purple/30' : 'border-dracula-dark/60'}`}
         >
+          {onToggleSelect && (
+            <div
+              className={`absolute top-2 left-2 z-10 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+              onClick={(e) => { e.stopPropagation(); onToggleSelect(task.id) }}
+            >
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={() => {}}
+                className="w-4 h-4 accent-dracula-purple cursor-pointer"
+              />
+            </div>
+          )}
           {cardContent}
         </div>
       </FileDropZone>
