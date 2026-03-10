@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "format": "prettier --write \"**/*.{ts,tsx,js,json}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,json}\"",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [],
   "author": "",
@@ -33,6 +37,7 @@
     "@types/node": "^25.3.5",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.4",
     "autoprefixer": "^10.4.27",
     "drizzle-kit": "^0.31.9",
     "eslint-config-prettier": "^10.1.8",
@@ -40,6 +45,7 @@
     "prettier": "^3.8.1",
     "tailwind-dracula": "^1.1.1",
     "tailwindcss": "^4.2.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
   }
 }
