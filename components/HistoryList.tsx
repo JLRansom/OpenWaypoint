@@ -74,6 +74,7 @@ const ROLE_COLORS: Record<string, string> = {
   coder: 'text-dracula-green bg-dracula-green/10',
   'senior-coder': 'text-dracula-orange bg-dracula-orange/10',
   writer: 'text-dracula-purple bg-dracula-purple/10',
+  tester: 'text-dracula-pink bg-dracula-pink/10',
 }
 
 function PillButton({
