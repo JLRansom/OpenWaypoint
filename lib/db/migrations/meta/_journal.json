@@ -43,6 +43,13 @@
       "when": 1773108000000,
       "tag": "0005_agents_task_started_at",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1773200000000,
+      "tag": "0006_agent_stats",
+      "breakpoints": true
     }
   ]
 }

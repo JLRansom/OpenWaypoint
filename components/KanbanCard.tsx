@@ -112,6 +112,17 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
   const hasBottomMeta =
     (activeAgent && (isAgentRunning || activeAgent.status === 'done' || activeAgent.status === 'failed'))
 
+  // Fallback token estimation (Step 12): when live stats haven't arrived yet
+  // (e.g. agent predates this feature, or stats were cleared on reset),
+  // approximate output tokens from streamed event text (~4 chars per token).
+  // Displayed with a "~" prefix to signal it's an estimate, not a CLI measurement.
+  const approxOutputTokens =
+    !activeAgent?.stats && (activeAgent?.events?.length ?? 0) > 0
+      ? Math.round(
+          (activeAgent?.events ?? []).reduce((sum, e) => sum + e.text.length, 0) / 4
+        )
+      : 0
+
   // Split error message into reason + recovery (separated by ' — ')
   const errorParts = activeAgent?.error?.split(' — ') ?? []
   const errorReason = errorParts[0] ?? activeAgent?.error ?? ''
@@ -215,6 +226,16 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
         <div className="pt-1.5 mt-1.5 border-t border-dracula-dark/40 space-y-1.5">
           {showProgressBar && (
             <AgentProgressBar task={task} activeAgent={activeAgent} boardType={boardType} />
+          )}
+
+          {/* Fallback estimated stats — shown when live stats are unavailable
+              but the agent has produced output we can estimate tokens from */}
+          {!activeAgent?.stats && approxOutputTokens > 0 && (
+            <div className="flex items-center gap-x-1.5">
+              <span className="text-[10px] text-dracula-comment/70" title="Estimated from output length">
+                ~{formatTokens(approxOutputTokens)} tokens
+              </span>
+            </div>
           )}
 
           {/* Stats row — shown whenever the agent has emitted any token data */}
