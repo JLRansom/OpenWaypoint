@@ -9,3 +9,15 @@ export const ROLE_COLORS: Record<string, string> = {
 
 /** Default fallback classes when a role has no entry in ROLE_COLORS. */
 export const ROLE_COLOR_FALLBACK = 'text-dracula-light bg-dracula-dark'
+
+/** Hex color values for each agent role — for use in SVG/canvas contexts (e.g. Recharts) where Tailwind classes don't apply. */
+export const ROLE_HEX: Record<string, string> = {
+  researcher:    '#8be9fd', // cyan
+  coder:         '#50fa7b', // green
+  'senior-coder':'#ffb86c', // orange
+  writer:        '#bd93f9', // purple
+  tester:        '#ff79c6', // pink
+}
+
+/** Fallback hex color for unknown roles. */
+export const ROLE_HEX_FALLBACK = '#6272a4'
