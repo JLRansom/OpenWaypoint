@@ -1,9 +1,9 @@
 # Current Sprint
 
-> Last updated: 2026-03-10 (review fix pass — second round)
+> Last updated: 2026-03-10 (review fix pass — merged to master)
 
 ## Active Worktrees
-- `fix/file-attachments-review` — Review fixes in progress (path traversal, React key, sizeBytes)
+_(none — all worktrees cleaned up)_
 
 ## In Progress
 - [ ] Authentication & role-based access (protect dashboard + API routes)
