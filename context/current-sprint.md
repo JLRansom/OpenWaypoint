@@ -1,6 +1,6 @@
 # Current Sprint
 
-> Last updated: 2026-03-09 (AgentProgressBar merged into master, worktree removed)
+> Last updated: 2026-03-09 (all three AgentProgressBar refactor branches merged, worktrees cleaned up)
 
 ## Active Worktrees
 _None — all worktrees merged and cleaned up._
@@ -15,6 +15,9 @@ _None — all worktrees merged and cleaned up._
 - [ ] Error handling & retry UX improvements (phase 2: structured error objects, replace split-string convention)
 
 ## Recently Done
+- [x] `taskStartedAt` field — added to Agent type, schema, repo, and service; elapsed timer now uses `taskStartedAt ?? createdAt` for accurate duration tracking (2026-03-09)
+- [x] `isRunning` deduplication — refactored `getCodingProgress`/`getResearchProgress` to accept `isRunning: boolean` param instead of re-deriving from `activeAgent` (2026-03-09)
+- [x] `activeAgent.createdAt` type safety — explicit null guard + destructured const in AgentProgressBar; eliminates closure narrowing ambiguity (2026-03-09)
 - [x] KanbanCard progress bar — AgentProgressBar with segmented pipeline stages, role label, elapsed timer; review fix for empty general-board container (2026-03-09)
 - [x] Error classification UI (reason + recovery hint), graceful failure cards, auto-merge on senior sign-off, backlog minor-issue parsing — merged + review fixes applied (2026-03-08)
 - [x] Agent terminal modal + history terminal tab
