@@ -18,7 +18,7 @@
 ## ADR-011 — AgentProgressBar: explicit null guard + destructured createdAt (2026-03-09)
 **Decision:** Split `!activeAgent?.createdAt` into `!activeAgent` (explicit null-check) + destructure `const { createdAt } = activeAgent` after the guard. Closure closes over a `const number`, eliminating narrowing ambiguity.
 **Why:** `createdAt` is `number` (never optional) on `Agent`; `?.` was doing double duty for null-check and falsy-check. Destructuring makes intent unambiguous and prevents stale-reference risk in `setInterval`.
-**Affects:** `components/AgentProgressBar.tsx` lines 103–117.
+**Affects:** `components/AgentProgressBar.tsx` — the useEffect block (around line 102).
 **Status:** Accepted.
 
 ## ADR-010 — AgentProgressBar: pipeline stages on KanbanCard (2026-03-09)
