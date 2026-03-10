@@ -6,6 +6,7 @@ import {
   dbAddAgent,
   dbUpdateAgent,
   dbAppendEvent,
+  dbDeleteAgent,
 } from '@/lib/db/repositories/agentRepo'
 import {
   dbGetAllProjects,
@@ -54,6 +55,11 @@ export function updateAgent(id: string, patch: Partial<Agent>): void {
 
 export function appendEvent(id: string, event: AgentEvent): void {
   dbAppendEvent(id, event)
+  broadcast(getStreamPayload())
+}
+
+export function deleteAgent(id: string): void {
+  dbDeleteAgent(id)
   broadcast(getStreamPayload())
 }
 

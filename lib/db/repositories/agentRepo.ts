@@ -104,3 +104,7 @@ export function dbAppendEvent(agentId: string, event: AgentEvent): void {
     text: event.text,
   }).run()
 }
+
+export function dbDeleteAgent(id: string): void {
+  db.delete(agents).where(eq(agents.id, id)).run()
+}
