@@ -15,6 +15,7 @@ function rowToAgent(row: AgentRow, events: AgentEvent[]): Agent {
     events,
     createdAt: row.createdAt,
     completedAt: row.completedAt ?? undefined,
+    taskStartedAt: row.taskStartedAt ?? undefined,
     error: row.error ?? undefined,
     projectId: row.projectId ?? undefined,
     taskId: row.taskId ?? undefined,
@@ -69,6 +70,7 @@ export function dbAddAgent(agent: Agent): void {
     error: agent.error ?? null,
     createdAt: agent.createdAt,
     completedAt: agent.completedAt ?? null,
+    taskStartedAt: agent.taskStartedAt ?? null,
   }).run()
 }
 
@@ -83,6 +85,7 @@ export function dbUpdateAgent(id: string, patch: Partial<Agent>): void {
   if ('systemPromptOverride' in patch) update.systemPromptOverride = patch.systemPromptOverride ?? null
   if ('error' in patch) update.error = patch.error ?? null
   if ('completedAt' in patch) update.completedAt = patch.completedAt ?? null
+  if ('taskStartedAt' in patch) update.taskStartedAt = patch.taskStartedAt ?? null
 
   if (Object.keys(update).length === 0) return
 
