@@ -11,7 +11,11 @@ export function AgentRow({ agent, onSelect }: { agent: Agent; onSelect: () => vo
   const project = projects.find((p) => p.id === agent.projectId)
 
   async function handleStop() {
-    await fetch(`/api/agents/${agent.id}`, { method: 'DELETE' })
+    await fetch(`/api/agents/${agent.id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'cancel' }),
+    })
   }
 
   async function handleDelete() {
