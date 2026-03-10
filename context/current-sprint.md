@@ -1,6 +1,6 @@
 # Current Sprint
 
-> Last updated: 2026-03-09 (progress-arrow indicator merged, worktree cleaned up)
+> Last updated: 2026-03-09 (SVG triangle refactor + ADR-011 fix merged, all worktrees cleaned up)
 
 ## Active Worktrees
 _None — all worktrees merged and cleaned up._
@@ -15,6 +15,7 @@ _None — all worktrees merged and cleaned up._
 - [ ] Error handling & retry UX improvements (phase 2: structured error objects, replace split-string convention)
 
 ## Recently Done
+- [x] ADR-011 stale line numbers — replaced hard line numbers with fuzzy landmark references in `context/decisions.md` (2026-03-09)
 - [x] SVG triangle refactor — replaced `▼`/`▲` unicode chars with inline SVG in `AgentProgressBar` + `TaskDetailModal`; consistent cross-platform rendering (2026-03-09)
 - [x] Active-stage arrow indicator — `▼` below active pipeline segment; `textColor` field added to `PipelineStage`; merged directly into master (2026-03-09)
 - [x] `taskStartedAt` field — added to Agent type, schema, repo, and service; elapsed timer now uses `taskStartedAt ?? createdAt` for accurate duration tracking (2026-03-09)
