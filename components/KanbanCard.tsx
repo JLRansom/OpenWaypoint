@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { Task, Agent, BoardType } from '@/lib/types'
+import { Task, Agent, BoardType, isAgentActive } from '@/lib/types'
 import { AgentProgressBar } from '@/components/AgentProgressBar'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
 
@@ -93,7 +93,7 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
     }
   }
 
-  const isAgentRunning = activeAgent?.status === 'running' || activeAgent?.status === 'queued'
+  const isAgentRunning = isAgentActive(activeAgent)
   const isAgentFailed = activeAgent?.status === 'failed'
 
   const MID_PIPELINE = ['planning', 'in-progress', 'review', 'changes-requested', 'testing']
