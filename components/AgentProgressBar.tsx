@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Task, Agent, BoardType, AgentType } from '@/lib/types'
+import { formatElapsed, formatTokens } from '@/lib/format-utils'
 
 interface AgentProgressBarProps {
   task: Task
@@ -86,14 +87,6 @@ function getResearchProgress(
   return { completedCount: 0, activeIndex: isRunning ? 0 : -1 }
 }
 
-function formatElapsed(ms: number): string {
-  const totalSecs = Math.floor(ms / 1000)
-  const mins = Math.floor(totalSecs / 60)
-  const secs = totalSecs % 60
-  if (mins === 0) return `${secs}s`
-  return `${mins}m ${secs}s`
-}
-
 export function AgentProgressBar({ task, activeAgent, boardType }: AgentProgressBarProps) {
   const [elapsed, setElapsed] = useState(0)
 
@@ -121,10 +114,15 @@ export function AgentProgressBar({ task, activeAgent, boardType }: AgentProgress
     const textColor = ROLE_TEXT_COLOR[activeAgent.type] ?? 'text-dracula-light'
     const label     = ROLE_LABEL[activeAgent.type]     ?? activeAgent.type
     return (
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 flex-wrap">
         <span className={`text-[10px] font-medium ${textColor}`}>● {label} working…</span>
         {elapsed > 0 && (
           <span className="text-[10px] text-dracula-comment">{formatElapsed(elapsed)}</span>
+        )}
+        {activeAgent.stats && activeAgent.stats.totalTokens > 0 && (
+          <span className="text-[10px] text-dracula-comment shrink-0">
+            · {formatTokens(activeAgent.stats.totalTokens)} tokens
+          </span>
         )}
       </div>
     )
@@ -185,12 +183,17 @@ export function AgentProgressBar({ task, activeAgent, boardType }: AgentProgress
         })}
       </div>
 
-      {/* Role label + elapsed time */}
+      {/* Role label + elapsed time + live token count */}
       {labelText && (
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <span className={`text-[10px] font-medium truncate ${labelColor}`}>{labelText}</span>
           {isRunning && elapsed > 0 && (
             <span className="text-[10px] text-dracula-comment shrink-0">{formatElapsed(elapsed)}</span>
+          )}
+          {isRunning && activeAgent?.stats && activeAgent.stats.totalTokens > 0 && (
+            <span className="text-[10px] text-dracula-comment shrink-0">
+              · {formatTokens(activeAgent.stats.totalTokens)} tokens
+            </span>
           )}
         </div>
       )}

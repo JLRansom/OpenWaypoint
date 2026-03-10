@@ -1,10 +1,19 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../client'
 import { agents, agentEvents } from '../schema'
-import { Agent, AgentEvent } from '@/lib/types'
+import { Agent, AgentEvent, AgentStats } from '@/lib/types'
 
 type AgentRow = typeof agents.$inferSelect
 type EventRow = typeof agentEvents.$inferSelect
+
+function parseStats(raw: string | null | undefined): AgentStats | undefined {
+  if (!raw) return undefined
+  try {
+    return JSON.parse(raw) as AgentStats
+  } catch {
+    return undefined
+  }
+}
 
 function rowToAgent(row: AgentRow, events: AgentEvent[]): Agent {
   return {
@@ -20,6 +29,7 @@ function rowToAgent(row: AgentRow, events: AgentEvent[]): Agent {
     projectId: row.projectId ?? undefined,
     taskId: row.taskId ?? undefined,
     systemPromptOverride: row.systemPromptOverride ?? undefined,
+    stats: parseStats(row.stats),
   }
 }
 
@@ -71,6 +81,7 @@ export function dbAddAgent(agent: Agent): void {
     createdAt: agent.createdAt,
     completedAt: agent.completedAt ?? null,
     taskStartedAt: agent.taskStartedAt ?? null,
+    stats: agent.stats != null ? JSON.stringify(agent.stats) : null,
   }).run()
 }
 
@@ -86,6 +97,7 @@ export function dbUpdateAgent(id: string, patch: Partial<Agent>): void {
   if ('error' in patch) update.error = patch.error ?? null
   if ('completedAt' in patch) update.completedAt = patch.completedAt ?? null
   if ('taskStartedAt' in patch) update.taskStartedAt = patch.taskStartedAt ?? null
+  if ('stats' in patch) update.stats = patch.stats != null ? JSON.stringify(patch.stats) : null
 
   if (Object.keys(update).length === 0) return
 

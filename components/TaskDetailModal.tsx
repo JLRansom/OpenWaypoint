@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Task, TaskStatus, TaskRun } from '@/lib/types'
 import { Button } from '@/components/ui/Button'
 import { MarkdownOutput } from '@/components/ui/MarkdownOutput'
+import { formatDuration, formatElapsed, formatTokens } from '@/lib/format-utils'
 
 const COLUMN_LABELS: Record<TaskStatus, string> = {
   backlog: 'Backlog',
@@ -40,22 +41,6 @@ function formatDate(ts: number) {
     hour: 'numeric',
     minute: '2-digit',
   })
-}
-
-function formatDuration(startedAt: number, completedAt: number): string {
-  const seconds = Math.round((completedAt - startedAt) / 1000)
-  if (seconds < 60) return `${seconds}s`
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return `${m}m ${s}s`
-}
-
-function formatTotalTime(ms: number): string {
-  const seconds = Math.round(ms / 1000)
-  if (seconds < 60) return `${seconds}s`
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return `${m}m ${s}s`
 }
 
 interface TaskDetailModalProps {
@@ -103,6 +88,8 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   }
 
   const totalTimeMs = runs.reduce((sum, r) => sum + (r.completedAt - r.startedAt), 0)
+  const totalTokens = runs.reduce((sum, r) => sum + (r.totalTokens ?? 0), 0)
+  const totalCost = runs.reduce((sum, r) => sum + (r.costUsd ?? 0), 0)
 
   return (
     <div
@@ -192,9 +179,27 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                   Run History
                 </p>
                 {runs.length > 0 && (
-                  <span className="text-xs text-dracula-blue">
-                    Total time: {formatTotalTime(totalTimeMs)}
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                    <span className="text-xs text-dracula-blue">
+                      {formatElapsed(totalTimeMs)}
+                    </span>
+                    {totalTokens > 0 && (
+                      <>
+                        <span className="text-xs text-dracula-comment">·</span>
+                        <span className="text-xs text-dracula-purple font-medium">
+                          {formatTokens(totalTokens)} tokens
+                        </span>
+                      </>
+                    )}
+                    {totalCost > 0 && (
+                      <>
+                        <span className="text-xs text-dracula-comment">·</span>
+                        <span className="text-xs text-dracula-green">
+                          ${totalCost.toFixed(4)}
+                        </span>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -207,7 +212,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                   {runs.map((run) => (
                     <div key={run.id} className="rounded-lg border border-dracula-dark/60 overflow-hidden">
                       <button
-                        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-dracula-dark/40 transition-colors"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-dracula-dark/40 transition-colors flex-wrap"
                         onClick={() => setExpandedRunId(expandedRunId === run.id ? null : run.id)}
                       >
                         <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium capitalize ${ROLE_COLORS[run.role] ?? 'text-dracula-light bg-dracula-dark'}`}>
@@ -216,13 +221,24 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                         <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${run.status === 'done' ? 'text-dracula-green bg-dracula-green/10' : 'text-dracula-red bg-dracula-red/10'}`}>
                           {run.status}
                         </span>
-                        <span className="text-xs text-dracula-blue ml-auto">
+                        {/* Token stats — shown when available */}
+                        {run.totalTokens != null && run.totalTokens > 0 && (
+                          <span className="text-[10px] text-dracula-blue">
+                            {formatTokens(run.totalTokens)} tokens
+                          </span>
+                        )}
+                        {run.costUsd != null && run.costUsd > 0 && (
+                          <span className="text-[10px] text-dracula-green">
+                            ${run.costUsd.toFixed(4)}
+                          </span>
+                        )}
+                        <span className="text-xs text-dracula-blue ml-auto shrink-0">
                           {formatDuration(run.startedAt, run.completedAt)}
                         </span>
-                        <span className="text-xs text-dracula-comment">
+                        <span className="text-xs text-dracula-comment shrink-0">
                           {formatDate(run.completedAt)}
                         </span>
-                        <span className="inline-flex items-center text-xs text-dracula-blue/60 ml-1">
+                        <span className="inline-flex items-center text-xs text-dracula-blue/60 ml-1 shrink-0">
                           <svg
                             className={`w-3 h-3 transition-transform${expandedRunId === run.id ? ' rotate-180' : ''}`}
                             viewBox="0 0 8 8"
@@ -234,7 +250,33 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                         </span>
                       </button>
                       {expandedRunId === run.id && (
-                        <div className="border-t border-dracula-dark/40 px-3 py-2">
+                        <div className="border-t border-dracula-dark/40 px-3 py-2 space-y-2">
+                          {/* Detailed token breakdown */}
+                          {(run.inputTokens != null || run.numTurns != null || run.model) && (
+                            <div className="flex flex-wrap gap-x-3 gap-y-1 py-1 border-b border-dracula-dark/30">
+                              {run.inputTokens != null && (
+                                <span className="text-[10px] text-dracula-comment">
+                                  <span className="text-dracula-light">{formatTokens(run.inputTokens)}</span> in
+                                </span>
+                              )}
+                              {run.outputTokens != null && (
+                                <span className="text-[10px] text-dracula-comment">
+                                  <span className="text-dracula-light">{formatTokens(run.outputTokens)}</span> out
+                                </span>
+                              )}
+                              {run.numTurns != null && (
+                                <span className="text-[10px] text-dracula-comment">
+                                  <span className="text-dracula-light">{run.numTurns}</span>{' '}
+                                  {run.numTurns === 1 ? 'turn' : 'turns'}
+                                </span>
+                              )}
+                              {run.model && (
+                                <span className="text-[10px] text-dracula-comment/70 truncate max-w-[160px]" title={run.model}>
+                                  {run.model}
+                                </span>
+                              )}
+                            </div>
+                          )}
                           <MarkdownOutput
                             output={run.output || '(no output)'}
                             className="max-h-48"
