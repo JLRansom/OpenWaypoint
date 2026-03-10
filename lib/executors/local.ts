@@ -2,6 +2,7 @@ import { spawn, execFile } from 'child_process'
 import { platform } from 'os'
 import type { Executor, ExecutorRunOptions } from './types'
 import { MODEL_MAP, SYSTEM_PROMPTS } from './constants'
+import { calculateCost } from '@/lib/pricing'
 
 function which(bin: string): Promise<string | null> {
   const cmd = platform() === 'win32' ? 'where' : 'which'
@@ -113,6 +114,7 @@ export class LocalClaudeCliExecutor implements Executor {
                   outputTokens: accumOutputTokens,
                   totalTokens: accumInputTokens + accumOutputTokens,
                   numTurns: accumTurns,
+                  costUsd: calculateCost(accumInputTokens, accumOutputTokens, model),
                 })
               }
             }
@@ -127,6 +129,7 @@ export class LocalClaudeCliExecutor implements Executor {
                   outputTokens: accumOutputTokens,
                   totalTokens: accumInputTokens + accumOutputTokens,
                   numTurns: accumTurns,
+                  costUsd: calculateCost(accumInputTokens, accumOutputTokens, model),
                 })
               }
             }
@@ -143,6 +146,7 @@ export class LocalClaudeCliExecutor implements Executor {
                   outputTokens: accumOutputTokens,
                   totalTokens: accumInputTokens + accumOutputTokens,
                   numTurns: Math.max(accumTurns, 1),
+                  costUsd: calculateCost(accumInputTokens, accumOutputTokens, model),
                 })
               }
               settle(new Error(
@@ -157,15 +161,19 @@ export class LocalClaudeCliExecutor implements Executor {
                 (usage?.input_tokens as number | undefined) ?? accumInputTokens
               const outputTokens =
                 (usage?.output_tokens as number | undefined) ?? accumOutputTokens
+              const resultModel = parsed.model as string | undefined
+              // Prefer CLI-reported cost; fall back to server-side calculation
+              // from the pricing table so cost is always populated when possible.
+              const cliCost = parsed.cost_usd as number | undefined
+              const costUsd =
+                cliCost ?? calculateCost(inputTokens, outputTokens, resultModel ?? model)
               onStats({
                 inputTokens,
                 outputTokens,
                 totalTokens: inputTokens + outputTokens,
                 numTurns: (parsed.num_turns as number | undefined) ?? Math.max(accumTurns, 1),
-                // Cast directly — these fields are already `T | undefined`, so
-                // appending `?? undefined` would be a no-op.
-                costUsd: parsed.cost_usd as number | undefined,
-                model: parsed.model as string | undefined,
+                costUsd,
+                model: resultModel,
               })
             }
           }

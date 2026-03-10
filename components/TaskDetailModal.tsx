@@ -8,6 +8,7 @@ import { FileDropZone } from '@/components/FileDropZone'
 import { FileAttachmentList } from '@/components/FileAttachmentList'
 import { formatDuration, formatElapsed, formatTokens, formatCost } from '@/lib/format-utils'
 import { ROLE_COLORS, ROLE_COLOR_FALLBACK } from '@/lib/constants'
+import { getModelPricing } from '@/lib/pricing'
 
 const COLUMN_LABELS: Record<TaskStatus, string> = {
   backlog: 'Backlog',
@@ -37,6 +38,16 @@ function formatDate(ts: number) {
     hour: 'numeric',
     minute: '2-digit',
   })
+}
+
+/** Returns the per-MTok input rate for a model, or undefined if unknown. */
+function getInputRate(model: string): number | undefined {
+  return getModelPricing(model)?.inputPerMTok
+}
+
+/** Returns the per-MTok output rate for a model, or undefined if unknown. */
+function getOutputRate(model: string): number | undefined {
+  return getModelPricing(model)?.outputPerMTok
 }
 
 interface TaskDetailModalProps {
@@ -286,6 +297,15 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                                 <span className="text-[10px] text-dracula-comment">
                                   <span className="text-dracula-light">{run.numTurns}</span>{' '}
                                   {run.numTurns === 1 ? 'turn' : 'turns'}
+                                </span>
+                              )}
+                              {/* Cost breakdown: show input + output split when both token counts available */}
+                              {run.costUsd != null && run.costUsd > 0 && run.inputTokens != null && run.outputTokens != null && run.model && (
+                                <span
+                                  className="text-[10px] text-dracula-green cursor-help"
+                                  title={`Input: ${formatCost((run.inputTokens / 1_000_000) * (getInputRate(run.model) ?? 0))} · Output: ${formatCost((run.outputTokens / 1_000_000) * (getOutputRate(run.model) ?? 0))}`}
+                                >
+                                  {formatCost(run.costUsd)} total
                                 </span>
                               )}
                               {run.model && (

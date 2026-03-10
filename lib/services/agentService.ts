@@ -7,6 +7,7 @@ import { formatFileSize } from '@/lib/format-utils'
 import { runAgent } from '@/lib/agent-runner'
 import { dbAddTaskRun } from '@/lib/db/repositories/taskRunRepo'
 import { mergeWorktreeBranch } from '@/lib/git-utils'
+import { calculateCost } from '@/lib/pricing'
 
 /** Maximum inline content size (bytes) — larger files are referenced by path only. */
 const INLINE_FILE_MAX_BYTES = 100 * 1024
@@ -232,6 +233,20 @@ export async function assignAgentToTask(
 
     const output = completed.events.map((e) => e.text).join('')
 
+    // If the executor didn't populate costUsd (e.g. CLI didn't emit cost_usd),
+    // compute it server-side from the pricing table using token counts + model.
+    const computedCostUsd =
+      finalStats?.costUsd ??
+      (finalStats?.inputTokens != null &&
+      finalStats?.outputTokens != null &&
+      finalStats?.model
+        ? calculateCost(
+            finalStats.inputTokens,
+            finalStats.outputTokens,
+            finalStats.model,
+          )
+        : undefined)
+
     dbAddTaskRun({
       id: randomUUID(),
       taskId: task.id,
@@ -253,7 +268,7 @@ export async function assignAgentToTask(
       // (dbAddTaskRun ignores it) but is included for type completeness.
       totalTokens: finalStats?.totalTokens,
       numTurns: finalStats?.numTurns,
-      costUsd: finalStats?.costUsd,
+      costUsd: computedCostUsd,
       model: finalStats?.model,
     })
 
