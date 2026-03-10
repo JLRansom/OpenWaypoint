@@ -41,3 +41,17 @@ export function formatElapsed(ms: number): string {
   if (mins === 0) return `${secs}s`
   return `${mins}m ${secs}s`
 }
+
+/**
+ * Adaptive USD cost display — precision scales with magnitude so
+ * micro-costs stay readable while dollar-scale amounts look natural.
+ *   0.0012  → "$0.0012"  (4dp for sub-cent)
+ *   0.123   → "$0.123"   (3dp for cents)
+ *   1.5     → "$1.50"    (2dp for dollars)
+ *   12.345  → "$12.35"   (2dp for dollars)
+ */
+export function formatCost(usd: number): string {
+  if (usd < 0.01) return `$${usd.toFixed(4)}`
+  if (usd < 1) return `$${usd.toFixed(3)}`
+  return `$${usd.toFixed(2)}`
+}
