@@ -1,9 +1,9 @@
 # Current Sprint
 
-> Last updated: 2026-03-10 (test-file-io merged, worktree removed)
+> Last updated: 2026-03-10 (analytics panel in progress)
 
 ## Active Worktrees
-_(none)_
+- `feat/project-analytics` — PR ready, awaiting merge (`worktrees/feat-project-analytics`)
 
 ## In Progress
 - [ ] Authentication & role-based access (protect dashboard + API routes)
@@ -16,6 +16,7 @@ _(none)_
 - [ ] Files API executor integration (upload via `anthropic.beta.files.upload()` for API-based executor when added)
 
 ## Recently Done
+- [x] Project analytics panel — Board/Analytics URL toggle (`?view=analytics`) on project pages; 4 Recharts charts (weekly tasks, daily tokens, cumulative cost, cost-by-role); summary stats row; time range presets (7d/30d/90d/all); `analyticsRepo.ts` + `GET /api/projects/[id]/analytics`; `ROLE_HEX` constants; recharts dep added; worktree `feat/project-analytics` (2026-03-10)
 - [x] Vitest test suite for file I/O — 75 tests (unit, integration, E2E round-trip); DB + disk isolation per worker; Windows-safe fixture seeding; merged into master (2026-03-10)
 - [x] Server-side token pricing — `lib/pricing.ts` with MODEL_PRICING table (claude-opus/sonnet/haiku families); `calculateCost()` with longest-prefix matching for snapshot-dated model IDs; live costUsd on every onStats emit; fallback in agentService before dbAddTaskRun; `POST /api/runs/backfill-costs` for historical rows; live cost in AgentProgressBar; input/output cost breakdown tooltip in TaskDetailModal (2026-03-10)
 - [x] File attachments — review fix pass: strict path traversal guard (removed `&& diskPath !== root` clause in content route + fileId delete route); `key={u.id}` on UploadToast in both compact and full variants; `sizeBytes: buffer.length` (actual written bytes, not browser-reported `file.size`) (2026-03-10)

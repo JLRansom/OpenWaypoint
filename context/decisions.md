@@ -2,6 +2,14 @@
 
 > Append new entries at the top. Keep each entry ≤ 10 lines.
 
+## ADR-021 — Project analytics panel (2026-03-10)
+**Decision:** Added Board/Analytics URL toggle (`?view=analytics`) on project pages. Analytics data served from `GET /api/projects/[id]/analytics?from=&to=` backed by `analyticsRepo.ts` — single `SELECT` on `task_runs` filtered by `projectId` + optional epoch-ms window, aggregated in JS (no SQL GROUP BY needed at current scale).
+**Charts:** 4 Recharts charts — weekly tasks done/failed (BarChart), daily input+output tokens (LineChart), cumulative cost (AreaChart with gradient), cost by agent role (horizontal BarChart with Cell per-bar coloring). All themed with Dracula hex palette via file-local `D` constant (Tailwind classes can't be used as SVG fill props).
+**Toggle:** `ProjectViewToggle` client component uses `router.push(?view=...)` — URL is shareable and survives refresh. Board is the default (`view !== 'analytics'`).
+**Per-bar colors:** Recharts requires `<Cell fill={hex}>` children inside `<Bar>` for per-bar colors; SVG `fill` can't take Tailwind classes. Added `ROLE_HEX` + `ROLE_HEX_FALLBACK` to `lib/constants.ts` alongside existing `ROLE_COLORS`.
+**Affects:** `lib/types.ts`, `lib/constants.ts`, `lib/db/repositories/analyticsRepo.ts` (new), `app/api/projects/[id]/analytics/route.ts` (new), `components/ProjectViewToggle.tsx` (new), `components/AnalyticsPanel.tsx` (new), `app/projects/[id]/page.tsx`, `package.json` (+recharts).
+**Status:** Accepted.
+
 ## ADR-020 — Vitest test suite for file I/O (2026-03-10)
 **Decision:** Installed Vitest 3 (native ESM + TS, no Babel) as the test framework. 75 tests across 6 files cover `lib/file-utils.ts` units, all four file route handlers (upload/download/delete/list), and an E2E round-trip test.
 **DB isolation:** `setupFiles` sets a unique `SQLITE_DB_PATH` per worker before any module loads. `lib/db/client.ts` reads this at module-init time, so each test file gets a fresh SQLite DB (migrations run automatically). No dev-DB pollution.
