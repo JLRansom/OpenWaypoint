@@ -14,6 +14,7 @@
 - Usage tracking & cost dashboard per project (pricing table ✅ — live cost display ✅ — dashboard view TBD)
 
 ## Completed
+- ✅ Vitest test suite for file I/O (unit, integration, E2E; DB + disk isolation; Windows-safe)
 - ✅ Server-side token pricing (MODEL_PRICING table, calculateCost, live cost on cards, backfill endpoint)
 - ✅ File attachments for task cards (drag/drop, preview, agent prompt injection, disk storage)
 - ✅ Agent execution stats on cards (live tokens, cost, model, per-run history)
