@@ -3,6 +3,7 @@
 import { useRef, useState, useCallback } from 'react'
 
 interface UploadState {
+  id: string
   filename: string
   status: 'uploading' | 'done' | 'error'
   error?: string
@@ -84,8 +85,10 @@ export function FileDropZone({ taskId, onUploaded, variant = 'full', children }:
   )
 
   async function uploadFiles(files: File[]) {
-    // Add pending state entries
+    // Add pending state entries — each gets a unique ID to avoid collision when
+    // two files share the same name.
     const pending: UploadState[] = files.map((f) => ({
+      id: crypto.randomUUID(),
       filename: f.name,
       status: 'uploading',
     }))
@@ -104,7 +107,7 @@ export function FileDropZone({ taskId, onUploaded, variant = 'full', children }:
       if (!res.ok) {
         setUploads((prev) =>
           prev.map((u) =>
-            pending.find((p) => p.filename === u.filename)
+            pending.find((p) => p.id === u.id)
               ? { ...u, status: 'error', error: data.error ?? 'upload failed' }
               : u
           )
@@ -119,7 +122,7 @@ export function FileDropZone({ taskId, onUploaded, variant = 'full', children }:
 
       setUploads((prev) =>
         prev.map((u) => {
-          if (!pending.find((p) => p.filename === u.filename)) return u
+          if (!pending.find((p) => p.id === u.id)) return u
           if (savedNames.has(u.filename)) return { ...u, status: 'done' }
           if (errorMap.has(u.filename)) return { ...u, status: 'error', error: errorMap.get(u.filename) as string }
           return u
@@ -131,13 +134,13 @@ export function FileDropZone({ taskId, onUploaded, variant = 'full', children }:
       // Auto-clear after 3 s
       setTimeout(() => {
         setUploads((prev) =>
-          prev.filter((u) => !pending.find((p) => p.filename === u.filename))
+          prev.filter((u) => !pending.find((p) => p.id === u.id))
         )
       }, 3000)
     } catch {
       setUploads((prev) =>
         prev.map((u) =>
-          pending.find((p) => p.filename === u.filename)
+          pending.find((p) => p.id === u.id)
             ? { ...u, status: 'error', error: 'network error' }
             : u
         )

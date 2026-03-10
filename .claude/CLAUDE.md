@@ -66,6 +66,14 @@ This is not optional. Keeping `context/` current is part of completing a ticket.
 - Prune stale entries (merged worktrees, resolved decisions) when you update
 - Never let `current-sprint.md` reflect worktrees that no longer exist
 
+## File Storage Conventions
+
+- **Stored paths use forward slashes** — always build `storagePath` with `['data', 'uploads', id, name].join('/')`, never `path.join()` (which produces backslashes on Windows).
+- **Path traversal guard** — any route that resolves a `storagePath` from the DB to an absolute disk path must verify `diskPath.startsWith(root + path.sep)` before reading or deleting; return 403 if the check fails.
+- **File ownership before delete** — always call `getTaskFile(fileId)` and verify `file.taskId === taskId` before calling `deleteTaskFile()`; never delete from DB first then check ownership.
+- **Content-Disposition sanitisation** — strip `"`, `\r`, `\n`, `\` from filenames before inserting into HTTP headers.
+- **Content-Length accuracy** — use `buffer.length` (actual bytes read), not stored `sizeBytes` metadata.
+
 ## Architecture
 
 - API routes live in `/app/api/[resource]/route.ts`
