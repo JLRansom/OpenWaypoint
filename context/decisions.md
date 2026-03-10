@@ -2,6 +2,28 @@
 
 > Append new entries at the top. Keep each entry ≤ 10 lines.
 
+## ADR-016 — Agent execution statistics on cards (2026-03-09)
+**Decision:** Added `AgentStats` type to `Agent` (live, JSON-blob in `agents.stats` column, broadcast via SSE) and token/cost columns directly on `task_runs`. Stats accumulate from `message_start`/`message_delta` stream events for live updates; final `result` line takes priority for definitive totals.
+**Why:** Stats column on `agents` must survive SSE re-broadcasts (store reads from DB each broadcast), so in-memory-only wasn't viable. JSON blob keeps migration simple for ephemeral live data. Individual columns on `task_runs` keep historical stats queryable.
+**New file:** `lib/format-utils.ts` consolidates `formatTokens`, `formatDuration`, `formatElapsed` (previously duplicated in 3 components).
+**Migration:** `0006_agent_stats.sql` — all new columns nullable; old rows display `—` gracefully.
+**Affects:** `lib/types.ts`, `lib/db/schema.ts`, `lib/db/migrations/`, `lib/executors/`, `lib/agent-runner.ts`, `lib/services/agentService.ts`, `lib/db/repositories/`, `components/KanbanCard.tsx`, `components/AgentProgressBar.tsx`, `components/TaskDetailModal.tsx`.
+**Status:** Accepted.
+
+## ADR-015 — DELETE /api/agents/[id] action dispatch via JSON body (2026-03-09)
+**Decision:** Refactored DELETE endpoint to read `action` from JSON body: `action=cancel` preserves existing cancel behavior; `action=delete` (default) permanently deletes the agent row.
+**Why:** Avoids introducing a new endpoint or query-param surface; DELETE body is RFC-valid; body is already parsed for cancel payloads. Default-to-delete makes the endpoint RESTful (DELETE means remove).
+**Validation:** 409 returned if agent is `running` or `queued`; task `activeAgentId` is cleared before deletion; `agentEvents` cascade-deleted via FK.
+**Affects:** `app/api/agents/[id]/route.ts`, `lib/store.ts`, `lib/db/repositories/agentRepo.ts`, `components/AgentRow.tsx`, `components/AgentLog.tsx`.
+**Status:** Accepted.
+
+## ADR-014 — isAgentActive() utility in lib/types.ts (2026-03-09)
+**Decision:** Extracted `isAgentActive(agent?: Agent | null): boolean` into `lib/types.ts`, replacing the inline `status === 'running' || status === 'queued'` expression duplicated across AgentProgressBar, AgentTerminalModal, and KanbanCard.
+**Why:** Single source of truth for the "running or queued" semantic. If the `AgentStatus` type ever grows (e.g. `'paused'`), one edit suffices.
+**Naming:** `isAgentActive` (not `isAgentRunning`) to avoid confusion with the intentional bare `status === 'running'` checks in AgentRow and AgentLog that exclude `queued` by design.
+**Affects:** `lib/types.ts`, `components/AgentProgressBar.tsx`, `components/AgentTerminalModal.tsx`, `components/KanbanCard.tsx`.
+**Status:** Accepted.
+
 ## ADR-013 — PipelineStage textColor + active-stage arrow indicator (2026-03-09)
 **Decision:** Added `textColor: string` to `PipelineStage` interface (explicit Tailwind class, not dynamic string replace). Rendered `▼` (U+25BC) in a `flex justify-center` div below the active segment; `text-[8px] leading-none`; no pulse.
 **Why:** Dynamic `bg-` → `text-` string replace risks Tailwind purge removing classes. Explicit field is safe. Arrow provides an unambiguous visual anchor beyond color+pulse alone.
