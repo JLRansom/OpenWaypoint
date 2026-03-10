@@ -172,8 +172,8 @@ export function FileDropZone({ taskId, onUploaded, variant = 'full', children }:
         {/* Upload progress toasts */}
         {uploads.length > 0 && (
           <div className="absolute bottom-0 left-0 right-0 z-20 space-y-0.5 p-1">
-            {uploads.map((u, i) => (
-              <UploadToast key={i} upload={u} />
+            {uploads.map((u) => (
+              <UploadToast key={u.id} upload={u} />
             ))}
           </div>
         )}
@@ -234,8 +234,8 @@ export function FileDropZone({ taskId, onUploaded, variant = 'full', children }:
       {/* Upload progress */}
       {uploads.length > 0 && (
         <div className="mt-2 space-y-1">
-          {uploads.map((u, i) => (
-            <UploadToast key={i} upload={u} />
+          {uploads.map((u) => (
+            <UploadToast key={u.id} upload={u} />
           ))}
         </div>
       )}
