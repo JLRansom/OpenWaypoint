@@ -1,0 +1,6 @@
+{
+  "name": "test fixture",
+  "version": "1.0.0",
+  "description": "A small JSON file used as a test attachment fixture.",
+  "tags": ["test", "fixture", "agents-galore"]
+}
