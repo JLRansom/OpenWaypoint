@@ -28,7 +28,7 @@ export async function DELETE(
   const diskPath = path.join(process.cwd(), file.storagePath)
 
   const root = path.join(process.cwd(), 'data', 'uploads')
-  if (!diskPath.startsWith(root + path.sep) && diskPath !== root) {
+  if (!diskPath.startsWith(root + path.sep)) {
     // Best-effort skip disk delete but don't fail
     updateTask(id, {})
     return new NextResponse(null, { status: 204 })

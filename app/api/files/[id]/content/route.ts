@@ -19,7 +19,7 @@ export async function GET(
   const diskPath = path.join(process.cwd(), record.storagePath)
 
   const root = path.join(process.cwd(), 'data', 'uploads')
-  if (!diskPath.startsWith(root + path.sep) && diskPath !== root) {
+  if (!diskPath.startsWith(root + path.sep)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 
