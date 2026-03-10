@@ -38,6 +38,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",
+    "@vitest/ui": "^4.0.18",
     "autoprefixer": "^10.4.27",
     "drizzle-kit": "^0.31.9",
     "eslint-config-prettier": "^10.1.8",
