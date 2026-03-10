@@ -50,7 +50,7 @@ export class LocalClaudeCliExecutor implements Executor {
       stdio: ['ignore', 'pipe', 'pipe'],
     })
 
-    const { onRawLine } = options
+    const { onRawLine, onStats } = options
 
     const onAbort = () => {
       child.kill('SIGTERM')
@@ -62,6 +62,12 @@ export class LocalClaudeCliExecutor implements Executor {
       let buf = ''
       let stderrBuf = ''
       let settled = false
+
+      // Accumulate token counts across multi-turn conversations.
+      // message_start carries input tokens; message_delta carries output tokens.
+      let accumInputTokens = 0
+      let accumOutputTokens = 0
+      let accumTurns = 0
 
       const settle = (err?: Error) => {
         if (settled) return
@@ -83,9 +89,10 @@ export class LocalClaudeCliExecutor implements Executor {
           try { parsed = JSON.parse(trimmed) } catch { continue }
           onRawLine?.(trimmed)
 
-          // Incremental text token
+          // ── Incremental text chunk ──────────────────────────────────────────
           if (parsed.type === 'stream_event') {
             const ev = parsed.event as Record<string, unknown> | undefined
+
             if (
               ev?.type === 'content_block_delta' &&
               (ev.delta as Record<string, unknown>)?.type === 'text_delta'
@@ -93,14 +100,74 @@ export class LocalClaudeCliExecutor implements Executor {
               const text = (ev.delta as Record<string, unknown>).text as string
               onChunk({ text, timestamp: Date.now() })
             }
+
+            // Live input-token count from the start of each API turn
+            if (ev?.type === 'message_start' && onStats) {
+              const msg = ev.message as Record<string, unknown> | undefined
+              const usage = msg?.usage as Record<string, unknown> | undefined
+              if (usage) {
+                accumInputTokens += (usage.input_tokens as number | undefined) ?? 0
+                accumTurns += 1
+                onStats({
+                  inputTokens: accumInputTokens,
+                  outputTokens: accumOutputTokens,
+                  totalTokens: accumInputTokens + accumOutputTokens,
+                  numTurns: accumTurns,
+                })
+              }
+            }
+
+            // Live output-token count emitted at the end of each API turn
+            if (ev?.type === 'message_delta' && onStats) {
+              const usage = ev.usage as Record<string, unknown> | undefined
+              if (usage) {
+                accumOutputTokens += (usage.output_tokens as number | undefined) ?? 0
+                onStats({
+                  inputTokens: accumInputTokens,
+                  outputTokens: accumOutputTokens,
+                  totalTokens: accumInputTokens + accumOutputTokens,
+                  numTurns: accumTurns,
+                })
+              }
+            }
           }
 
-          // Final result line
-          if (parsed.type === 'result' && (parsed.is_error || parsed.subtype !== 'success')) {
-            settle(new Error(
-              (parsed.error as string | undefined) ??
-              `Claude CLI result: ${parsed.subtype}`
-            ))
+          // ── Final result line ───────────────────────────────────────────────
+          if (parsed.type === 'result') {
+            if (parsed.is_error || parsed.subtype !== 'success') {
+              // Emit whatever tokens were accumulated so failed runs still show
+              // partial usage data in the UI rather than a blank stats row.
+              if (onStats && (accumInputTokens > 0 || accumOutputTokens > 0)) {
+                onStats({
+                  inputTokens: accumInputTokens,
+                  outputTokens: accumOutputTokens,
+                  totalTokens: accumInputTokens + accumOutputTokens,
+                  numTurns: Math.max(accumTurns, 1),
+                })
+              }
+              settle(new Error(
+                (parsed.error as string | undefined) ??
+                `Claude CLI result: ${parsed.subtype}`
+              ))
+            } else if (onStats) {
+              // The result line may carry authoritative totals — prefer them over
+              // accumulated intermediates if present.
+              const usage = parsed.usage as Record<string, unknown> | undefined
+              const inputTokens =
+                (usage?.input_tokens as number | undefined) ?? accumInputTokens
+              const outputTokens =
+                (usage?.output_tokens as number | undefined) ?? accumOutputTokens
+              onStats({
+                inputTokens,
+                outputTokens,
+                totalTokens: inputTokens + outputTokens,
+                numTurns: (parsed.num_turns as number | undefined) ?? Math.max(accumTurns, 1),
+                // Cast directly — these fields are already `T | undefined`, so
+                // appending `?? undefined` would be a no-op.
+                costUsd: parsed.cost_usd as number | undefined,
+                model: parsed.model as string | undefined,
+              })
+            }
           }
         }
       })

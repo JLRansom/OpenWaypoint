@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core'
 
 export const agents = sqliteTable('agents', {
   id:                   text('id').primaryKey(),
@@ -12,6 +12,8 @@ export const agents = sqliteTable('agents', {
   createdAt:            integer('created_at').notNull(),
   completedAt:          integer('completed_at'),
   taskStartedAt:        integer('task_started_at'),
+  /** JSON-serialised AgentStats — ephemeral, only needed for live SSE display. */
+  stats:                text('stats'),
 })
 
 export const agentEvents = sqliteTable('agent_events', {
@@ -42,10 +44,15 @@ export const taskRuns = sqliteTable('task_runs', {
   role:        text('role').notNull(),
   status:      text('status').notNull(),
   output:      text('output').notNull().default(''),
-  error:       text('error'),
-  rawLog:      text('raw_log'),
-  startedAt:   integer('started_at').notNull(),
-  completedAt: integer('completed_at').notNull(),
+  error:        text('error'),
+  rawLog:       text('raw_log'),
+  startedAt:    integer('started_at').notNull(),
+  completedAt:  integer('completed_at').notNull(),
+  inputTokens:  integer('input_tokens'),
+  outputTokens: integer('output_tokens'),
+  numTurns:     integer('num_turns'),
+  costUsd:      real('cost_usd'),
+  model:        text('model'),
 })
 
 export const tasks = sqliteTable('tasks', {

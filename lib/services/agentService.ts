@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { Agent, TaskStatus, BoardType } from '@/lib/types'
+import { Agent, AgentStats, TaskStatus, BoardType } from '@/lib/types'
 import { getTask, getProject, getAllAgents, updateAgent, updateTask, getAgent, addTask } from '@/lib/store'
 import { runAgent } from '@/lib/agent-runner'
 import { dbAddTaskRun } from '@/lib/db/repositories/taskRunRepo'
@@ -151,8 +151,17 @@ export async function assignAgentToTask(
   const agentToRun = getAgent(idleAgent.id)!
   const startedAt = Date.now()
   const rawLines: string[] = []
+  // `finalStats` is captured via the onStats callback which is called
+  // synchronously from within executor.run() before its Promise resolves.
+  // By the time the .then() handler below executes, finalStats is guaranteed
+  // to hold the last value emitted — no race condition.
+  let finalStats: AgentStats | undefined
 
-  runAgent(agentToRun, (line) => rawLines.push(line)).then(async () => {
+  runAgent(
+    agentToRun,
+    (line) => rawLines.push(line),
+    (stats) => { finalStats = stats },
+  ).then(async () => {
     const completed = getAgent(idleAgent.id)
     if (!completed) return
 
@@ -172,6 +181,15 @@ export async function assignAgentToTask(
       rawLog: rawLines.join('\n'),
       startedAt,
       completedAt: completed.completedAt ?? Date.now(),
+      inputTokens: finalStats?.inputTokens,
+      outputTokens: finalStats?.outputTokens,
+      // totalTokens is not a stored column — it is derived from inputTokens +
+      // outputTokens in rowToTaskRun() on read. Passing it here is harmless
+      // (dbAddTaskRun ignores it) but is included for type completeness.
+      totalTokens: finalStats?.totalTokens,
+      numTurns: finalStats?.numTurns,
+      costUsd: finalStats?.costUsd,
+      model: finalStats?.model,
     })
 
     if (role === 'researcher') {
@@ -277,6 +295,9 @@ export async function assignAgentToTask(
       taskId: undefined,
       taskStartedAt: undefined,
       prompt: '',
+      // Clear stale stats so the next task starts with a blank slate rather
+      // than showing token counts from the previous run on the card.
+      stats: undefined,
     })
   }).catch(console.error)
 
