@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { X, Square } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { isAgentActive } from '@/lib/types'
 import type { Agent } from '@/lib/types'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -29,7 +30,7 @@ export function AgentTerminalModal({
   if (!agent) return null
 
   const text = agent.events.map((e) => e.text).join('')
-  const isRunning = agent.status === 'running' || agent.status === 'queued'
+  const isRunning = isAgentActive(agent)
 
   async function handleStop() {
     await fetch(`/api/agents/${agent!.id}`, { method: 'DELETE' })
