@@ -1,9 +1,9 @@
 # Current Sprint
 
-> Last updated: 2026-03-09 (SVG triangle refactor + ADR-011 fix merged, all worktrees cleaned up)
+> Last updated: 2026-03-09 (delete agents review fixes applied)
 
 ## Active Worktrees
-_None — all worktrees merged and cleaned up._
+- `feat/delete-agents` — review fixes applied, PR-ready (worktree: `.claude/worktrees/agent-aba00e6f`)
 
 ## In Progress
 - [ ] Authentication & role-based access (protect dashboard + API routes)
@@ -15,6 +15,7 @@ _None — all worktrees merged and cleaned up._
 - [ ] Error handling & retry UX improvements (phase 2: structured error objects, replace split-string convention)
 
 ## Recently Done
+- [x] Delete agents feature (review fix) — `handleStop` in AgentRow + AgentTerminalModal now explicitly sends `{ action: 'cancel' }` body; prevents accidental permanent deletion when clicking Stop (2026-03-09)
 - [x] ADR-011 stale line numbers — replaced hard line numbers with fuzzy landmark references in `context/decisions.md` (2026-03-09)
 - [x] SVG triangle refactor — replaced `▼`/`▲` unicode chars with inline SVG in `AgentProgressBar` + `TaskDetailModal`; consistent cross-platform rendering (2026-03-09)
 - [x] Active-stage arrow indicator — `▼` below active pipeline segment; `textColor` field added to `PipelineStage`; merged directly into master (2026-03-09)
