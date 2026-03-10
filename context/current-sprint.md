@@ -1,9 +1,9 @@
 # Current Sprint
 
-> Last updated: 2026-03-09 (all three AgentProgressBar refactor branches merged, worktrees cleaned up)
+> Last updated: 2026-03-09
 
 ## Active Worktrees
-_None — all worktrees merged and cleaned up._
+- `master` (worktree `agent-a717cda2`) — Replace Unicode ▼/▲ with inline SVG triangles in AgentProgressBar + TaskDetailModal; in progress
 
 ## In Progress
 - [ ] Authentication & role-based access (protect dashboard + API routes)

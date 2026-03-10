@@ -222,8 +222,15 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                         <span className="text-xs text-dracula-comment">
                           {formatDate(run.completedAt)}
                         </span>
-                        <span className="text-xs text-dracula-blue/60 ml-1">
-                          {expandedRunId === run.id ? '▲' : '▼'}
+                        <span className="inline-flex items-center text-xs text-dracula-blue/60 ml-1">
+                          <svg
+                            className={`w-3 h-3 transition-transform${expandedRunId === run.id ? ' rotate-180' : ''}`}
+                            viewBox="0 0 8 8"
+                            fill="currentColor"
+                            aria-hidden="true"
+                          >
+                            <polygon points="0,0 8,0 4,7" />
+                          </svg>
                         </span>
                       </button>
                       {expandedRunId === run.id && (

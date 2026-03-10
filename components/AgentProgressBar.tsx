@@ -170,7 +170,14 @@ export function AgentProgressBar({ task, activeAgent, boardType }: AgentProgress
               {/* Downward arrow below the active segment */}
               {isActive && (
                 <div className="flex justify-center">
-                  <span className={`text-[8px] leading-none ${stage.textColor}`}>▼</span>
+                  <svg
+                    className={`w-2 h-2 ${stage.textColor}`}
+                    viewBox="0 0 8 8"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <polygon points="0,0 8,0 4,7" />
+                  </svg>
                 </div>
               )}
             </div>
