@@ -1,12 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { Task, Agent, BoardType, isAgentActive } from '@/lib/types'
 import { AgentProgressBar } from '@/components/AgentProgressBar'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
+import { formatTokens, formatCost } from '@/lib/format-utils'
 
 type AssignRole = 'researcher' | 'coder' | 'senior-coder' | 'tester'
 
@@ -110,6 +111,20 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
 
   const hasBottomMeta =
     (activeAgent && (isAgentRunning || activeAgent.status === 'done' || activeAgent.status === 'failed'))
+
+  // Fallback token estimation: when live stats haven't arrived yet
+  // (e.g. agent predates this feature, or stats were cleared on reset),
+  // approximate output tokens from streamed event text (~4 chars per token).
+  // Displayed with a "~" prefix to signal it's an estimate, not a CLI measurement.
+  // Wrapped in useMemo so the .reduce() over potentially large event arrays only
+  // re-runs when stats availability or the events array reference changes, not
+  // on every SSE heartbeat tick that causes the parent to re-render.
+  const approxOutputTokens = useMemo(() => {
+    if (activeAgent?.stats || !activeAgent?.events?.length) return 0
+    return Math.round(
+      activeAgent.events.reduce((sum, e) => sum + e.text.length, 0) / 4
+    )
+  }, [activeAgent?.stats, activeAgent?.events])
 
   // Split error message into reason + recovery (separated by ' — ')
   const errorParts = activeAgent?.error?.split(' — ') ?? []
@@ -215,6 +230,58 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
           {showProgressBar && (
             <AgentProgressBar task={task} activeAgent={activeAgent} boardType={boardType} />
           )}
+
+          {/* Fallback estimated stats — shown when live stats are unavailable
+              but the agent has produced output we can estimate tokens from */}
+          {!activeAgent?.stats && approxOutputTokens > 0 && (
+            <div className="flex items-center gap-x-1.5">
+              <span className="text-[10px] text-dracula-comment/70" title="Estimated from output length">
+                ~{formatTokens(approxOutputTokens)} tokens
+              </span>
+            </div>
+          )}
+
+          {/* Stats row — shown whenever the agent has emitted any token data */}
+          {activeAgent?.stats && (activeAgent.stats.totalTokens > 0 || activeAgent.stats.inputTokens > 0) && (
+            <div className="flex items-center gap-x-2 flex-wrap gap-y-0.5">
+              <span className="text-[10px] text-dracula-comment">
+                {formatTokens(activeAgent.stats.inputTokens)} in
+              </span>
+              <span className="text-[10px] text-dracula-comment">·</span>
+              <span className="text-[10px] text-dracula-comment">
+                {formatTokens(activeAgent.stats.outputTokens)} out
+              </span>
+              <span className="text-[10px] text-dracula-comment">·</span>
+              <span className="text-[10px] text-dracula-blue font-medium">
+                {formatTokens(activeAgent.stats.totalTokens)} tokens
+              </span>
+              {activeAgent.stats.numTurns > 0 && (
+                <>
+                  <span className="text-[10px] text-dracula-comment">·</span>
+                  <span className="text-[10px] text-dracula-comment">
+                    {activeAgent.stats.numTurns} {activeAgent.stats.numTurns === 1 ? 'turn' : 'turns'}
+                  </span>
+                </>
+              )}
+              {activeAgent.stats.costUsd != null && activeAgent.stats.costUsd > 0 && (
+                <>
+                  <span className="text-[10px] text-dracula-comment">·</span>
+                  <span className="text-[10px] text-dracula-green">
+                    {formatCost(activeAgent.stats.costUsd)}
+                  </span>
+                </>
+              )}
+              {activeAgent.stats.model && (
+                <span
+                  className="text-[10px] text-dracula-comment/70 truncate max-w-[100px]"
+                  title={activeAgent.stats.model}
+                >
+                  {activeAgent.stats.model}
+                </span>
+              )}
+            </div>
+          )}
+
           {activeAgent && (activeAgent.status === 'done' || activeAgent.status === 'failed') && (
             <Link
               href={`/agents/${activeAgent.id}`}

@@ -1,4 +1,4 @@
-import type { Agent } from '@/lib/types'
+import type { Agent, AgentStats } from '@/lib/types'
 
 export interface TextChunk {
   text: string
@@ -11,6 +11,12 @@ export interface ExecutorRunOptions {
   workingDirectory?: string
   onChunk: (chunk: TextChunk) => void
   onRawLine?: (line: string) => void
+  /**
+   * Called during execution with live token/usage stats.
+   * Fires on every `message_start` / `message_delta` stream event for live
+   * updates, and once more on the final `result` line with definitive totals.
+   */
+  onStats?: (stats: AgentStats) => void
   signal: AbortSignal
 }
 
