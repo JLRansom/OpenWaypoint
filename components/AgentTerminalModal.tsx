@@ -33,7 +33,11 @@ export function AgentTerminalModal({
   const isRunning = isAgentActive(agent)
 
   async function handleStop() {
-    await fetch(`/api/agents/${agent!.id}`, { method: 'DELETE' })
+    await fetch(`/api/agents/${agent!.id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'cancel' }),
+    })
   }
 
   return (
