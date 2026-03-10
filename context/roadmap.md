@@ -11,9 +11,10 @@
 - Agent log search & filtering
 - Error handling & retry UX improvements
 - Notifications / webhooks when pipeline completes
-- Usage tracking & cost dashboard per project
+- Usage tracking & cost dashboard per project (pricing table ✅ — live cost display ✅ — dashboard view TBD)
 
 ## Completed
+- ✅ Server-side token pricing (MODEL_PRICING table, calculateCost, live cost on cards, backfill endpoint)
 - ✅ File attachments for task cards (drag/drop, preview, agent prompt injection, disk storage)
 - ✅ Agent execution stats on cards (live tokens, cost, model, per-run history)
 - ✅ Next.js 15 App Router scaffold

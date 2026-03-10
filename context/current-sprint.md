@@ -1,6 +1,6 @@
 # Current Sprint
 
-> Last updated: 2026-03-10 (review fix pass — merged to master)
+> Last updated: 2026-03-10 (token pricing — merged to master)
 
 ## Active Worktrees
 _(none — all worktrees cleaned up)_
@@ -16,6 +16,7 @@ _(none — all worktrees cleaned up)_
 - [ ] Files API executor integration (upload via `anthropic.beta.files.upload()` for API-based executor when added)
 
 ## Recently Done
+- [x] Server-side token pricing — `lib/pricing.ts` with MODEL_PRICING table (claude-opus/sonnet/haiku families); `calculateCost()` with longest-prefix matching for snapshot-dated model IDs; live costUsd on every onStats emit; fallback in agentService before dbAddTaskRun; `POST /api/runs/backfill-costs` for historical rows; live cost in AgentProgressBar; input/output cost breakdown tooltip in TaskDetailModal (2026-03-10)
 - [x] File attachments — review fix pass: strict path traversal guard (removed `&& diskPath !== root` clause in content route + fileId delete route); `key={u.id}` on UploadToast in both compact and full variants; `sizeBytes: buffer.length` (actual written bytes, not browser-reported `file.size`) (2026-03-10)
 - [x] File attachments for task cards — drag/drop onto cards, image/PDF/text previews in modal, count badge on card, agent prompt injection of file content (inline ≤100KB text, path reference for binaries); `task_files` table + migration 0007; `FileDropZone` + `FileAttachmentList` components; server-only `lib/file-utils.ts`; `formatFileSize` added to `format-utils.ts`; security hardening: path traversal guards on all three disk-delete code paths, ownership check, `Content-Disposition` sanitisation, forward-slash normalization (2026-03-10)
 - [x] Extract `ROLE_COLORS` to `lib/constants.ts` — DRY fix; also extracted `ROLE_COLOR_FALLBACK`; both consumers updated (2026-03-09)

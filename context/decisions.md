@@ -2,6 +2,15 @@
 
 > Append new entries at the top. Keep each entry ≤ 10 lines.
 
+## ADR-019 — Server-side token pricing table (2026-03-10)
+**Decision:** Added `lib/pricing.ts` with a `MODEL_PRICING` table (keyed by model ID prefix) and `calculateCost(inputTokens, outputTokens, model)` utility. Cost is now computed server-side for every run, not just when the Claude CLI emits `cost_usd` in the result line.
+**Why:** `cost_usd` in the CLI result line is optional and absent for many runs; this left `costUsd` blank in the UI. Prefix-matching handles snapshot-dated model IDs (e.g. `claude-opus-4-6-20260301`); longest-prefix wins so `claude-opus-4-6` beats `claude-opus-4`.
+**Priority:** CLI-reported `cost_usd` still takes priority in the success result handler — the pricing table is a fallback only. Live streaming emits calculated cost on every `message_start` / `message_delta` event so cost appears during execution, not just at the end.
+**Backfill:** `POST /api/runs/backfill-costs` recalculates `costUsd` for historical rows where it is null but token counts + model are present. Idempotent.
+**UI:** `AgentProgressBar` now shows live cost for general boards and pipeline boards; `TaskDetailModal` run rows show input/output cost breakdown on hover tooltip.
+**Affects:** `lib/pricing.ts` (new), `lib/executors/local.ts`, `lib/services/agentService.ts`, `components/AgentProgressBar.tsx`, `components/TaskDetailModal.tsx`, `app/api/runs/backfill-costs/route.ts` (new).
+**Status:** Accepted.
+
 ## ADR-018 — File attachments for task cards (2026-03-10) [updated: review-fix 2026-03-10]
 **Decision:** Store uploaded files on local disk (`data/uploads/{taskId}/{uuid}-{filename}`) tracked in a new `task_files` SQLite table with CASCADE delete. Browser-safe utilities (`formatFileSize`) live in `lib/format-utils.ts`; server-only utilities (`fs`, `path`, MIME allow-list) live in `lib/file-utils.ts` to avoid Next.js bundling Node modules into client chunks.
 **UI:** `FileDropZone` detects file drags via `dataTransfer.types.includes('Files')` so it coexists with dnd-kit card drags without conflict. `FileAttachmentList` has compact (badge) and full (thumbnail + preview) modes.
