@@ -1,9 +1,14 @@
 import { randomUUID } from 'crypto'
-import { Agent, AgentStats, TaskStatus, BoardType } from '@/lib/types'
-import { getTask, getProject, getAllAgents, updateAgent, updateTask, getAgent, addTask } from '@/lib/store'
+import fs from 'fs'
+import path from 'path'
+import { Agent, AgentStats, TaskStatus, BoardType, TaskFile } from '@/lib/types'
+import { getTask, getProject, getAllAgents, updateAgent, updateTask, getAgent, addTask, getFilesByTask } from '@/lib/store'
 import { runAgent } from '@/lib/agent-runner'
 import { dbAddTaskRun } from '@/lib/db/repositories/taskRunRepo'
 import { mergeWorktreeBranch } from '@/lib/git-utils'
+
+/** Maximum inline content size (bytes) — larger files are referenced by path only. */
+const INLINE_FILE_MAX_BYTES = 100 * 1024
 
 export type AssignRole = 'researcher' | 'coder' | 'senior-coder' | 'tester'
 
@@ -60,6 +65,66 @@ function buildSystemPrompt(role: AssignRole): string {
   )
 }
 
+/**
+ * Build the file-context section appended to every agent prompt.
+ *
+ * - Text/code files ≤ 100 KB are included inline so the agent can read them
+ *   without any extra tool calls.
+ * - Larger text files and all binary files (images, PDFs) are referenced by
+ *   absolute path so a local CLI executor can access them via shell tools.
+ */
+function buildFileContext(files: TaskFile[]): string {
+  if (files.length === 0) return ''
+
+  const lines: string[] = ['\n\n## Attached Files\n']
+
+  for (const file of files) {
+    const absPath = path.join(process.cwd(), file.storagePath)
+    const isText =
+      file.mimeType.startsWith('text/') ||
+      file.mimeType === 'application/json' ||
+      file.mimeType === 'application/xml'
+
+    if (isText && file.sizeBytes <= INLINE_FILE_MAX_BYTES) {
+      try {
+        const content = fs.readFileSync(absPath, 'utf8')
+        // Detect a rough language hint from MIME type for fenced code blocks
+        const lang = mimeToLang(file.mimeType)
+        lines.push(`### ${file.filename}\n\`\`\`${lang}\n${content}\n\`\`\`\n`)
+      } catch {
+        // Fallback to path reference if file can't be read
+        lines.push(`- \`${file.filename}\` (${file.mimeType}) — path: ${absPath}\n`)
+      }
+    } else {
+      const sizeLabel = formatBytes(file.sizeBytes)
+      lines.push(`- \`${file.filename}\` (${file.mimeType}, ${sizeLabel}) — path: ${absPath}\n`)
+    }
+  }
+
+  return lines.join('\n')
+}
+
+function mimeToLang(mime: string): string {
+  const MAP: Record<string, string> = {
+    'text/javascript': 'javascript',
+    'text/typescript': 'typescript',
+    'application/json': 'json',
+    'text/html': 'html',
+    'text/css': 'css',
+    'text/markdown': 'markdown',
+    'text/csv': 'csv',
+    'application/xml': 'xml',
+    'text/xml': 'xml',
+  }
+  return MAP[mime] ?? ''
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 function buildUserPrompt(
   role: AssignRole,
   task: NonNullable<ReturnType<typeof getTask>>,
@@ -70,12 +135,16 @@ function buildUserPrompt(
     : ''
   const header = `# Task: ${task.title}\n\n${task.description}${dirContext}`
 
+  // Fetch any files attached to this task and build context section
+  const attachedFiles = getFilesByTask(task.id)
+  const fileContext = buildFileContext(attachedFiles)
+
   if (role === 'researcher') {
-    return `${header}\n\nProduce a technical specification and implementation plan for this task.`
+    return `${header}${fileContext}\n\nProduce a technical specification and implementation plan for this task.`
   }
 
   if (role === 'coder') {
-    let prompt = header
+    let prompt = header + fileContext
     if (task.researcherOutput) {
       prompt += `\n\n## Research & Specification\n\n${task.researcherOutput}`
     }
@@ -90,7 +159,7 @@ function buildUserPrompt(
   }
 
   if (role === 'tester') {
-    let prompt = header
+    let prompt = header + fileContext
     if (task.coderOutput) prompt += `\n\n## Implementation\n\n${task.coderOutput}`
     if (task.testerOutput) prompt += `\n\n## Previous Test Failures (retry)\n\n${task.testerOutput}`
     prompt += '\n\nWrite and run tests for this implementation.'
@@ -98,7 +167,7 @@ function buildUserPrompt(
   }
 
   // senior-coder
-  let prompt = header
+  let prompt = header + fileContext
   if (task.researcherOutput) {
     prompt += `\n\n## Research & Specification\n\n${task.researcherOutput}`
   }

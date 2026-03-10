@@ -70,3 +70,15 @@ export const tasks = sqliteTable('tasks', {
   createdAt:        integer('created_at').notNull(),
   updatedAt:        integer('updated_at').notNull(),
 })
+
+/** File attachments for tasks — each row tracks one uploaded file on disk. */
+export const taskFiles = sqliteTable('task_files', {
+  id:          text('id').primaryKey(),
+  taskId:      text('task_id').notNull().references(() => tasks.id, { onDelete: 'cascade' }),
+  filename:    text('filename').notNull(),
+  mimeType:    text('mime_type').notNull(),
+  sizeBytes:   integer('size_bytes').notNull(),
+  /** Relative path from project root, e.g. data/uploads/{taskId}/{uuid}-{filename}. */
+  storagePath: text('storage_path').notNull(),
+  createdAt:   integer('created_at').notNull(),
+})
