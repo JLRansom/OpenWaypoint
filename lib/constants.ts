@@ -21,3 +21,26 @@ export const ROLE_HEX: Record<string, string> = {
 
 /** Fallback hex color for unknown roles. */
 export const ROLE_HEX_FALLBACK = '#6272a4'
+
+/** Ordered column definitions per board type — used for bulk "Move to" dropdown. */
+export const BOARD_COLUMNS: Record<string, { value: string; label: string }[]> = {
+  coding: [
+    { value: 'backlog',             label: 'Backlog' },
+    { value: 'planning',            label: 'Planning' },
+    { value: 'in-progress',         label: 'In Progress' },
+    { value: 'review',              label: 'Review' },
+    { value: 'testing',             label: 'Testing' },
+    { value: 'changes-requested',   label: 'Changes Requested' },
+    { value: 'done',                label: 'Done' },
+  ],
+  research: [
+    { value: 'backlog',     label: 'Backlog' },
+    { value: 'in-progress', label: 'In Progress' },
+    { value: 'done',        label: 'Done' },
+  ],
+  general: [
+    { value: 'backlog',     label: 'To Do' },
+    { value: 'in-progress', label: 'In Progress' },
+    { value: 'done',        label: 'Done' },
+  ],
+}
