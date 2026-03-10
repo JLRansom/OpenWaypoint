@@ -116,6 +116,24 @@ export interface PaginatedRunsResponse {
   totalPages: number
 }
 
+/** A file attached to a task, stored on disk and tracked in the DB. */
+export interface TaskFile {
+  id: string
+  taskId: string
+  /** Original filename as provided by the user. */
+  filename: string
+  /** MIME type, e.g. "image/png", "application/pdf", "text/plain". */
+  mimeType: string
+  /** File size in bytes. */
+  sizeBytes: number
+  /**
+   * Storage path relative to the project root,
+   * e.g. "data/uploads/{taskId}/{uuid}-{sanitized-filename}".
+   */
+  storagePath: string
+  createdAt: number
+}
+
 /** Whether an agent is actively running or waiting to start. */
 export function isAgentActive(agent?: Agent | null): boolean {
   return agent?.status === 'running' || agent?.status === 'queued'

@@ -21,7 +21,8 @@ npm-debug.log*
 next-env.d.ts
 .idea
 
-# SQLite database
+# SQLite database and uploaded files
+# data/uploads/ is created at runtime by the file attachment feature
 /data/
 
 # Git worktrees

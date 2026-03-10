@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { Task, TaskStatus, TaskRun } from '@/lib/types'
 import { Button } from '@/components/ui/Button'
 import { MarkdownOutput } from '@/components/ui/MarkdownOutput'
+import { FileDropZone } from '@/components/FileDropZone'
+import { FileAttachmentList } from '@/components/FileAttachmentList'
 import { formatDuration, formatElapsed, formatTokens, formatCost } from '@/lib/format-utils'
 import { ROLE_COLORS, ROLE_COLOR_FALLBACK } from '@/lib/constants'
 
@@ -51,6 +53,7 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   const [runs, setRuns] = useState<TaskRun[]>([])
   const [runsLoading, setRunsLoading] = useState(true)
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null)
+  const [fileRefreshKey, setFileRefreshKey] = useState(0)
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -137,6 +140,27 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                 placeholder="Add a description…"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+
+            {/* ----------------------------------------------------------------
+                Files / Attachments section
+                FileAttachmentList shows existing files; FileDropZone lets user
+                drag-and-drop or browse for new ones.
+            ---------------------------------------------------------------- */}
+            <div className="space-y-1 pt-1 border-t border-dracula-dark/40">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-dracula-comment pt-3">
+                Attachments
+              </p>
+              <FileAttachmentList
+                taskId={task.id}
+                variant="full"
+                refreshKey={fileRefreshKey}
+              />
+              <FileDropZone
+                taskId={task.id}
+                variant="full"
+                onUploaded={() => setFileRefreshKey((k) => k + 1)}
               />
             </div>
 
