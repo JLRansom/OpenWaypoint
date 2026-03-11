@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'OpenHelm',
+  title: 'OpenWaypoint',
   description: 'Steer your AI agents with precision',
 }
 
