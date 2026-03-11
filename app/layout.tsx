@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Agents Galore',
-  description: 'Spawn, monitor, and view AI agents in real time',
+  title: 'OpenHelm',
+  description: 'Steer your AI agents with precision',
 }
 
 export default async function RootLayout({

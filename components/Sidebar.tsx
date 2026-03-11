@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import {
-  Zap,
+  Navigation,
   Home,
   LayoutDashboard,
   FolderKanban,
@@ -14,10 +14,10 @@ import {
 } from 'lucide-react'
 
 const navLinks = [
-  { href: '/welcome', label: 'Welcome', icon: Home },
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/projects', label: 'Projects', icon: FolderKanban },
-  { href: '/history', label: 'History', icon: History },
+  { href: '/',          label: 'Welcome',   icon: Home },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/projects',  label: 'Projects',  icon: FolderKanban },
+  { href: '/history',   label: 'History',   icon: History },
 ]
 
 export function Sidebar() {
@@ -45,8 +45,8 @@ export function Sidebar() {
         {open ? (
           <>
             <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-dracula-purple shrink-0" />
-              <span className="text-sm font-bold text-dracula-light whitespace-nowrap">Agents Galore</span>
+              <Navigation className="w-5 h-5 text-dracula-purple shrink-0" />
+              <span className="text-sm font-bold text-dracula-light whitespace-nowrap">OpenHelm</span>
             </div>
             <button
               onClick={toggle}
