@@ -80,8 +80,17 @@ function buildFileContext(files: TaskFile[]): string {
 
   const lines: string[] = ['\n\n## Attached Files\n']
 
+  const uploadsRoot = path.join(process.cwd(), 'data', 'uploads')
+
   for (const file of files) {
     const absPath = path.join(process.cwd(), file.storagePath)
+
+    // Path traversal guard — same check used by the content/delete routes
+    if (!absPath.startsWith(uploadsRoot + path.sep)) {
+      lines.push(`- \`${file.filename}\` (${file.mimeType}) — [file reference unavailable]\n`)
+      continue
+    }
+
     const isText =
       file.mimeType.startsWith('text/') ||
       file.mimeType === 'application/json' ||
