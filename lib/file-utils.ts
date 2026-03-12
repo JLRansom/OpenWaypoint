@@ -64,7 +64,11 @@ export function ensureTaskUploadsDir(taskId: string): string {
  * chars to stay safe for all filesystems.
  */
 export function sanitiseFilename(raw: string): string {
-  const base = path.basename(raw)
+  // Normalise Windows-style backslashes to forward slashes so path.basename()
+  // strips directory components correctly on any OS (Linux path.basename()
+  // only splits on '/', not on '\').
+  const normalised = raw.replace(/\\/g, '/')
+  const base = path.basename(normalised)
   return base.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 200)
 }
 
