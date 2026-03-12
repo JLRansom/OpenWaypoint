@@ -15,6 +15,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'name is required' }, { status: 400 })
   }
 
+  // Reject directory values that contain path-traversal sequences or null bytes
+  if (directory && (directory.includes('..') || directory.includes('\0'))) {
+    return NextResponse.json({ error: 'invalid directory path' }, { status: 400 })
+  }
+
   const project: Project = {
     id: randomUUID(),
     name,

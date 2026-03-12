@@ -23,6 +23,11 @@ export async function PATCH(
   const body = await req.json()
   const { name, description, directory, boardType } = body as { name?: string; description?: string; directory?: string; boardType?: BoardType }
 
+  // Reject directory values that contain path-traversal sequences or null bytes
+  if (directory !== undefined && (directory.includes('..') || directory.includes('\0'))) {
+    return NextResponse.json({ error: 'invalid directory path' }, { status: 400 })
+  }
+
   updateProject(id, {
     ...(name !== undefined && { name }),
     ...(description !== undefined && { description }),
