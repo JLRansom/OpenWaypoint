@@ -61,13 +61,17 @@ export async function mergeWorktreeBranch(
 
   console.log(`[git-utils] Merging branch "${branch}" into main worktree at ${mainWorktree}`)
 
+  // Strip carriage returns and newlines from taskTitle so they cannot produce
+  // a multi-line commit message that misrepresents git history.
+  const safeTitle = taskTitle.replace(/[\r\n]/g, ' ')
+
   // Merge from the main worktree
   await git(mainWorktree, [
     'merge',
     branch,
     '--no-ff',
     '-m',
-    `Merge ${branch} for task: ${taskTitle}`,
+    `Merge ${branch} for task: ${safeTitle}`,
   ])
 
   // Delete the branch
