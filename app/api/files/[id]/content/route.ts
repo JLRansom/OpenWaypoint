@@ -29,9 +29,11 @@ export async function GET(
 
   const buffer = fs.readFileSync(diskPath)
 
-  // Decide disposition: images and PDFs render inline; everything else downloads
+  // Decide disposition: raster images and PDFs render inline; everything else
+  // (including SVG — which can execute <script> when loaded directly) downloads.
   const isInline =
-    record.mimeType.startsWith('image/') || record.mimeType === 'application/pdf'
+    (record.mimeType.startsWith('image/') && record.mimeType !== 'image/svg+xml') ||
+    record.mimeType === 'application/pdf'
   const safeName = record.filename.replace(/["\r\n\\]/g, '_')
   const disposition = isInline
     ? `inline; filename="${safeName}"`

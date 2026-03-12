@@ -14,7 +14,7 @@ import { deleteTaskFilesByTask } from '@/lib/store'
 // ---------------------------------------------------------------------------
 
 export const ALLOWED_MIME_TYPES = new Set([
-  // Images
+  // Images (SVG is allowed but must be served as attachment — see content route)
   'image/jpeg',
   'image/png',
   'image/gif',
@@ -26,11 +26,10 @@ export const ALLOWED_MIME_TYPES = new Set([
   'text/markdown',
   'text/csv',
   // Code / data
-  'text/javascript',
+  // text/html, text/javascript, text/css intentionally excluded:
+  // browsers execute these when served inline, creating an XSS vector.
   'text/typescript',
   'application/json',
-  'text/html',
-  'text/css',
   'application/xml',
   'text/xml',
 ])
