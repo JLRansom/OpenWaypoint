@@ -13,7 +13,7 @@ import { randomUUID } from 'crypto'
 import { readFileSync, rmSync } from 'fs'
 import { join } from 'path'
 import { NextRequest } from 'next/server'
-import type { Project, Task, TaskFile } from '@/lib/types'
+import type { Project, Task, TaskFile, TaskRun } from '@/lib/types'
 
 // ─── Fixture helpers ────────────────────────────────────────────────────────
 
@@ -70,6 +70,34 @@ export function makeTaskFileRecord(
     sizeBytes: 0,
     storagePath: ['data', 'uploads', taskId, diskName].join('/'),
     createdAt: Date.now(),
+    ...overrides,
+  }
+}
+
+/** Creates a minimal valid TaskRun object. Does NOT persist it — call dbAddTaskRun(). */
+export function makeTestTaskRun(
+  projectId: string,
+  overrides: Partial<TaskRun> = {}
+): TaskRun {
+  const now = Date.now()
+  return {
+    id: randomUUID(),
+    taskId: randomUUID(),
+    taskTitle: 'Test Task',
+    projectId,
+    projectName: 'Test Project',
+    agentId: randomUUID(),
+    role: 'coder',
+    status: 'done',
+    output: '',
+    startedAt: now - 60_000,
+    completedAt: now,
+    inputTokens: 1_000,
+    outputTokens: 500,
+    totalTokens: 1_500,
+    numTurns: 2,
+    costUsd: 0.01,
+    model: 'claude-sonnet-4-6',
     ...overrides,
   }
 }
