@@ -4,7 +4,7 @@ CREATE TABLE `settings` (
   `value`      text NOT NULL,
   `updated_at` integer NOT NULL
 );
-
+-->statement-breakpoint
 -- Seed defaults
 -- dangerouslySkipPermissions: off by default (safe for new installs)
 INSERT INTO `settings` VALUES ('dangerouslySkipPermissions', 'false', unixepoch() * 1000);
