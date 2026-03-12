@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import {
-  Navigation,
+  Waypoints,
   FolderKanban,
   Activity,
   History,
@@ -45,7 +45,7 @@ export default function WelcomePage() {
       {/* ── Hero ──────────────────────────────────────────────── */}
       <div className="flex flex-col items-center text-center space-y-4 pt-4">
         <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-dracula-purple/15 border border-dracula-purple/30">
-          <Navigation className="w-7 h-7 text-dracula-purple" />
+          <Waypoints className="w-7 h-7 text-dracula-purple" />
         </div>
         <h1 className="text-3xl font-bold text-dracula-light">
           Welcome to OpenWaypoint
