@@ -1,4 +1,4 @@
-import { eq, desc, and, or, like, gte, lte, count } from 'drizzle-orm'
+import { eq, desc, and, or, gte, lte, count, sql } from 'drizzle-orm'
 import type { SQL } from 'drizzle-orm'
 import { db } from '../client'
 import { taskRuns } from '../schema'
@@ -105,14 +105,21 @@ export function dbGetTaskRunsPaginated(opts: GetTaskRunsOpts): { runs: TaskRun[]
   }
 
   if (opts.q) {
-    // SQLite LIKE is case-insensitive for ASCII characters by default.
-    // Search across all text fields that a user might care about.
-    const pattern = `%${opts.q}%`
+    // Escape SQLite LIKE special characters (%, _, \) so user input is treated
+    // as a literal substring rather than a wildcard pattern.
+    const escaped = opts.q.replace(/[%_\\]/g, '\\$&')
+    const pattern = `%${escaped}%`
+
+    // Drizzle's like() helper has no ESCAPE clause support, so we use the sql
+    // template tag to emit a proper "LIKE ? ESCAPE '\'" fragment for each column.
+    const likeEscape = (col: SQL | unknown) =>
+      sql`${col} LIKE ${pattern} ESCAPE '\\'`
+
     const textMatch = or(
-      like(taskRuns.taskTitle, pattern),
-      like(taskRuns.projectName, pattern),
-      like(taskRuns.output, pattern),
-      like(taskRuns.error, pattern),
+      likeEscape(taskRuns.taskTitle),
+      likeEscape(taskRuns.projectName),
+      likeEscape(taskRuns.output),
+      likeEscape(taskRuns.error),
     )
     if (textMatch) conditions.push(textMatch)
   }
