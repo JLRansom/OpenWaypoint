@@ -5,6 +5,8 @@ import { getStreamPayload } from '@/lib/store'
 import { deleteTaskWithFiles } from '@/lib/file-utils'
 import { TaskStatus } from '@/lib/types'
 
+const MAX_BULK_IDS = 500
+
 type BulkBody =
   | { action: 'archive'; taskIds: string[] }
   | { action: 'move';    taskIds: string[]; status: TaskStatus }
@@ -15,6 +17,13 @@ export async function POST(req: NextRequest) {
 
   if (!body.action || !Array.isArray(body.taskIds) || body.taskIds.length === 0) {
     return NextResponse.json({ error: 'invalid body' }, { status: 400 })
+  }
+
+  if (body.taskIds.length > MAX_BULK_IDS) {
+    return NextResponse.json(
+      { error: `bulk operations are limited to ${MAX_BULK_IDS} items` },
+      { status: 400 }
+    )
   }
 
   if (body.action === 'archive') {
