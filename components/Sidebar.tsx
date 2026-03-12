@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import {
-  Navigation,
+  Waypoints,
   Home,
   LayoutDashboard,
   FolderKanban,
@@ -45,8 +45,8 @@ export function Sidebar() {
         {open ? (
           <>
             <div className="flex items-center gap-2">
-              <Navigation className="w-5 h-5 text-dracula-purple shrink-0" />
-              <span className="text-sm font-bold text-dracula-light whitespace-nowrap">OpenHelm</span>
+              <Waypoints className="w-5 h-5 text-dracula-purple shrink-0" />
+              <span className="text-sm font-bold text-dracula-light whitespace-nowrap">OpenWaypoint</span>
             </div>
             <button
               onClick={toggle}
@@ -96,6 +96,7 @@ export function Sidebar() {
       {open && (
         <div className="px-4 py-3 border-t border-dracula-dark">
           <p className="text-xs text-dracula-blue">sonnet · opus</p>
+          <a href="https://openwaypoint.ai" target="_blank" rel="noopener noreferrer" className="text-xs text-dracula-blue/50 hover:text-dracula-blue transition-colors mt-1 block">openwaypoint.ai</a>
         </div>
       )}
     </aside>

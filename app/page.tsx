@@ -48,7 +48,7 @@ export default function WelcomePage() {
           <Navigation className="w-7 h-7 text-dracula-purple" />
         </div>
         <h1 className="text-3xl font-bold text-dracula-light">
-          Welcome to OpenHelm
+          Welcome to OpenWaypoint
         </h1>
         <p className="max-w-xl text-dracula-blue text-base leading-relaxed">
           A real-time dashboard for spawning, directing, and monitoring AI agents
