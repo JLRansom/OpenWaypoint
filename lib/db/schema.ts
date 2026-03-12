@@ -82,3 +82,11 @@ export const taskFiles = sqliteTable('task_files', {
   storagePath: text('storage_path').notNull(),
   createdAt:   integer('created_at').notNull(),
 })
+
+/** App-wide key/value settings. Keys are well-known strings; values are stored
+ *  as text (booleans as 'true'/'false', numbers as numeric strings). */
+export const settings = sqliteTable('settings', {
+  key:       text('key').primaryKey(),
+  value:     text('value').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+})

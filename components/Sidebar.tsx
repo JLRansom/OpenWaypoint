@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   FolderKanban,
   History,
+  Settings,
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react'
@@ -18,6 +19,7 @@ const navLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/projects',  label: 'Projects',  icon: FolderKanban },
   { href: '/history',   label: 'History',   icon: History },
+  { href: '/settings',  label: 'Settings',  icon: Settings },
 ]
 
 export function Sidebar() {
