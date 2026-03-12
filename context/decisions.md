@@ -2,6 +2,21 @@
 
 > Append new entries at the top. Keep each entry ≤ 10 lines.
 
+## ADR-023 — Analytics test coverage + NaN guard in analytics route (2026-03-12)
+**Decision:** Added 15 unit tests for `dbGetProjectAnalytics` and 5 integration tests for `GET /api/projects/[id]/analytics`. Also fixed a NaN bug in the route: `parseInt('abc', 10)` returns `NaN`; passing NaN to Drizzle's `gte`/`lte` causes all rows to be filtered out (SQL `col >= NaN` is always false). Route now guards: `const from = fromParsed !== undefined && !Number.isNaN(fromParsed) ? fromParsed : undefined`.
+**avgCostPerRun formula:** `totalCostUsd / totalRunsDone` — numerator is ALL runs' cost (done + failed), denominator is done-only count. Divides the full total by done so the per-success cost is meaningful.
+**Timezone safety:** `getDayKey()` uses `toISOString()` (UTC, deterministic). `getMondayKey()` uses `getDay()` (local time) — safe when timestamps are noon UTC 7+ days apart. Tests never assert string date labels (locale-dependent).
+**Drizzle migration limit (ADR-022):** `better-sqlite3` migrator passes entire `.sql` file as one string — cannot run multiple statements even with `-->statement-breakpoint`. Solved by keeping each migration file single-statement; seed defaults enforced in code (`=== 'true'` check, defaults to `false`).
+**Affects:** `__tests__/unit/analytics-repo.test.ts` (new), `__tests__/integration/analytics-api.test.ts` (new), `__tests__/helpers/test-utils.ts` (+`makeTestTaskRun`), `app/api/projects/[id]/analytics/route.ts`.
+**Status:** Accepted.
+
+## ADR-022 — Security hardening sprint (2026-03-12)
+**Decision:** 8 security commits on master: HTTP headers (CSP/X-Frame-Options/nosniff via `next.config.ts`); MIME allowlist tightened (removed `text/html`, `text/js`, `text/css`; SVG served as `attachment`); path traversal guard in `buildFileContext`; bulk `taskIds` cap (500); LIKE wildcard escaping with `ESCAPE '\\'` via `sql` tag (Drizzle's `like()` has no escape clause); directory path traversal rejection in project create/update; git commit-msg newline injection fix; `--dangerously-skip-permissions` moved from hardcoded CLI args to a Settings page DB toggle.
+**Settings table:** Migration `0008_settings.sql` — single `CREATE TABLE` only (no seed INSERT; `better-sqlite3` can't run multi-statement files). Default `'false'` enforced in `settingsRepo.ts` via `?? 'false'` fallback.
+**Authentication skipped:** Localhost-only project; authentication deferred to a future sprint.
+**Affects:** `next.config.ts`, `lib/file-utils.ts`, `app/api/files/[id]/content/route.ts`, `lib/services/agentService.ts`, `app/api/tasks/bulk/route.ts`, `lib/db/repositories/taskRunRepo.ts`, `app/api/projects/route.ts`, `app/api/projects/[id]/route.ts`, `lib/git-utils.ts`, `lib/db/` (schema + migration 0008), `lib/store.ts`, `app/api/settings/route.ts` (new), `app/settings/page.tsx` (new), `components/SettingsClient.tsx` (new), `components/Sidebar.tsx`, `lib/executors/local.ts`.
+**Status:** Accepted.
+
 ## ADR-021 — Project analytics panel (2026-03-10)
 **Decision:** Added Board/Analytics URL toggle (`?view=analytics`) on project pages. Analytics data served from `GET /api/projects/[id]/analytics?from=&to=` backed by `analyticsRepo.ts` — single `SELECT` on `task_runs` filtered by `projectId` + optional epoch-ms window, aggregated in JS (no SQL GROUP BY needed at current scale).
 **Charts:** 4 Recharts charts — weekly tasks done/failed (BarChart), daily input+output tokens (LineChart), cumulative cost (AreaChart with gradient), cost by agent role (horizontal BarChart with Cell per-bar coloring). All themed with Dracula hex palette via file-local `D` constant (Tailwind classes can't be used as SVG fill props).
