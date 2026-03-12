@@ -3,6 +3,7 @@ import { platform } from 'os'
 import type { Executor, ExecutorRunOptions } from './types'
 import { MODEL_MAP, SYSTEM_PROMPTS } from './constants'
 import { calculateCost } from '@/lib/pricing'
+import { getSetting } from '@/lib/store'
 
 function which(bin: string): Promise<string | null> {
   const cmd = platform() === 'win32' ? 'where' : 'which'
@@ -29,6 +30,10 @@ export class LocalClaudeCliExecutor implements Executor {
     const systemPrompt = agent.systemPromptOverride ?? SYSTEM_PROMPTS[agent.type]
     const model = MODEL_MAP[agent.type]
 
+    // Read permission-bypass setting at run time so changes take effect without
+    // a server restart.  Defaults to false (safe) if the row is absent.
+    const skipPerms = getSetting('dangerouslySkipPermissions') === 'true'
+
     const args = [
       '--print',
       '--output-format', 'stream-json',
@@ -36,7 +41,7 @@ export class LocalClaudeCliExecutor implements Executor {
       '--include-partial-messages',
       '--model', model,
       '--system-prompt', systemPrompt,
-      '--dangerously-skip-permissions',
+      ...(skipPerms ? ['--dangerously-skip-permissions'] : []),
       agent.prompt,
     ]
 

@@ -29,6 +29,10 @@ import {
   dbDeleteTaskFile,
   dbDeleteTaskFilesByTask,
 } from '@/lib/db/repositories/taskFileRepo'
+import {
+  dbGetSetting,
+  dbSetSetting,
+} from '@/lib/db/repositories/settingsRepo'
 
 export { subscribe, unsubscribe } from '@/lib/broadcast'
 
@@ -150,6 +154,16 @@ export function deleteTaskFile(id: string): TaskFile | undefined {
  */
 export function deleteTaskFilesByTask(taskId: string): TaskFile[] {
   return dbDeleteTaskFilesByTask(taskId)
+}
+
+// --- Settings functions ---
+
+export function getSetting(key: string): string | undefined {
+  return dbGetSetting(key)
+}
+
+export function setSetting(key: string, value: string): void {
+  dbSetSetting(key, value)
 }
 
 // --- Full payload (for initial SSE load) ---
