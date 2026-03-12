@@ -27,3 +27,6 @@ next-env.d.ts
 
 # Git worktrees
 .worktrees/
+
+# Local agent skills — kept on disk but never committed
+.agents/
