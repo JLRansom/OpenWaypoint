@@ -13,8 +13,11 @@ export async function GET(
   const { searchParams } = req.nextUrl
   const fromParam = searchParams.get('from')
   const toParam = searchParams.get('to')
-  const from = fromParam ? parseInt(fromParam, 10) : undefined
-  const to = toParam ? parseInt(toParam, 10) : undefined
+  const fromParsed = fromParam ? parseInt(fromParam, 10) : undefined
+  const toParsed   = toParam   ? parseInt(toParam,   10) : undefined
+  // Guard against NaN (e.g. from='abc') — treat as "no filter"
+  const from = fromParsed !== undefined && !Number.isNaN(fromParsed) ? fromParsed : undefined
+  const to   = toParsed   !== undefined && !Number.isNaN(toParsed)   ? toParsed   : undefined
 
   const data = dbGetProjectAnalytics(id, from, to)
   return NextResponse.json(data)
