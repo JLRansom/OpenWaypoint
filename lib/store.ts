@@ -104,8 +104,8 @@ export function getTask(id: string): Task | undefined {
   return dbGetTask(id)
 }
 
-export function getTasksByProject(projectId: string): Task[] {
-  return dbGetTasksByProject(projectId)
+export function getTasksByProject(projectId: string, opts?: { archived?: boolean }): Task[] {
+  return dbGetTasksByProject(projectId, opts)
 }
 
 export function addTask(task: Task): void {
