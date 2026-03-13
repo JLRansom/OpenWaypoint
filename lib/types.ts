@@ -180,6 +180,32 @@ export interface ProjectAnalyticsSummary {
   totalInputTokens: number
   totalOutputTokens: number
   avgCostPerRun: number
+  avgDurationMs: number
+  activeTaskCount: number
+  successRate: number
+}
+
+export interface RecentRunEntry {
+  id: string
+  taskTitle: string
+  role: string
+  status: 'done' | 'failed'
+  costUsd?: number
+  durationMs: number
+  completedAt: number
+  model?: string
+}
+
+export interface RecentTaskEntry {
+  id: string
+  title: string
+  status: TaskStatus
+  updatedAt: number
+}
+
+export interface TaskStatusCount {
+  status: string
+  count: number
 }
 
 export interface ProjectAnalyticsResponse {
@@ -188,4 +214,7 @@ export interface ProjectAnalyticsResponse {
   dailyTokens: DailyTokenData[]
   dailyCost: DailyCostData[]
   costByRole: RoleCostData[]
+  recentRuns: RecentRunEntry[]
+  recentlyUpdatedTasks: RecentTaskEntry[]
+  taskStatusCounts: TaskStatusCount[]
 }

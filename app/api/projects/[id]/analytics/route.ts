@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getProject } from '@/lib/store'
+import { getProject, getTasksByProject } from '@/lib/store'
 import { dbGetProjectAnalytics } from '@/lib/db/repositories/analyticsRepo'
+import type { RecentTaskEntry, TaskStatusCount } from '@/lib/types'
 
 export async function GET(
   req: NextRequest,
@@ -20,5 +21,36 @@ export async function GET(
   const to   = toParsed   !== undefined && !Number.isNaN(toParsed)   ? toParsed   : undefined
 
   const data = dbGetProjectAnalytics(id, from, to)
-  return NextResponse.json(data)
+
+  // Enrich with task-store data (status counts, recently updated, active count)
+  const allTasks = getTasksByProject(id).filter((t) => !t.archived)
+
+  const statusCountMap = new Map<string, number>()
+  let activeTaskCount = 0
+  for (const t of allTasks) {
+    statusCountMap.set(t.status, (statusCountMap.get(t.status) ?? 0) + 1)
+    if (t.status === 'in-progress' || t.status === 'review' || t.status === 'testing') {
+      activeTaskCount++
+    }
+  }
+
+  const taskStatusCounts: TaskStatusCount[] = Array.from(statusCountMap.entries()).map(
+    ([status, count]) => ({ status, count }),
+  )
+
+  const recentlyUpdatedTasks: RecentTaskEntry[] = allTasks
+    .slice()
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, 10)
+    .map((t) => ({ id: t.id, title: t.title, status: t.status, updatedAt: t.updatedAt }))
+
+  const totalRuns = data.summary.totalRunsDone + data.summary.totalRunsFailed
+  const successRate = totalRuns > 0 ? (data.summary.totalRunsDone / totalRuns) * 100 : 0
+
+  return NextResponse.json({
+    ...data,
+    summary: { ...data.summary, activeTaskCount, successRate },
+    taskStatusCounts,
+    recentlyUpdatedTasks,
+  })
 }

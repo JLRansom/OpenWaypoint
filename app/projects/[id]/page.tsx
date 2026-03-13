@@ -21,7 +21,7 @@ export default async function ProjectBoardPage({
 
   if (!project) notFound()
 
-  const activeView = view === 'analytics' ? 'analytics' : 'board'
+  const activeView = view === 'board' ? 'board' : 'dashboard'
 
   return (
     <div>
@@ -48,14 +48,14 @@ export default async function ProjectBoardPage({
 
       <ProjectViewToggle projectId={id} currentView={activeView} />
 
+      {activeView === 'dashboard' && (
+        <AnalyticsPanel projectId={id} />
+      )}
       {activeView === 'board' && (
         <>
           <KanbanBoard projectId={id} initialCardId={card} boardType={project.boardType ?? 'coding'} />
           <ArchivedCards projectId={id} />
         </>
-      )}
-      {activeView === 'analytics' && (
-        <AnalyticsPanel projectId={id} />
       )}
     </div>
   )

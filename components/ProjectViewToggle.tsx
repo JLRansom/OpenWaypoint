@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 
-type View = 'board' | 'analytics'
+type View = 'board' | 'dashboard'
 
 export function ProjectViewToggle({
   projectId,
@@ -14,30 +14,34 @@ export function ProjectViewToggle({
   const router = useRouter()
 
   function switchTo(view: View) {
-    router.push(`/projects/${projectId}?view=${view}`)
+    if (view === 'dashboard') {
+      router.push(`/projects/${projectId}`)
+    } else {
+      router.push(`/projects/${projectId}?view=${view}`)
+    }
   }
 
   return (
     <div className="flex gap-1 mb-6">
       <button
-        onClick={() => switchTo('board')}
+        onClick={() => switchTo('dashboard')}
         className={`text-xs font-semibold px-3 py-1 rounded-md transition-colors ${
-          currentView === 'board'
+          currentView === 'dashboard'
             ? 'bg-dracula-purple/20 text-dracula-purple'
             : 'text-dracula-comment hover:text-dracula-foreground'
         }`}
       >
-        Board
+        Dashboard
       </button>
       <button
-        onClick={() => switchTo('analytics')}
+        onClick={() => switchTo('board')}
         className={`text-xs font-semibold px-3 py-1 rounded-md transition-colors ${
-          currentView === 'analytics'
+          currentView === 'board'
             ? 'bg-dracula-cyan/20 text-dracula-cyan'
             : 'text-dracula-comment hover:text-dracula-foreground'
         }`}
       >
-        Analytics
+        Board
       </button>
     </div>
   )

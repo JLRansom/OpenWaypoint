@@ -2,6 +2,20 @@
 
 > Append new entries at the top. Keep each entry ≤ 10 lines.
 
+## ADR-031 — Extract getMondayEpoch helper to eliminate duplication (2026-03-13)
+**Decision:** Extracted `export function getMondayEpoch(epochMs): number` in `analyticsRepo.ts`. Both `getMondayKey()` and the `weekLabel` initialiser now delegate to it. Uses `getUTCDay`/`setUTCDate`/`setUTCHours` for timezone-deterministic results.
+**Why:** Two independent Monday-calculation implementations existed in the same file (local-time `setDate/getDay` in `getMondayKey` vs inline epoch arithmetic in `weekLabel`). Senior review flagged that test helpers would need a third copy. Exporting the function prevents future test drift.
+**Alternatives rejected:** Keeping local-time methods (would still fix duplication, but UTC is strictly safer for server code).
+**Affects:** `lib/db/repositories/analyticsRepo.ts` only.
+**Branch:** `chore/extract-monday-epoch-helper` — PR #9 open.
+
+## ADR-030 — Project dashboard replaces Analytics as default view (2026-03-13)
+**Decision:** Renamed "Analytics" → "Dashboard"; made it the default (`view !== 'board'`). Dashboard now shows 6 stat cards (Tasks Done, Failed Runs, Active Tasks, Total Cost, Avg Cost/Run, Success Rate), a task pipeline strip (all statuses with counts, dimmed at 0), a two-column activity section (Recent Runs + Recently Updated Tasks), and the existing 4 Recharts charts. Route handler enriches analytics response with task-store data (`taskStatusCounts`, `recentlyUpdatedTasks`, `activeTaskCount`, `successRate`). New types: `RecentRunEntry`, `RecentTaskEntry`, `TaskStatusCount` added to `lib/types.ts`. `ProjectAnalyticsSummary` gains `avgDurationMs`, `activeTaskCount`, `successRate`.
+**URL:** `/projects/[id]` = Dashboard (default), `/projects/[id]?view=board` = Board.
+**Alternatives rejected:** New API endpoint for task data (unnecessary — route handler already has store access).
+**Affects:** `lib/types.ts`, `lib/db/repositories/analyticsRepo.ts`, `app/api/projects/[id]/analytics/route.ts`, `app/projects/[id]/page.tsx`, `components/ProjectViewToggle.tsx`, `components/AnalyticsPanel.tsx`.
+**Status:** Accepted (direct commit to master, per user instruction).
+
 ## ADR-029 — Lift /runs and /files fetches to KanbanCard to eliminate double-fetch on modal open (2026-03-13)
 **Decision:** Moved both `/api/tasks/{id}/runs` and `/api/tasks/{id}/files` fetches from `TaskDetailModal`/`FileAttachmentList` into `KanbanCard`. A single `useEffect([modalOpen, task.id])` fires both in parallel when the modal opens. Data is passed as props (`runs`, `runsLoading`, `files`, `onFilesRefresh`). `FileAttachmentList` gained an `initialFiles` prop — when provided it seeds state directly and skips its own HTTP fetch.
 **Why:** Modal components owning their own `useEffect` fetches violated "components are pure UI — receive data as props". React's component lifecycle (cleanup → re-run) produced one cancelled + one successful request per endpoint on every card open.

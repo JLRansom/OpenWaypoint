@@ -1,6 +1,6 @@
 # Current Sprint
 
-> Last updated: 2026-03-13
+> Last updated: 2026-03-13 (2)
 
 ## Active Worktrees
 - `feat/task-archive-filter` — PR #3 open, awaiting review
@@ -9,6 +9,7 @@
 - `fix/history-tester-filter` — PR #6 open, awaiting review
 - `fix/file-count-perf` — PR #7 open, awaiting review
 - `fix/double-fetch-modal` — PR #8 merged
+- `chore/extract-monday-epoch-helper` — PR #9 open, awaiting review
 
 ## In Progress
 - [ ] Authentication & role-based access (protect dashboard + API routes)
@@ -22,6 +23,7 @@
 - [ ] Files API executor integration (upload via `anthropic.beta.files.upload()`)
 
 ## Recently Done
+- [x] Project dashboard redesign — Dashboard is default view (no `?view=` needed); Board is `?view=board`; 6 stat cards; task pipeline strip; two-column recent runs + recently updated tasks; 4 charts unchanged; `RecentRunEntry`/`RecentTaskEntry`/`TaskStatusCount` types added; route enriches analytics with task-store data; master (2026-03-13)
 - [x] Single-fetch on card open — lift `/runs` + `/files` fetches to `KanbanCard`; modal receives data as props; `FileAttachmentList` gains `initialFiles` prop; eliminates cancelled+retry pattern; master (2026-03-13)
 - [x] Double-fetch AbortController fix — `AbortController` cleanup on `TaskDetailModal` runs fetch + `FileAttachmentList` files fetch; removes `useCallback` wrapper; PR #8 merged (2026-03-13)
 - [x] File-count waterfall fix — `task.fileCount` derived from single SQL GROUP BY; `preloadedCount` prop on compact `FileAttachmentList`; SSE broadcast on file mutations; 9 tests; PR #7 merged (2026-03-12)
