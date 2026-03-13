@@ -3,7 +3,7 @@
 > Last updated: 2026-03-12
 
 ## Active Worktrees
-- `fix/tester-pipeline` — PR #2 open, awaiting review_
+- `feat/task-archive-filter` — PR #3 open, awaiting review
 
 ## In Progress
 - [ ] Authentication & role-based access (protect dashboard + API routes)
@@ -17,7 +17,8 @@
 - [ ] Files API executor integration (upload via `anthropic.beta.files.upload()`)
 
 ## Recently Done
-- [x] Tester pipeline fix — `'tester'` added to `validTypes` + `VALID_ROLES`; system prompt rewritten with 5-step QA process; PR #2 open (2026-03-12)
+- [x] Archive filter on task listing — `?archived=true/false/all` on `GET /api/projects/[id]/tasks`; 5 integration tests; PR #3 open (2026-03-12)
+- [x] Tester pipeline fix — `'tester'` added to `validTypes` + `VALID_ROLES`; system prompt rewritten with 5-step QA process; PR #2 merged (2026-03-12)
 - [x] Claude Code consolidation — fix settings.json path, launch.json stale entry, CLAUDE.md title/commands; create docs/architecture.md + docs/agent-types.md; prune context (2026-03-12)
 - [x] Security hardening (8 commits, master) — HTTP security headers; blocked `text/html`/`text/css`/`text/js`; SVG as attachment; path traversal guards; bulk cap; LIKE escaping; Settings page toggle for `--dangerously-skip-permissions` (2026-03-12)
 - [x] Analytics test coverage + CI workflow — 15 unit + 5 integration tests; NaN guard on route params; GitHub Actions workflow; `makeTestTaskRun()` factory (2026-03-12)

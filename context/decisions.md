@@ -2,6 +2,14 @@
 
 > Append new entries at the top. Keep each entry ≤ 10 lines.
 
+## ADR-025 — Archive filter on GET /api/projects/[id]/tasks (2026-03-12)
+**Decision:** Added `?archived=` query-parameter filtering to the tasks listing endpoint. `?archived=true` returns only archived tasks, `?archived=false` returns only active tasks, `?archived=all` or no param returns everything (backward-compatible). Logic lives in `TaskQueryOptions` + Drizzle `and(eq(projectId), eq(archived))` in `dbGetTasksByProject`; store wrapper forwards the opts; route handler parses the string param.
+**Why:** `Task.archived` was already persisted but the listing endpoint exposed no way to filter — dashboards had to do client-side filtering over a potentially large dataset.
+**Scope:** API + repo only; UI toggle for showing/hiding archived tasks is a separate ticket.
+**Affects:** `lib/db/repositories/taskRepo.ts`, `lib/store.ts`, `app/api/projects/[id]/tasks/route.ts`, `__tests__/integration/task-archive-filter.test.ts` (new, 5 tests).
+**Branch:** `feat/task-archive-filter` — PR #3 open.
+**Status:** Accepted.
+
 ## ADR-024 — Tester role API unblock + prompt improvements (2026-03-12)
 **Decision:** Fixed two API validation arrays that were silently blocking the tester role: `validTypes` in `app/api/agents/route.ts` and `VALID_ROLES` in `app/api/tasks/[id]/assign/route.ts` both omitted `'tester'`. Without this fix, tester agents could never be spawned (400 from dashboard) and the "Assign Tester" button always returned 400. Since no idle tester could ever exist, `agentService` always hit the "no idle tester" fallback after `VERDICT: APPROVED`, marking tasks done and skipping testing entirely.
 **Prompt improvement:** Tester system prompt rewritten with an explicit 5-step process: (1) study implementation, (2) write test files (`.test.ts` / `test_*.py` / `*_test.go`), (3) run project test runner (`npm run test:run`, `pytest`, `go test`), (4) fix infra issues and re-run, (5) report failures without fixing implementation bugs. Verdict format enforced: `VERDICT: TESTS PASSED` / `VERDICT: TESTS FAILED`.
