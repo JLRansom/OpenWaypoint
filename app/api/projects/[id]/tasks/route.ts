@@ -17,7 +17,13 @@ export async function GET(
   else if (archivedParam === 'false') archivedFilter = false
   // 'all' or absent → undefined (no filter, return everything)
 
-  return NextResponse.json(getTasksByProject(id, { archived: archivedFilter }))
+  // ?tags=bug,approved — filters to tasks that have ALL listed tags
+  const tagsParam = req.nextUrl.searchParams.get('tags')
+  const tagsFilter = tagsParam
+    ? tagsParam.split(',').map((t) => t.trim()).filter(Boolean)
+    : undefined
+
+  return NextResponse.json(getTasksByProject(id, { archived: archivedFilter, tags: tagsFilter }))
 }
 
 export async function POST(
