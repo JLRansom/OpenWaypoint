@@ -1,4 +1,4 @@
-# agents-galore
+# OpenWaypoint
 
 Next.js 15 (App Router) agent management dashboard — spawn, monitor, and visualize AI agents working on projects in real time.
 
@@ -10,13 +10,17 @@ npm run build        # production build
 npm run lint         # eslint check
 npm run lint:fix     # eslint auto-fix
 npm run type-check   # tsc --noEmit
+npm run test:run     # run full test suite (vitest)
+npm run test:ui      # vitest UI (browser)
+npm run test:coverage # coverage report
 ```
 
 ## Workflow
 **All code changes MUST be made in a git worktree** — never edit directly on the main working tree.
 - Before making any code edits, create or enter a worktree (`isolation: "worktree"` for agents, or `git worktree add` manually).
 - This allows multiple agents/developers to work in parallel without file conflicts.
-- Each worktree gets its own branch — name it descriptively (e.g., `feat/add-dashboard-filters`).
+- Each worktree gets its own branch — name it descriptively using a prefix:
+  `feat/`, `fix/`, `chore/`, `test/`, `ci/` — e.g. `feat/agent-rename`, `fix/sse-reconnect`
 - When finished, open a PR from the worktree branch. Do NOT merge directly into main.
 - Clean up worktrees after the branch is merged: `git worktree remove <path>`.
 
@@ -45,7 +49,7 @@ This is not optional. Keeping `context/` current is part of completing a ticket.
 ```
 ## [Date] - [Short title]
 **Decision:** What was decided
-**Why:** The reasoning  
+**Why:** The reasoning
 **Alternatives rejected:** What we didn't do and why
 **Affects:** Which files/systems this touches
 ```
@@ -75,6 +79,8 @@ This is not optional. Keeping `context/` current is part of completing a ticket.
 - **Content-Length accuracy** — use `buffer.length` (actual bytes read), not stored `sizeBytes` metadata.
 
 ## Architecture
+
+See `docs/architecture.md` for the full reference. Quick summary:
 
 - API routes live in `/app/api/[resource]/route.ts`
 - In-memory singleton store in `/lib/store.ts` — import `getStore()` for all state access

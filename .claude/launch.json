@@ -3,20 +3,14 @@
   "configurations": [
     {
       "name": "Next.js Dev",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["C:/nvm4w/nodejs/node_modules/npm/bin/npm-cli.js", "run", "dev"],
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
       "port": 3000
     },
     {
-      "name": "Next.js Dev (analytics worktree)",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["C:/nvm4w/nodejs/node_modules/npm/bin/npm-cli.js", "--prefix", "worktrees/feat-project-analytics", "run", "dev"],
-      "port": 3001
-    },
-    {
       "name": "Vitest UI",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["C:/nvm4w/nodejs/node_modules/npm/bin/npm-cli.js", "run", "test:ui"],
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "test:ui"],
       "port": 51204
     }
   ]

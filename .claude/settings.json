@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'input=$(cat); file=$(echo \"$input\" | jq -r \".tool_input.file_path // empty\"); [[ \"$file\" == *.ts || \"$file\" == *.tsx ]] && cd /e/agents-galore && npx prettier --write \"$file\" 2>/dev/null; exit 0'"
+            "command": "bash -c 'input=$(cat); file=$(echo \"$input\" | jq -r \".tool_input.file_path // empty\"); [[ \"$file\" == *.ts || \"$file\" == *.tsx ]] && npx prettier --write \"$file\" 2>/dev/null; exit 0'"
           }
         ]
       }
