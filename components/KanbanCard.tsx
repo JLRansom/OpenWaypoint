@@ -13,6 +13,17 @@ import { formatTokens, formatCost } from '@/lib/format-utils'
 
 type AssignRole = 'researcher' | 'coder' | 'senior-coder' | 'tester'
 
+/** Colour overrides for well-known pipeline-generated tags. */
+const TAG_COLORS: Record<string, string> = {
+  'approved':           'bg-dracula-green/20 text-dracula-green border-dracula-green/30',
+  'tests-passed':       'bg-dracula-green/20 text-dracula-green border-dracula-green/30',
+  'tests-failed':       'bg-dracula-orange/20 text-dracula-orange border-dracula-orange/30',
+  'changes-requested':  'bg-dracula-red/20 text-dracula-red border-dracula-red/30',
+  'bug':                'bg-dracula-red/20 text-dracula-red border-dracula-red/30',
+  'blocked':            'bg-dracula-red/20 text-dracula-red border-dracula-red/30',
+}
+const TAG_COLOR_DEFAULT = 'bg-dracula-purple/20 text-dracula-purple border-dracula-purple/30'
+
 interface KanbanCardProps {
   task: Task
   activeAgent?: Agent
@@ -214,6 +225,20 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
 
       {task.description && (
         <p className="text-xs text-dracula-comment line-clamp-1">{task.description}</p>
+      )}
+
+      {/* Tags */}
+      {task.tags && task.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {task.tags.map((tag) => (
+            <span
+              key={tag}
+              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${TAG_COLORS[tag] ?? TAG_COLOR_DEFAULT}`}
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
       )}
 
       {/* File attachment count badge — compact pill shown below description */}

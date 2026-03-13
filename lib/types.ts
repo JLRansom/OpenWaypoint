@@ -63,6 +63,8 @@ export interface Task {
   reviewNotes?: string
   testerOutput?: string
   archived?: boolean
+  /** User-defined and pipeline-set labels, e.g. ["approved", "bug", "tests-passed"]. */
+  tags?: string[]
 }
 
 import type { ExecutorConfig } from '@/lib/executors/types'
