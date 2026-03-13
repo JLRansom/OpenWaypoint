@@ -334,7 +334,7 @@ export async function assignAgentToTask(
             }
           }
 
-          // Parse any minor issues the senior coder flagged and log them as backlog tasks
+          // Parse any minor issues the senior coder flagged and log them as a single backlog task
           const minorMatch = output.match(/##\s*Minor Issues([\s\S]*?)(?=\n##|\s*$)/)
           if (minorMatch) {
             const items = minorMatch[1]
@@ -342,13 +342,14 @@ export async function assignAgentToTask(
               .map((s) => s.trim())
               .filter(Boolean)
 
-            for (const item of items) {
-              const title = item.length > 80 ? item.slice(0, 77) + '...' : item
+            if (items.length > 0) {
+              const title = `Minor issues from review of "${task.title}"`
+              const bulletList = items.map((item) => `- ${item}`).join('\n')
               addTask({
                 id: randomUUID(),
                 projectId: task.projectId,
-                title,
-                description: `Auto-logged from senior review of "${task.title}":\n\n${item}`,
+                title: title.length > 80 ? title.slice(0, 77) + '...' : title,
+                description: `Auto-logged from senior review of "${task.title}":\n\n${bulletList}`,
                 status: 'backlog',
                 createdAt: Date.now(),
                 updatedAt: Date.now(),
