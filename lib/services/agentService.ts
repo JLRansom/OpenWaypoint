@@ -12,6 +12,18 @@ import { calculateCost } from '@/lib/pricing'
 /** Maximum inline content size (bytes) — larger files are referenced by path only. */
 const INLINE_FILE_MAX_BYTES = 100 * 1024
 
+/**
+ * Merges a tag into a task's tag list without duplicates.
+ * Safe to call concurrently — reads the latest task state each time.
+ */
+function addTagToTask(taskId: string, tag: string): void {
+  const current = getTask(taskId)
+  if (!current) return
+  const existing = current.tags ?? []
+  if (existing.includes(tag)) return
+  updateTask(taskId, { tags: [...existing, tag] })
+}
+
 export type AssignRole = 'researcher' | 'coder' | 'senior-coder' | 'tester'
 
 const MAX_REVIEW_CYCLES = 3
@@ -310,6 +322,9 @@ export async function assignAgentToTask(
       // won't have emitted a proper VERDICT line, so we'd misread the output.
       if (completed.status === 'done') {
         if (output.includes('VERDICT: APPROVED')) {
+          // Stamp the card with an "approved" tag
+          addTagToTask(task.id, 'approved')
+
           // Merge the worktree branch into master (best-effort)
           if (directory) {
             try {
@@ -352,6 +367,8 @@ export async function assignAgentToTask(
             updateTask(task.id, { status: 'done' })
           }
         } else {
+          // Stamp with "changes-requested" tag
+          addTagToTask(task.id, 'changes-requested')
           const changesMatch = output.match(/##\s*Changes Required([\s\S]*)/)
           const reviewNotes = changesMatch ? changesMatch[1].trim() : output
           updateTask(task.id, { status: 'changes-requested', reviewNotes })
@@ -367,8 +384,10 @@ export async function assignAgentToTask(
       // won't have emitted a proper VERDICT line, so we'd misread the output.
       if (completed.status === 'done') {
         if (output.includes('VERDICT: TESTS PASSED')) {
+          addTagToTask(task.id, 'tests-passed')
           updateTask(task.id, { status: 'done' })
         } else if (_testCycle < MAX_TEST_CYCLES) {
+          addTagToTask(task.id, 'tests-failed')
           // If no idle coder is available for retry, leave the task in testing
           // so the user can trigger a manual retry once a coder is free.
           const result = await assignAgentToTask(taskId, 'coder', _cycle, _testCycle + 1)

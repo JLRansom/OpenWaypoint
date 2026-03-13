@@ -22,18 +22,29 @@ export async function PATCH(
   if (!task) return NextResponse.json({ error: 'not found' }, { status: 404 })
 
   const body = await req.json()
-  const { title, description, status, archived } = body as {
+  const { title, description, status, archived, tags } = body as {
     title?: string
     description?: string
     status?: TaskStatus
     archived?: boolean
+    tags?: string[]
   }
+
+  // Sanitise tags: unique lowercase strings, max 32 chars each, max 20 tags total
+  const sanitisedTags = tags !== undefined
+    ? [...new Set(
+        tags
+          .map((t) => String(t).toLowerCase().trim().slice(0, 32))
+          .filter(Boolean)
+      )].slice(0, 20)
+    : undefined
 
   updateTask(id, {
     ...(title !== undefined && { title }),
     ...(description !== undefined && { description }),
     ...(status !== undefined && { status }),
     ...(archived !== undefined && { archived }),
+    ...(sanitisedTags !== undefined && { tags: sanitisedTags }),
   })
 
   return NextResponse.json(getTask(id))

@@ -67,6 +67,8 @@ export const tasks = sqliteTable('tasks', {
   reviewNotes:      text('review_notes'),
   testerOutput:     text('tester_output'),
   archived:         integer('archived', { mode: 'boolean' }).default(false),
+  /** JSON-serialised string[] — e.g. '["approved","bug"]'. */
+  tags:             text('tags').notNull().default('[]'),
   createdAt:        integer('created_at').notNull(),
   updatedAt:        integer('updated_at').notNull(),
 })

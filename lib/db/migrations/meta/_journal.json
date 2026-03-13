@@ -64,6 +64,13 @@
       "when": 1773400000000,
       "tag": "0008_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1773500000000,
+      "tag": "0009_task_tags",
+      "breakpoints": true
     }
   ]
 }

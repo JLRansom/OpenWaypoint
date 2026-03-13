@@ -61,6 +61,8 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   const [activeTab, setActiveTab] = useState<Tab>(task.status === 'done' ? 'results' : 'details')
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description)
+  const [tags, setTags] = useState<string[]>(task.tags ?? [])
+  const [tagInput, setTagInput] = useState('')
   const [runs, setRuns] = useState<TaskRun[]>([])
   const [runsLoading, setRunsLoading] = useState(true)
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null)
@@ -83,16 +85,28 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   }, [task.id])
 
   async function save() {
-    if (title === task.title && description === task.description) {
+    const tagsChanged = JSON.stringify(tags) !== JSON.stringify(task.tags ?? [])
+    if (title === task.title && description === task.description && !tagsChanged) {
       onClose()
       return
     }
     await fetch(`/api/tasks/${task.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description }),
+      body: JSON.stringify({ title, description, tags }),
     })
     onClose()
+  }
+
+  function addTag() {
+    const t = tagInput.trim().toLowerCase().slice(0, 32)
+    if (!t || tags.includes(t)) { setTagInput(''); return }
+    setTags((prev) => [...prev, t])
+    setTagInput('')
+  }
+
+  function removeTag(tag: string) {
+    setTags((prev) => prev.filter((t) => t !== tag))
   }
 
   const totalTimeMs = runs.reduce((sum, r) => sum + (r.completedAt - r.startedAt), 0)
@@ -152,6 +166,47 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
+            </div>
+
+            {/* Tags */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-dracula-comment">
+                Tags
+              </label>
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-dracula-purple/20 text-dracula-purple border border-dracula-purple/30"
+                    >
+                      {tag}
+                      <button
+                        onClick={() => removeTag(tag)}
+                        className="hover:text-dracula-red transition-colors leading-none"
+                        aria-label={`Remove tag ${tag}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <input
+                  className="flex-1 bg-dracula-dark border border-dracula-dark/80 rounded-lg px-3 py-1.5 text-sm text-dracula-light placeholder-dracula-comment focus:outline-none focus:border-dracula-purple/60 transition-colors"
+                  placeholder="Add a tag…"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag() } }}
+                />
+                <button
+                  onClick={addTag}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-dracula-purple/20 text-dracula-purple hover:bg-dracula-purple/30 transition-colors"
+                >
+                  Add
+                </button>
+              </div>
             </div>
 
             {/* ----------------------------------------------------------------
