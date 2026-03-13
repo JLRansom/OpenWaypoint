@@ -77,11 +77,16 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
   }, [onClose])
 
   useEffect(() => {
+    const controller = new AbortController()
     setRunsLoading(true)
-    fetch(`/api/tasks/${task.id}/runs`)
+    fetch(`/api/tasks/${task.id}/runs`, { signal: controller.signal })
       .then((r) => r.json())
       .then((data: TaskRun[]) => setRuns(data))
+      .catch((e: unknown) => {
+        if ((e as Error).name !== 'AbortError') throw e
+      })
       .finally(() => setRunsLoading(false))
+    return () => controller.abort()
   }, [task.id])
 
   async function save() {
