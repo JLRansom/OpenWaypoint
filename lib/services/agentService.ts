@@ -1,10 +1,11 @@
 import { randomUUID } from 'crypto'
 import fs from 'fs'
 import path from 'path'
-import { Agent, AgentStats, TaskStatus, BoardType, TaskFile } from '@/lib/types'
-import { getTask, getProject, getAllAgents, updateAgent, updateTask, getAgent, addTask, getFilesByTask } from '@/lib/store'
+import { Agent, AgentStats, AgentType, TaskStatus, BoardType, TaskFile, MeetingAgentType, MEETING_AGENT_ORDER } from '@/lib/types'
+import { getTask, getProject, getAllAgents, updateAgent, updateTask, getAgent, addTask, getFilesByTask, getMeeting, getMessagesByMeeting, updateMeeting, updateMeetingMessage, updateMeetingMessageSilent, broadcastNow } from '@/lib/store'
 import { formatFileSize } from '@/lib/format-utils'
 import { runAgent } from '@/lib/agent-runner'
+import { getExecutor } from '@/lib/executors/registry'
 import { dbAddTaskRun } from '@/lib/db/repositories/taskRunRepo'
 import { mergeWorktreeBranch } from '@/lib/git-utils'
 import { calculateCost } from '@/lib/pricing'
@@ -334,7 +335,7 @@ export async function assignAgentToTask(
             }
           }
 
-          // Parse any minor issues the senior coder flagged and log them as backlog tasks
+          // Parse any minor issues the senior coder flagged and log them as a single backlog task
           const minorMatch = output.match(/##\s*Minor Issues([\s\S]*?)(?=\n##|\s*$)/)
           if (minorMatch) {
             const items = minorMatch[1]
@@ -342,13 +343,14 @@ export async function assignAgentToTask(
               .map((s) => s.trim())
               .filter(Boolean)
 
-            for (const item of items) {
-              const title = item.length > 80 ? item.slice(0, 77) + '...' : item
+            if (items.length > 0) {
+              const title = `Minor issues from review of "${task.title}"`
+              const bulletList = items.map((item) => `- ${item}`).join('\n')
               addTask({
                 id: randomUUID(),
                 projectId: task.projectId,
-                title,
-                description: `Auto-logged from senior review of "${task.title}":\n\n${item}`,
+                title: title.length > 80 ? title.slice(0, 77) + '...' : title,
+                description: `Auto-logged from senior review of "${task.title}":\n\n${bulletList}`,
                 status: 'backlog',
                 createdAt: Date.now(),
                 updatedAt: Date.now(),
@@ -420,4 +422,145 @@ export async function assignAgentToTask(
   }).catch(console.error)
 
   return agentToRun
+}
+
+// ---------------------------------------------------------------------------
+// Meeting orchestration
+// ---------------------------------------------------------------------------
+
+function buildMeetingSystemPrompt(agentType: MeetingAgentType): string {
+  const base =
+    'You are participating in a team meeting to discuss a proposed idea. ' +
+    'Keep your contribution focused, constructive, and between 100-300 words. ' +
+    'Do not use markdown headers. Write in a conversational but professional tone.'
+
+  const roleContext: Record<MeetingAgentType, string> = {
+    writer:
+      `${base} You are the writer — propose and pitch the idea. ` +
+      'Explain the concept clearly and why it matters to the project.',
+    researcher:
+      `${base} You are the researcher — evaluate from an analytics and data perspective. ` +
+      'How would we measure success? What data supports this direction? How does it help revenue?',
+    coder:
+      `${base} You are the coder — assess technical feasibility. ` +
+      'What is the implementation approach? What are the technical risks and dependencies?',
+    'senior-coder':
+      `${base} You are the senior engineer — evaluate architecture and stability. ` +
+      'Will this scale? Does it fit existing architecture? What technical debt might it introduce?',
+    tester:
+      `${base} You are the QA engineer — consider quality assurance implications. ` +
+      'How do we test this? What edge cases and failure modes should we watch for?',
+  }
+
+  return roleContext[agentType]
+}
+
+function buildMeetingUserPrompt(
+  agentType: MeetingAgentType,
+  topic: string,
+  priorContext: string,
+  projectName?: string,
+  projectDescription?: string,
+): string {
+  let prompt = `# Meeting Topic\n\n${topic}`
+  if (projectName) {
+    prompt += `\n\n## Project Context\nProject: ${projectName}`
+    if (projectDescription) prompt += `\nDescription: ${projectDescription}`
+  }
+  if (priorContext) {
+    prompt += `\n\n## Prior Discussion\n${priorContext}`
+  }
+  if (agentType === 'writer') {
+    prompt += '\n\nPresent and pitch this idea to the team. Keep it 100-300 words.'
+  } else {
+    prompt += `\n\nShare your perspective as the ${agentType}. Keep it 100-300 words.`
+  }
+  return prompt
+}
+
+/**
+ * Run a full meeting: each agent in MEETING_AGENT_ORDER speaks sequentially.
+ * Uses the executor directly (not the idle agent pool) so meetings don't
+ * consume project agents. Streams each response via SSE.
+ */
+export async function runMeeting(meetingId: string): Promise<void> {
+  const meeting = getMeeting(meetingId)
+  if (!meeting) return
+
+  const project = getProject(meeting.projectId)
+  const workingDirectory = project?.directory || undefined
+  const executor = getExecutor(project?.executorConfig ?? undefined)
+
+  const messages = getMessagesByMeeting(meetingId)
+  let priorContext = ''
+
+  for (const agentType of MEETING_AGENT_ORDER) {
+    const msgRow = messages.find((m) => m.agentType === agentType)
+    if (!msgRow) continue
+
+    // Update meeting + message status
+    const meetingStatus = agentType === 'writer' ? 'writer-speaking' : 'discussion'
+    updateMeeting(meetingId, { status: meetingStatus, updatedAt: Date.now() })
+    updateMeetingMessage(msgRow.id, { status: 'speaking', startedAt: Date.now() })
+
+    const systemPrompt = buildMeetingSystemPrompt(agentType)
+    const userPrompt = buildMeetingUserPrompt(
+      agentType,
+      meeting.topic,
+      priorContext,
+      project?.name,
+      project?.description,
+    )
+
+    // Temporary agent object for the executor
+    const tempAgent: Agent = {
+      id: randomUUID(),
+      type: agentType as AgentType,
+      prompt: userPrompt,
+      status: 'running',
+      events: [],
+      createdAt: Date.now(),
+      projectId: meeting.projectId,
+      systemPromptOverride: systemPrompt,
+    }
+
+    let accumulated = ''
+    let lastBroadcastAt = 0
+    const controller = new AbortController()
+
+    try {
+      await executor.run({
+        agent: tempAgent,
+        workingDirectory,
+        onChunk: (chunk) => {
+          accumulated += chunk.text
+          // DB write on every chunk (crash recovery)
+          updateMeetingMessageSilent(msgRow.id, { content: accumulated })
+          // Throttle SSE broadcasts to ~200ms
+          const now = Date.now()
+          if (now - lastBroadcastAt > 200) {
+            broadcastNow()
+            lastBroadcastAt = now
+          }
+        },
+        signal: controller.signal,
+      })
+
+      updateMeetingMessage(msgRow.id, {
+        content: accumulated,
+        status: 'done',
+        completedAt: Date.now(),
+      })
+    } catch (err) {
+      updateMeetingMessage(msgRow.id, {
+        content: accumulated || `[Error: ${err instanceof Error ? err.message : String(err)}]`,
+        status: 'done',
+        completedAt: Date.now(),
+      })
+    }
+
+    priorContext += `\n\n### ${agentType}\n${accumulated}`
+  }
+
+  updateMeeting(meetingId, { status: 'concluded', updatedAt: Date.now() })
 }

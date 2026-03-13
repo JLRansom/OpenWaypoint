@@ -7,6 +7,7 @@ import { ArchivedCards } from '@/components/ArchivedCards'
 import { EditProjectModal } from '@/components/EditProjectModal'
 import { ProjectViewToggle } from '@/components/ProjectViewToggle'
 import { AnalyticsPanel } from '@/components/AnalyticsPanel'
+import { MeetingsPanel } from '@/components/MeetingsPanel'
 
 export default async function ProjectBoardPage({
   params,
@@ -21,7 +22,7 @@ export default async function ProjectBoardPage({
 
   if (!project) notFound()
 
-  const activeView = view === 'board' ? 'board' : 'dashboard'
+  const activeView = view === 'board' ? 'board' : view === 'meetings' ? 'meetings' : 'dashboard'
 
   return (
     <div>
@@ -56,6 +57,9 @@ export default async function ProjectBoardPage({
           <KanbanBoard projectId={id} initialCardId={card} boardType={project.boardType ?? 'coding'} />
           <ArchivedCards projectId={id} />
         </>
+      )}
+      {activeView === 'meetings' && (
+        <MeetingsPanel projectId={id} />
       )}
     </div>
   )

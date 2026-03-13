@@ -1,4 +1,4 @@
-import { Agent, AgentEvent, Project, Task, TaskFile, StreamPayload } from '@/lib/types'
+import { Agent, AgentEvent, Project, Task, TaskFile, Meeting, MeetingMessage, StreamPayload } from '@/lib/types'
 import { broadcast } from '@/lib/broadcast'
 import {
   dbGetAllAgents,
@@ -33,6 +33,17 @@ import {
   dbGetSetting,
   dbSetSetting,
 } from '@/lib/db/repositories/settingsRepo'
+import {
+  dbGetMeetingsByProject,
+  dbGetAllActiveMeetings,
+  dbGetMeeting,
+  dbGetMessagesByMeeting,
+  dbGetAllActiveMeetingMessages,
+  dbAddMeeting,
+  dbUpdateMeeting,
+  dbAddMeetingMessage,
+  dbUpdateMeetingMessage,
+} from '@/lib/db/repositories/meetingRepo'
 
 export { subscribe, unsubscribe } from '@/lib/broadcast'
 
@@ -41,6 +52,8 @@ function getStreamPayload(): StreamPayload {
     agents: dbGetAllAgents(),
     projects: dbGetAllProjects(),
     tasks: dbGetAllTasks(),
+    meetings: dbGetAllActiveMeetings(),
+    meetingMessages: dbGetAllActiveMeetingMessages(),
   }
 }
 
@@ -158,6 +171,61 @@ export function deleteTaskFile(id: string): TaskFile | undefined {
  */
 export function deleteTaskFilesByTask(taskId: string): TaskFile[] {
   return dbDeleteTaskFilesByTask(taskId)
+}
+
+// --- Meeting functions ---
+
+export function getMeetingsByProject(projectId: string): Meeting[] {
+  return dbGetMeetingsByProject(projectId)
+}
+
+export function getMeeting(id: string): Meeting | undefined {
+  return dbGetMeeting(id)
+}
+
+export function getMessagesByMeeting(meetingId: string): MeetingMessage[] {
+  return dbGetMessagesByMeeting(meetingId)
+}
+
+export function addMeeting(meeting: Meeting): void {
+  dbAddMeeting(meeting)
+  broadcast(getStreamPayload())
+}
+
+export function updateMeeting(id: string, patch: Partial<Meeting>): void {
+  dbUpdateMeeting(id, patch)
+  broadcast(getStreamPayload())
+}
+
+export function addMeetingMessage(msg: Omit<MeetingMessage, 'id'>): number {
+  const id = dbAddMeetingMessage(msg)
+  broadcast(getStreamPayload())
+  return id
+}
+
+export function updateMeetingMessage(
+  id: number,
+  patch: Partial<Omit<MeetingMessage, 'id' | 'meetingId' | 'agentType'>>,
+): void {
+  dbUpdateMeetingMessage(id, patch)
+  broadcast(getStreamPayload())
+}
+
+/**
+ * Update meeting message content in DB without triggering SSE broadcast.
+ * Used for streaming chunks — the caller should broadcast separately at a
+ * throttled rate to avoid overwhelming clients.
+ */
+export function updateMeetingMessageSilent(
+  id: number,
+  patch: Partial<Omit<MeetingMessage, 'id' | 'meetingId' | 'agentType'>>,
+): void {
+  dbUpdateMeetingMessage(id, patch)
+}
+
+/** Trigger an SSE broadcast (used by meeting orchestration after throttle). */
+export function broadcastNow(): void {
+  broadcast(getStreamPayload())
 }
 
 // --- Settings functions ---

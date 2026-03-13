@@ -91,6 +91,8 @@ export interface StreamPayload {
   agents: Agent[]
   projects: Project[]
   tasks: Task[]
+  meetings?: Meeting[]
+  meetingMessages?: MeetingMessage[]
 }
 
 export interface TaskRun {
@@ -145,6 +147,38 @@ export interface TaskFile {
 /** Whether an agent is actively running or waiting to start. */
 export function isAgentActive(agent?: Agent | null): boolean {
   return agent?.status === 'running' || agent?.status === 'queued'
+}
+
+// ---------------------------------------------------------------------------
+// Meetings
+// ---------------------------------------------------------------------------
+
+export type MeetingStatus = 'setup' | 'writer-speaking' | 'discussion' | 'concluded'
+export type MeetingMessageStatus = 'pending' | 'speaking' | 'done'
+export type MeetingAgentType = 'writer' | 'researcher' | 'coder' | 'senior-coder' | 'tester'
+
+/** The order in which agents speak during a meeting. */
+export const MEETING_AGENT_ORDER: MeetingAgentType[] = [
+  'writer', 'researcher', 'coder', 'senior-coder', 'tester',
+]
+
+export interface Meeting {
+  id: string
+  projectId: string
+  topic: string
+  status: MeetingStatus
+  createdAt: number
+  updatedAt: number
+}
+
+export interface MeetingMessage {
+  id: number
+  meetingId: string
+  agentType: MeetingAgentType
+  content: string
+  status: MeetingMessageStatus
+  startedAt?: number
+  completedAt?: number
 }
 
 // ---------------------------------------------------------------------------
