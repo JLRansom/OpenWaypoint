@@ -9,6 +9,7 @@ import type {
   DailyTokenData,
   DailyCostData,
   RoleCostData,
+  RecentRunEntry,
 } from '@/lib/types'
 
 // ---------------------------------------------------------------------------
@@ -66,6 +67,7 @@ export function dbGetProjectAnalytics(
   let totalCostUsd = 0
   let totalInputTokens = 0
   let totalOutputTokens = 0
+  let totalDurationMs = 0
 
   for (const r of rows) {
     if (r.status === 'done') totalRunsDone++
@@ -73,8 +75,12 @@ export function dbGetProjectAnalytics(
     totalCostUsd += r.costUsd ?? 0
     totalInputTokens += r.inputTokens ?? 0
     totalOutputTokens += r.outputTokens ?? 0
+    totalDurationMs += r.completedAt - r.startedAt
   }
 
+  const totalRuns = totalRunsDone + totalRunsFailed
+  // summary.activeTaskCount and successRate are injected by the route handler
+  // (which has access to the task store); provide defaults here.
   const summary: ProjectAnalyticsSummary = {
     totalRunsDone,
     totalRunsFailed,
@@ -82,6 +88,9 @@ export function dbGetProjectAnalytics(
     totalInputTokens,
     totalOutputTokens,
     avgCostPerRun: totalRunsDone > 0 ? totalCostUsd / totalRunsDone : 0,
+    avgDurationMs: totalRuns > 0 ? totalDurationMs / totalRuns : 0,
+    activeTaskCount: 0,
+    successRate: totalRuns > 0 ? (totalRunsDone / totalRuns) * 100 : 0,
   }
 
   // --- Weekly tasks ---
@@ -141,5 +150,31 @@ export function dbGetProjectAnalytics(
     .sort(([, a], [, b]) => b - a)
     .map(([role, totalCost]) => ({ role, totalCost }))
 
-  return { summary, weeklyTasks, dailyTokens, dailyCost, costByRole }
+  // --- Recent runs (last 15, sorted newest first) ---
+  const recentRuns: RecentRunEntry[] = rows
+    .slice()
+    .sort((a, b) => b.completedAt - a.completedAt)
+    .slice(0, 15)
+    .map((r) => ({
+      id: r.id,
+      taskTitle: r.taskTitle,
+      role: r.role,
+      status: r.status as 'done' | 'failed',
+      costUsd: r.costUsd ?? undefined,
+      durationMs: r.completedAt - r.startedAt,
+      completedAt: r.completedAt,
+      model: r.model ?? undefined,
+    }))
+
+  return {
+    summary,
+    weeklyTasks,
+    dailyTokens,
+    dailyCost,
+    costByRole,
+    recentRuns,
+    // recentlyUpdatedTasks and taskStatusCounts are injected by the route handler
+    recentlyUpdatedTasks: [],
+    taskStatusCounts: [],
+  }
 }

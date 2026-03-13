@@ -7,8 +7,9 @@
  *
  * Timezone note:
  *   getDayKey() uses toISOString() — always UTC, fully deterministic.
- *   getMondayKey() calls getDay() on local time, so we use noon-UTC
- *   timestamps that are comfortably inside a single day in any timezone.
+ *   getMondayKey() delegates to getMondayEpoch() which uses UTC methods, so
+ *   results are timezone-deterministic. We still use noon-UTC timestamps to
+ *   be comfortably inside a single day in any timezone.
  *   We never assert string date labels because shortDateLabel() is
  *   locale+timezone dependent; we only assert numeric values and lengths.
  */
