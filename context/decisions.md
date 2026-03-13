@@ -2,6 +2,21 @@
 
 > Append new entries at the top. Keep each entry ≤ 10 lines.
 
+## ADR-029 — Lift /runs and /files fetches to KanbanCard to eliminate double-fetch on modal open (2026-03-13)
+**Decision:** Moved both `/api/tasks/{id}/runs` and `/api/tasks/{id}/files` fetches from `TaskDetailModal`/`FileAttachmentList` into `KanbanCard`. A single `useEffect([modalOpen, task.id])` fires both in parallel when the modal opens. Data is passed as props (`runs`, `runsLoading`, `files`, `onFilesRefresh`). `FileAttachmentList` gained an `initialFiles` prop — when provided it seeds state directly and skips its own HTTP fetch.
+**Why:** Modal components owning their own `useEffect` fetches violated "components are pure UI — receive data as props". React's component lifecycle (cleanup → re-run) produced one cancelled + one successful request per endpoint on every card open.
+**Alternatives rejected:** `reactStrictMode: false` (hides symptoms, loses StrictMode benefits); deduplication ref (fights React model).
+**Affects:** `components/KanbanCard.tsx`, `components/TaskDetailModal.tsx`, `components/FileAttachmentList.tsx`.
+**Status:** Accepted (direct commit to master, per user instruction).
+
+## ADR-028 — task.fileCount derived field eliminates per-card fetch waterfall (2026-03-12)
+**Decision:** Added `fileCount?: number` as a derived (non-stored) field on `Task`. Computed via a single `SELECT task_id, COUNT(*) FROM task_files GROUP BY task_id` (one query for bulk fetches). `FileAttachmentList` compact mode accepts a `preloadedCount` prop — when provided it skips the HTTP fetch entirely. `KanbanCard` passes `task.fileCount ?? 0`. `addTaskFile`/`deleteTaskFile` in `store.ts` now broadcast SSE so counts stay live.
+**Why:** N cards → N `GET /api/tasks/{id}/files` on board open; a 20-task board fired 20 requests just for count badges.
+**Alternatives rejected:** LEFT JOIN in task queries (more complex, broke existing `.map(rowToTask)` pattern); client-side cache (complexity for little gain).
+**Affects:** `lib/types.ts`, `lib/db/repositories/taskRepo.ts`, `lib/store.ts`, `components/FileAttachmentList.tsx`, `components/KanbanCard.tsx`.
+**Branch:** `fix/file-count-perf` — PR #7 open.
+**Status:** Accepted.
+
 ## ADR-027 — History role filter extended to Tester + Writer (2026-03-12)
 **Decision:** `RoleFilter` type and `ROLE_OPTIONS` in `HistoryList.tsx` now include `'tester'` and `'writer'`. The API already accepted any role string — this was a UI-only omission.
 **Affects:** `components/HistoryList.tsx`, `__tests__/integration/history-tester-filter.test.ts`.

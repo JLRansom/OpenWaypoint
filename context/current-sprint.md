@@ -1,12 +1,14 @@
 # Current Sprint
 
-> Last updated: 2026-03-12
+> Last updated: 2026-03-13
 
 ## Active Worktrees
 - `feat/task-archive-filter` — PR #3 open, awaiting review
 - `feat/card-tags` — PR #4 open, awaiting review
 - `feat/tag-filter` — PR #5 open, awaiting review (depends on #4)
 - `fix/history-tester-filter` — PR #6 open, awaiting review
+- `fix/file-count-perf` — PR #7 open, awaiting review
+- `fix/double-fetch-modal` — PR #8 merged
 
 ## In Progress
 - [ ] Authentication & role-based access (protect dashboard + API routes)
@@ -20,6 +22,9 @@
 - [ ] Files API executor integration (upload via `anthropic.beta.files.upload()`)
 
 ## Recently Done
+- [x] Single-fetch on card open — lift `/runs` + `/files` fetches to `KanbanCard`; modal receives data as props; `FileAttachmentList` gains `initialFiles` prop; eliminates cancelled+retry pattern; master (2026-03-13)
+- [x] Double-fetch AbortController fix — `AbortController` cleanup on `TaskDetailModal` runs fetch + `FileAttachmentList` files fetch; removes `useCallback` wrapper; PR #8 merged (2026-03-13)
+- [x] File-count waterfall fix — `task.fileCount` derived from single SQL GROUP BY; `preloadedCount` prop on compact `FileAttachmentList`; SSE broadcast on file mutations; 9 tests; PR #7 merged (2026-03-12)
 - [x] Tag system on cards — `Task.tags`, migration 0009, pipeline auto-stamps verdict tags, card pills, modal editor; 11 tests; PR #4 (2026-03-12)
 - [x] Tag filter bar on board — client-side AND filter, pill bar UI, `?tags=` API param, DB LIKE filter; 6 tests; PR #5 (2026-03-12)
 - [x] History tester/writer filter fix — `RoleFilter` type + ROLE_OPTIONS now include Tester + Writer; 4 tests; PR #6 (2026-03-12)

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Task, TaskStatus, TaskRun } from '@/lib/types'
+import { Task, TaskStatus, TaskRun, TaskFile } from '@/lib/types'
 import { Button } from '@/components/ui/Button'
 import { MarkdownOutput } from '@/components/ui/MarkdownOutput'
 import { FileDropZone } from '@/components/FileDropZone'
@@ -53,20 +53,21 @@ function getOutputRate(model: string): number | undefined {
 interface TaskDetailModalProps {
   task: Task
   onClose: () => void
+  runs: TaskRun[]
+  runsLoading: boolean
+  files: TaskFile[]
+  onFilesRefresh: () => void
 }
 
 type Tab = 'details' | 'results'
 
-export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
+export function TaskDetailModal({ task, onClose, runs, runsLoading, files, onFilesRefresh }: TaskDetailModalProps) {
   const [activeTab, setActiveTab] = useState<Tab>(task.status === 'done' ? 'results' : 'details')
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description)
   const [tags, setTags] = useState<string[]>(task.tags ?? [])
   const [tagInput, setTagInput] = useState('')
-  const [runs, setRuns] = useState<TaskRun[]>([])
-  const [runsLoading, setRunsLoading] = useState(true)
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null)
-  const [fileRefreshKey, setFileRefreshKey] = useState(0)
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -75,19 +76,6 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [onClose])
-
-  useEffect(() => {
-    const controller = new AbortController()
-    setRunsLoading(true)
-    fetch(`/api/tasks/${task.id}/runs`, { signal: controller.signal })
-      .then((r) => r.json())
-      .then((data: TaskRun[]) => setRuns(data))
-      .catch((e: unknown) => {
-        if ((e as Error).name !== 'AbortError') throw e
-      })
-      .finally(() => setRunsLoading(false))
-    return () => controller.abort()
-  }, [task.id])
 
   async function save() {
     const tagsChanged = JSON.stringify(tags) !== JSON.stringify(task.tags ?? [])
@@ -226,12 +214,12 @@ export function TaskDetailModal({ task, onClose }: TaskDetailModalProps) {
               <FileAttachmentList
                 taskId={task.id}
                 variant="full"
-                refreshKey={fileRefreshKey}
+                initialFiles={files}
               />
               <FileDropZone
                 taskId={task.id}
                 variant="full"
-                onUploaded={() => setFileRefreshKey((k) => k + 1)}
+                onUploaded={onFilesRefresh}
               />
             </div>
 

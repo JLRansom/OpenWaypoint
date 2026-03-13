@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { Task, Agent, BoardType, isAgentActive } from '@/lib/types'
+import { Task, Agent, BoardType, isAgentActive, TaskRun, TaskFile } from '@/lib/types'
 import { AgentProgressBar } from '@/components/AgentProgressBar'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
 import { FileDropZone } from '@/components/FileDropZone'
@@ -39,7 +39,9 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
   const [menuOpen, setMenuOpen] = useState(false)
   const [assignError, setAssignError] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
-  const [fileRefreshKey, setFileRefreshKey] = useState(0)
+  const [runs, setRuns] = useState<TaskRun[]>([])
+  const [runsLoading, setRunsLoading] = useState(false)
+  const [files, setFiles] = useState<TaskFile[]>([])
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -49,6 +51,31 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (!modalOpen) return
+    const runsCtrl = new AbortController()
+    const filesCtrl = new AbortController()
+    setRunsLoading(true)
+    fetch(`/api/tasks/${task.id}/runs`, { signal: runsCtrl.signal })
+      .then((r) => r.json())
+      .then((data: TaskRun[]) => setRuns(data))
+      .catch((e: unknown) => { if ((e as Error).name !== 'AbortError') throw e })
+      .finally(() => setRunsLoading(false))
+    fetch(`/api/tasks/${task.id}/files`, { signal: filesCtrl.signal })
+      .then((r) => r.json())
+      .then((data: TaskFile[]) => setFiles(data))
+      .catch((e: unknown) => { if ((e as Error).name !== 'AbortError') throw e })
+    return () => { runsCtrl.abort(); filesCtrl.abort() }
+  }, [modalOpen, task.id])
+
+  function refreshFiles() {
+    const ctrl = new AbortController()
+    fetch(`/api/tasks/${task.id}/files`, { signal: ctrl.signal })
+      .then((r) => r.json())
+      .then((data: TaskFile[]) => setFiles(data))
+      .catch((e: unknown) => { if ((e as Error).name !== 'AbortError') throw e })
+  }
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
@@ -247,7 +274,6 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
       <FileAttachmentList
         taskId={task.id}
         variant="compact"
-        refreshKey={fileRefreshKey}
         preloadedCount={task.fileCount ?? 0}
       />
 
@@ -366,7 +392,7 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
       <FileDropZone
         taskId={task.id}
         variant="compact"
-        onUploaded={() => setFileRefreshKey((k) => k + 1)}
+        onUploaded={refreshFiles}
       >
         <div
           ref={setNodeRef}
@@ -396,6 +422,10 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
         <TaskDetailModal
           task={task}
           onClose={() => setModalOpen(false)}
+          runs={runs}
+          runsLoading={runsLoading}
+          files={files}
+          onFilesRefresh={refreshFiles}
         />
       )}
     </>

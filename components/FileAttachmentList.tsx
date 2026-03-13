@@ -16,6 +16,12 @@ interface FileAttachmentListProps {
    * and renders the count badge directly — eliminating the per-card waterfall.
    */
   preloadedCount?: number
+  /**
+   * Pre-fetched files passed from a parent component.
+   * When provided the component skips its own HTTP fetch entirely and renders
+   * directly from this list — eliminating the useEffect fetch on modal open.
+   */
+  initialFiles?: TaskFile[]
 }
 
 // ---------------------------------------------------------------------------
@@ -55,15 +61,19 @@ export function FileAttachmentList({
   variant = 'full',
   refreshKey = 0,
   preloadedCount,
+  initialFiles,
 }: FileAttachmentListProps) {
-  const [files, setFiles] = useState<TaskFile[]>([])
-  const [loading, setLoading] = useState(true)
+  const [files, setFiles] = useState<TaskFile[]>(initialFiles ?? [])
+  const [loading, setLoading] = useState(initialFiles === undefined)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [textPreview, setTextPreview] = useState<Record<string, string>>({})
 
   // Compact mode with a pre-loaded count never needs to fetch files.
-  const skipFetch = variant === 'compact' && preloadedCount !== undefined
+  // Full mode with pre-fetched initialFiles also skips the fetch.
+  const skipFetch =
+    (variant === 'compact' && preloadedCount !== undefined) ||
+    initialFiles !== undefined
 
   useEffect(() => {
     if (skipFetch) {
