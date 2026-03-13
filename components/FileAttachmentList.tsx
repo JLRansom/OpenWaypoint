@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { TaskFile } from '@/lib/types'
 import { formatFileSize } from '@/lib/format-utils'
 
@@ -65,22 +65,22 @@ export function FileAttachmentList({
   // Compact mode with a pre-loaded count never needs to fetch files.
   const skipFetch = variant === 'compact' && preloadedCount !== undefined
 
-  const fetchFiles = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/tasks/${taskId}/files`)
-      if (res.ok) setFiles(await res.json())
-    } finally {
-      setLoading(false)
-    }
-  }, [taskId])
-
   useEffect(() => {
     if (skipFetch) {
       setLoading(false)
       return
     }
-    fetchFiles()
-  }, [fetchFiles, refreshKey, skipFetch])
+    const controller = new AbortController()
+    fetch(`/api/tasks/${taskId}/files`, { signal: controller.signal })
+      .then((r) => r.json())
+      .then((data: TaskFile[]) => setFiles(data))
+      .catch((e: unknown) => {
+        if ((e as Error).name !== 'AbortError') throw e
+      })
+      .finally(() => setLoading(false))
+    return () => controller.abort()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskId, refreshKey, skipFetch])
 
   async function deleteFile(file: TaskFile) {
     if (!window.confirm(`Remove "${file.filename}"?`)) return
