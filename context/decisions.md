@@ -2,6 +2,19 @@
 
 > Append new entries at the top. Keep each entry ≤ 10 lines.
 
+## ADR-027 — History role filter extended to Tester + Writer (2026-03-12)
+**Decision:** `RoleFilter` type and `ROLE_OPTIONS` in `HistoryList.tsx` now include `'tester'` and `'writer'`. The API already accepted any role string — this was a UI-only omission.
+**Affects:** `components/HistoryList.tsx`, `__tests__/integration/history-tester-filter.test.ts`.
+**Branch:** `fix/history-tester-filter` — PR #6 open.
+**Status:** Accepted.
+
+## ADR-026 — Task tag system + board filter (2026-03-12)
+**Decision:** Added `tags TEXT NOT NULL DEFAULT '[]'` (JSON array) to `tasks` via migration 0009. Tags managed via `PATCH /api/tasks/[id]` (sanitised: lowercase, dedup, max 32 chars, max 20). Displayed as coloured pills on cards; editable in `TaskDetailModal`. Pipeline auto-stamps verdict tags (`approved`, `changes-requested`, `tests-passed`, `tests-failed`). Board filter bar (client-side AND logic) + `?tags=` API param (DB LIKE per tag).
+**Colour convention:** green=approved/tests-passed, red=changes-requested/bug/blocked, orange=tests-failed, purple=default.
+**Affects:** `lib/types.ts`, `lib/db/schema.ts`, migration 0009, `taskRepo.ts`, `app/api/tasks/[id]/route.ts`, `app/api/projects/[id]/tasks/route.ts`, `agentService.ts`, `KanbanCard.tsx`, `KanbanBoard.tsx`, `TaskDetailModal.tsx`.
+**Branch:** `feat/card-tags` PR #4 + `feat/tag-filter` PR #5.
+**Status:** Accepted.
+
 ## ADR-025 — Archive filter on GET /api/projects/[id]/tasks (2026-03-12)
 **Decision:** Added `?archived=` query-parameter filtering to the tasks listing endpoint. `?archived=true` returns only archived tasks, `?archived=false` returns only active tasks, `?archived=all` or no param returns everything (backward-compatible). Logic lives in `TaskQueryOptions` + Drizzle `and(eq(projectId), eq(archived))` in `dbGetTasksByProject`; store wrapper forwards the opts; route handler parses the string param.
 **Why:** `Task.archived` was already persisted but the listing endpoint exposed no way to filter — dashboards had to do client-side filtering over a potentially large dataset.

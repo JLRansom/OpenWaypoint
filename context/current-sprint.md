@@ -4,6 +4,9 @@
 
 ## Active Worktrees
 - `feat/task-archive-filter` — PR #3 open, awaiting review
+- `feat/card-tags` — PR #4 open, awaiting review
+- `feat/tag-filter` — PR #5 open, awaiting review (depends on #4)
+- `fix/history-tester-filter` — PR #6 open, awaiting review
 
 ## In Progress
 - [ ] Authentication & role-based access (protect dashboard + API routes)
@@ -17,6 +20,9 @@
 - [ ] Files API executor integration (upload via `anthropic.beta.files.upload()`)
 
 ## Recently Done
+- [x] Tag system on cards — `Task.tags`, migration 0009, pipeline auto-stamps verdict tags, card pills, modal editor; 11 tests; PR #4 (2026-03-12)
+- [x] Tag filter bar on board — client-side AND filter, pill bar UI, `?tags=` API param, DB LIKE filter; 6 tests; PR #5 (2026-03-12)
+- [x] History tester/writer filter fix — `RoleFilter` type + ROLE_OPTIONS now include Tester + Writer; 4 tests; PR #6 (2026-03-12)
 - [x] Archive filter on task listing — `?archived=true/false/all` on `GET /api/projects/[id]/tasks`; 5 integration tests; PR #3 open (2026-03-12)
 - [x] Tester pipeline fix — `'tester'` added to `validTypes` + `VALID_ROLES`; system prompt rewritten with 5-step QA process; PR #2 merged (2026-03-12)
 - [x] Claude Code consolidation — fix settings.json path, launch.json stale entry, CLAUDE.md title/commands; create docs/architecture.md + docs/agent-types.md; prune context (2026-03-12)
