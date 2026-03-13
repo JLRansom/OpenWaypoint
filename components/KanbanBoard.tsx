@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import {
   DndContext,
@@ -27,6 +27,7 @@ export function KanbanBoard({ projectId, initialCardId, boardType }: { projectId
   const [autoOpenCardId, setAutoOpenCardId] = useState<string | undefined>(initialCardId)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [activeTagFilters, setActiveTagFilters] = useState<Set<string>>(new Set())
   const router = useRouter()
   const pathname = usePathname()
 
@@ -43,6 +44,39 @@ export function KanbanBoard({ projectId, initialCardId, boardType }: { projectId
   )
 
   const projectTasks = tasks.filter((t) => t.projectId === projectId && !t.archived)
+
+  // Collect all unique tags across this project's tasks — used to build the filter bar
+  const allTags = useMemo(() => {
+    const set = new Set<string>()
+    for (const task of projectTasks) {
+      for (const tag of task.tags ?? []) set.add(tag)
+    }
+    return [...set].sort()
+  }, [projectTasks])
+
+  // Remove any active filters whose tags no longer exist (e.g. after a tag is removed from all cards)
+  useEffect(() => {
+    setActiveTagFilters((prev) => {
+      const next = new Set([...prev].filter((t) => allTags.includes(t)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [allTags])
+
+  // Apply tag filter: a task passes if it has ALL active filter tags
+  const visibleTasks = useMemo(() => {
+    if (activeTagFilters.size === 0) return projectTasks
+    return projectTasks.filter((t) =>
+      [...activeTagFilters].every((tag) => (t.tags ?? []).includes(tag))
+    )
+  }, [projectTasks, activeTagFilters])
+
+  function toggleTagFilter(tag: string) {
+    setActiveTagFilters((prev) => {
+      const next = new Set(prev)
+      next.has(tag) ? next.delete(tag) : next.add(tag)
+      return next
+    })
+  }
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
@@ -114,6 +148,39 @@ export function KanbanBoard({ projectId, initialCardId, boardType }: { projectId
 
   return (
     <>
+      {/* Tag filter bar — only shown when the board has tagged tasks */}
+      {allTags.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap mb-4">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-dracula-comment shrink-0">
+            Filter by tag
+          </span>
+          {allTags.map((tag) => {
+            const active = activeTagFilters.has(tag)
+            return (
+              <button
+                key={tag}
+                onClick={() => toggleTagFilter(tag)}
+                className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                  active
+                    ? 'bg-dracula-purple text-dracula-darker border-dracula-purple'
+                    : 'bg-dracula-purple/10 text-dracula-purple border-dracula-purple/30 hover:bg-dracula-purple/20'
+                }`}
+              >
+                {tag}
+              </button>
+            )
+          })}
+          {activeTagFilters.size > 0 && (
+            <button
+              onClick={() => setActiveTagFilters(new Set())}
+              className="text-[10px] text-dracula-comment hover:text-dracula-light transition-colors"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <div className="overflow-x-auto pb-6 min-h-[70vh] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-dracula-darker [&::-webkit-scrollbar-thumb]:bg-dracula-dark [&::-webkit-scrollbar-thumb]:rounded-full">
           <div className="flex gap-3 w-full items-start">
@@ -121,7 +188,7 @@ export function KanbanBoard({ projectId, initialCardId, boardType }: { projectId
               <KanbanColumn
                 key={status}
                 status={status}
-                tasks={projectTasks.filter((t) => t.status === status)}
+                tasks={visibleTasks.filter((t) => t.status === status)}
                 agents={agents}
                 projectId={projectId}
                 boardType={boardType}
