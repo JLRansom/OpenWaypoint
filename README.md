@@ -1,8 +1,15 @@
 # OpenWaypoint
 
+[![CI](https://github.com/JLRansom/openwaypoint/actions/workflows/ci.yml/badge.svg)](https://github.com/JLRansom/openwaypoint/actions/workflows/ci.yml)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/node-22-brightgreen?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Tested with Vitest](https://img.shields.io/badge/tested%20with-Vitest-729B1B?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![License: ISC](https://img.shields.io/badge/license-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+
 > A real-time dashboard for spawning, directing, and monitoring AI agents as they tackle research, code, writing, and testing tasks — all in one place.
 
-Built with **Next.js 15 App Router**, **SQLite + Drizzle ORM**, **Server-Sent Events**, and the **Claude CLI**.
+Built with **Next.js 16 App Router**, **SQLite + Drizzle ORM**, **Server-Sent Events**, and the **Claude CLI**.
 
 ---
 
@@ -168,4 +175,4 @@ __tests__/       Vitest unit + integration tests
 
 ## License
 
-MIT
+[ISC](https://opensource.org/licenses/ISC)
