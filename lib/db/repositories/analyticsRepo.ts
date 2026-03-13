@@ -15,12 +15,18 @@ import type {
 // Date helpers
 // ---------------------------------------------------------------------------
 
-function getMondayKey(epochMs: number): string {
+/** Returns epoch ms for 00:00:00 UTC on the Monday of the week containing `epochMs`. */
+export function getMondayEpoch(epochMs: number): number {
   const d = new Date(epochMs)
-  const day = d.getDay() // 0 = Sun, 1 = Mon, …
+  const day = d.getUTCDay() // 0 = Sun, 1 = Mon, …
   const diff = day === 0 ? -6 : 1 - day // shift to Monday
-  d.setDate(d.getDate() + diff)
-  return d.toISOString().slice(0, 10) // "YYYY-MM-DD"
+  d.setUTCDate(d.getUTCDate() + diff)
+  d.setUTCHours(0, 0, 0, 0)
+  return d.getTime()
+}
+
+function getMondayKey(epochMs: number): string {
+  return new Date(getMondayEpoch(epochMs)).toISOString().slice(0, 10) // "YYYY-MM-DD"
 }
 
 function getDayKey(epochMs: number): string {
@@ -84,7 +90,7 @@ export function dbGetProjectAnalytics(
   for (const r of rows) {
     const key = getMondayKey(r.completedAt)
     if (!weekMap.has(key)) {
-      weekMap.set(key, { weekLabel: shortDateLabel(r.completedAt - ((new Date(r.completedAt).getDay() || 7) - 1) * 86_400_000), done: 0, failed: 0 })
+      weekMap.set(key, { weekLabel: shortDateLabel(getMondayEpoch(r.completedAt)), done: 0, failed: 0 })
     }
     const bucket = weekMap.get(key)!
     if (r.status === 'done') bucket.done++
