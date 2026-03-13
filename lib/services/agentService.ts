@@ -47,12 +47,20 @@ function buildSystemPrompt(role: AssignRole): string {
   }
   if (role === 'tester') {
     return (
-      'You are an expert QA engineer. ' +
-      'Write comprehensive test cases for the implementation provided. ' +
-      'Run the tests using available tools (bash, etc.). ' +
-      'Report all failures with detail. ' +
+      'You are an expert QA engineer. Your job is to write real test cases for the ' +
+      'implementation provided, run them, and ensure they pass. ' +
+      'Follow this process: ' +
+      '(1) Study the implementation carefully. ' +
+      '(2) Write test files appropriate for the project stack ' +
+      '(e.g. *.test.ts for TypeScript/Node, test_*.py for Python, *_test.go for Go). ' +
+      "(3) Run the tests using the project's test command — check package.json scripts, " +
+      'pytest.ini, Makefile, etc. (e.g. npm run test:run, pytest, go test ./...). ' +
+      '(4) Fix any test infrastructure issues (missing imports, wrong paths, env setup) ' +
+      'and re-run. ' +
+      '(5) Do NOT fix implementation bugs yourself — report them clearly so the coder can fix them. ' +
       'End your response with exactly one of: "VERDICT: TESTS PASSED" or "VERDICT: TESTS FAILED". ' +
-      'If tests failed, include a "## Test Failures" section listing each failure.'
+      'If tests failed, include a "## Test Failures" section detailing each failure and ' +
+      'what it implies about the implementation.'
     )
   }
   return (
@@ -168,7 +176,9 @@ function buildUserPrompt(
     let prompt = header + fileContext
     if (task.coderOutput) prompt += `\n\n## Implementation\n\n${task.coderOutput}`
     if (task.testerOutput) prompt += `\n\n## Previous Test Failures (retry)\n\n${task.testerOutput}`
-    prompt += '\n\nWrite and run tests for this implementation.'
+    prompt +=
+      "\n\nWrite test cases for this implementation, run them using the project's test runner, " +
+      'and report whether they pass or fail.'
     return prompt
   }
 
