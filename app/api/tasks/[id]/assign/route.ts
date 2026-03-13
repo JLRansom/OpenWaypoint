@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { assignAgentToTask, AssignRole } from '@/lib/services/agentService'
 
-const VALID_ROLES: AssignRole[] = ['researcher', 'coder', 'senior-coder']
+const VALID_ROLES: AssignRole[] = ['researcher', 'coder', 'senior-coder', 'tester']
 
 export async function POST(
   req: NextRequest,
