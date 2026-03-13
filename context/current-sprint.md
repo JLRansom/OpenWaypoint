@@ -3,7 +3,7 @@
 > Last updated: 2026-03-12
 
 ## Active Worktrees
-_(none — all branches merged and cleaned up)_
+- `fix/tester-pipeline` — PR #2 open, awaiting review_
 
 ## In Progress
 - [ ] Authentication & role-based access (protect dashboard + API routes)
@@ -17,6 +17,7 @@ _(none — all branches merged and cleaned up)_
 - [ ] Files API executor integration (upload via `anthropic.beta.files.upload()`)
 
 ## Recently Done
+- [x] Tester pipeline fix — `'tester'` added to `validTypes` + `VALID_ROLES`; system prompt rewritten with 5-step QA process; PR #2 open (2026-03-12)
 - [x] Claude Code consolidation — fix settings.json path, launch.json stale entry, CLAUDE.md title/commands; create docs/architecture.md + docs/agent-types.md; prune context (2026-03-12)
 - [x] Security hardening (8 commits, master) — HTTP security headers; blocked `text/html`/`text/css`/`text/js`; SVG as attachment; path traversal guards; bulk cap; LIKE escaping; Settings page toggle for `--dangerously-skip-permissions` (2026-03-12)
 - [x] Analytics test coverage + CI workflow — 15 unit + 5 integration tests; NaN guard on route params; GitHub Actions workflow; `makeTestTaskRun()` factory (2026-03-12)

@@ -2,6 +2,13 @@
 
 > Append new entries at the top. Keep each entry ≤ 10 lines.
 
+## ADR-024 — Tester role API unblock + prompt improvements (2026-03-12)
+**Decision:** Fixed two API validation arrays that were silently blocking the tester role: `validTypes` in `app/api/agents/route.ts` and `VALID_ROLES` in `app/api/tasks/[id]/assign/route.ts` both omitted `'tester'`. Without this fix, tester agents could never be spawned (400 from dashboard) and the "Assign Tester" button always returned 400. Since no idle tester could ever exist, `agentService` always hit the "no idle tester" fallback after `VERDICT: APPROVED`, marking tasks done and skipping testing entirely.
+**Prompt improvement:** Tester system prompt rewritten with an explicit 5-step process: (1) study implementation, (2) write test files (`.test.ts` / `test_*.py` / `*_test.go`), (3) run project test runner (`npm run test:run`, `pytest`, `go test`), (4) fix infra issues and re-run, (5) report failures without fixing implementation bugs. Verdict format enforced: `VERDICT: TESTS PASSED` / `VERDICT: TESTS FAILED`.
+**Affects:** `app/api/agents/route.ts`, `app/api/tasks/[id]/assign/route.ts`, `lib/services/agentService.ts`.
+**Branch:** `fix/tester-pipeline` — PR #2 open.
+**Status:** Accepted.
+
 ## ADR-023 — Analytics test coverage + NaN guard in analytics route (2026-03-12)
 **Decision:** Added 15 unit tests for `dbGetProjectAnalytics` and 5 integration tests for `GET /api/projects/[id]/analytics`. Also fixed a NaN bug in the route: `parseInt('abc', 10)` returns `NaN`; passing NaN to Drizzle's `gte`/`lte` causes all rows to be filtered out (SQL `col >= NaN` is always false). Route now guards: `const from = fromParsed !== undefined && !Number.isNaN(fromParsed) ? fromParsed : undefined`.
 **avgCostPerRun formula:** `totalCostUsd / totalRunsDone` — numerator is ALL runs' cost (done + failed), denominator is done-only count. Divides the full total by done so the per-success cost is meaningful.
