@@ -1,7 +1,11 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { db } from '../client'
 import { tasks } from '../schema'
 import { Task } from '@/lib/types'
+
+export interface TaskQueryOptions {
+  archived?: boolean
+}
 
 type TaskRow = typeof tasks.$inferSelect
 
@@ -38,11 +42,16 @@ export function dbGetTask(id: string): Task | undefined {
   return row ? rowToTask(row) : undefined
 }
 
-export function dbGetTasksByProject(projectId: string): Task[] {
+export function dbGetTasksByProject(projectId: string, opts?: TaskQueryOptions): Task[] {
+  const where =
+    opts?.archived !== undefined
+      ? and(eq(tasks.projectId, projectId), eq(tasks.archived, opts.archived))
+      : eq(tasks.projectId, projectId)
+
   return db
     .select()
     .from(tasks)
-    .where(eq(tasks.projectId, projectId))
+    .where(where)
     .all()
     .map(rowToTask)
     .sort((a, b) => b.createdAt - a.createdAt)

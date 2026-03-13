@@ -4,13 +4,20 @@ import { Task, TaskStatus } from '@/lib/types'
 import { getProject, getTasksByProject, addTask } from '@/lib/store'
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
   const project = getProject(id)
   if (!project) return NextResponse.json({ error: 'not found' }, { status: 404 })
-  return NextResponse.json(getTasksByProject(id))
+
+  const archivedParam = req.nextUrl.searchParams.get('archived')
+  let archivedFilter: boolean | undefined
+  if (archivedParam === 'true') archivedFilter = true
+  else if (archivedParam === 'false') archivedFilter = false
+  // 'all' or absent → undefined (no filter, return everything)
+
+  return NextResponse.json(getTasksByProject(id, { archived: archivedFilter }))
 }
 
 export async function POST(
