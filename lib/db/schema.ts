@@ -92,3 +92,24 @@ export const settings = sqliteTable('settings', {
   value:     text('value').notNull(),
   updatedAt: integer('updated_at').notNull(),
 })
+
+/** Meetings — collaborative agent discussions on a topic. */
+export const meetings = sqliteTable('meetings', {
+  id:        text('id').primaryKey(),
+  projectId: text('project_id').notNull().references(() => projects.id),
+  topic:     text('topic').notNull(),
+  status:    text('status').notNull().default('setup'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+})
+
+/** Individual agent messages within a meeting. */
+export const meetingMessages = sqliteTable('meeting_messages', {
+  id:          integer('id').primaryKey({ autoIncrement: true }),
+  meetingId:   text('meeting_id').notNull().references(() => meetings.id, { onDelete: 'cascade' }),
+  agentType:   text('agent_type').notNull(),
+  content:     text('content').notNull().default(''),
+  status:      text('status').notNull().default('pending'),
+  startedAt:   integer('started_at'),
+  completedAt: integer('completed_at'),
+})
