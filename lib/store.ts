@@ -124,9 +124,10 @@ export function deleteTask(id: string): void {
 }
 
 // --- Task file functions ---
-// Note: file mutations do NOT broadcast SSE — files are fetched on demand by the
-// UI via REST (GET /api/tasks/[id]/files). The task's updatedAt is bumped on
-// upload/delete so the SSE broadcast from updateTask() picks up the change.
+// File mutations broadcast SSE so that the fileCount field on Task objects
+// in the stream is updated immediately after an upload or delete.
+// The full variant of FileAttachmentList (modal) still fetches on demand
+// via REST; only the compact badge on cards uses the SSE-derived fileCount.
 
 export function getFilesByTask(taskId: string): TaskFile[] {
   return dbGetFilesByTask(taskId)
@@ -138,6 +139,7 @@ export function getTaskFile(id: string): TaskFile | undefined {
 
 export function addTaskFile(file: TaskFile): void {
   dbAddTaskFile(file)
+  broadcast(getStreamPayload())
 }
 
 /**
@@ -145,7 +147,9 @@ export function addTaskFile(file: TaskFile): void {
  * also remove the bytes from disk.
  */
 export function deleteTaskFile(id: string): TaskFile | undefined {
-  return dbDeleteTaskFile(id)
+  const deleted = dbDeleteTaskFile(id)
+  broadcast(getStreamPayload())
+  return deleted
 }
 
 /**

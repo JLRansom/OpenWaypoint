@@ -65,6 +65,12 @@ export interface Task {
   archived?: boolean
   /** User-defined and pipeline-set labels, e.g. ["approved", "bug", "tests-passed"]. */
   tags?: string[]
+  /**
+   * Derived: number of files attached to this task.
+   * Populated server-side from a COUNT aggregation — never stored in the DB column.
+   * Available on all tasks returned by SSE stream / REST endpoints.
+   */
+  fileCount?: number
 }
 
 import type { ExecutorConfig } from '@/lib/executors/types'

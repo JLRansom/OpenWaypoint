@@ -1,6 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm'
 import { db } from '../client'
-import { tasks } from '../schema'
+import { tasks, taskFiles } from '../schema'
 import { Task } from '@/lib/types'
 
 export interface TaskQueryOptions {
@@ -21,7 +21,23 @@ function parseTags(raw: string | null | undefined): string[] {
   }
 }
 
-function rowToTask(row: TaskRow): Task {
+/**
+ * Returns a map of taskId → file count via a single GROUP BY aggregation.
+ * Call once per bulk fetch then pass the counts into rowToTask().
+ */
+function dbGetFileCountMap(): Record<string, number> {
+  const rows = db
+    .select({
+      taskId: taskFiles.taskId,
+      count: sql<number>`count(*)`,
+    })
+    .from(taskFiles)
+    .groupBy(taskFiles.taskId)
+    .all()
+  return Object.fromEntries(rows.map((r) => [r.taskId, r.count]))
+}
+
+function rowToTask(row: TaskRow, fileCount?: number): Task {
   return {
     id: row.id,
     projectId: row.projectId,
@@ -37,22 +53,30 @@ function rowToTask(row: TaskRow): Task {
     tags: parseTags(row.tags),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    fileCount: fileCount ?? 0,
   }
 }
 
 export function dbGetAllTasks(): Task[] {
+  const countMap = dbGetFileCountMap()
   return db
     .select()
     .from(tasks)
     .orderBy(tasks.createdAt)
     .all()
-    .map(rowToTask)
+    .map((row) => rowToTask(row, countMap[row.id] ?? 0))
     .sort((a, b) => b.createdAt - a.createdAt)
 }
 
 export function dbGetTask(id: string): Task | undefined {
   const row = db.select().from(tasks).where(eq(tasks.id, id)).get()
-  return row ? rowToTask(row) : undefined
+  if (!row) return undefined
+  const countRow = db
+    .select({ count: sql<number>`count(*)` })
+    .from(taskFiles)
+    .where(eq(taskFiles.taskId, id))
+    .get()
+  return rowToTask(row, countRow?.count ?? 0)
 }
 
 export function dbGetTasksByProject(projectId: string, opts?: TaskQueryOptions): Task[] {
@@ -73,12 +97,13 @@ export function dbGetTasksByProject(projectId: string, opts?: TaskQueryOptions):
 
   const where = conditions.length === 1 ? conditions[0] : and(...conditions)
 
+  const countMap = dbGetFileCountMap()
   return db
     .select()
     .from(tasks)
     .where(where)
     .all()
-    .map(rowToTask)
+    .map((row) => rowToTask(row, countMap[row.id] ?? 0))
     .sort((a, b) => b.createdAt - a.createdAt)
 }
 
