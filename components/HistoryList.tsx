@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { MarkdownOutput } from '@/components/ui/MarkdownOutput'
 import { ROLE_COLORS, ROLE_COLOR_FALLBACK } from '@/lib/constants'
 
-type RoleFilter = 'all' | 'researcher' | 'coder' | 'senior-coder'
+type RoleFilter = 'all' | 'researcher' | 'coder' | 'senior-coder' | 'tester' | 'writer'
 type StatusFilter = 'all' | 'done' | 'failed'
 
 type TerminalEvent =
@@ -62,6 +62,8 @@ const ROLE_OPTIONS: { label: string; value: RoleFilter }[] = [
   { label: 'Researcher', value: 'researcher' },
   { label: 'Coder', value: 'coder' },
   { label: 'Senior Coder', value: 'senior-coder' },
+  { label: 'Tester', value: 'tester' },
+  { label: 'Writer', value: 'writer' },
 ]
 
 const STATUS_OPTIONS: { label: string; value: StatusFilter }[] = [
