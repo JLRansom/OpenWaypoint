@@ -241,11 +241,14 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
         </div>
       )}
 
-      {/* File attachment count badge — compact pill shown below description */}
+      {/* File attachment count badge — compact pill shown below description.
+          preloadedCount comes from task.fileCount in the SSE stream, so no
+          per-card HTTP fetch is needed on initial board load. */}
       <FileAttachmentList
         taskId={task.id}
         variant="compact"
         refreshKey={fileRefreshKey}
+        preloadedCount={task.fileCount ?? 0}
       />
 
       {task.reviewNotes && task.status === 'changes-requested' && (

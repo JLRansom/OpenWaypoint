@@ -10,6 +10,12 @@ interface FileAttachmentListProps {
   variant?: 'compact' | 'full'
   /** Refresh counter — increment to trigger a re-fetch. */
   refreshKey?: number
+  /**
+   * Pre-loaded file count from the SSE stream (task.fileCount).
+   * When provided in compact mode the component skips the HTTP fetch entirely
+   * and renders the count badge directly — eliminating the per-card waterfall.
+   */
+  preloadedCount?: number
 }
 
 // ---------------------------------------------------------------------------
@@ -44,12 +50,20 @@ function FileIcon({ mimeType, className = 'w-4 h-4' }: { mimeType: string; class
 // Component
 // ---------------------------------------------------------------------------
 
-export function FileAttachmentList({ taskId, variant = 'full', refreshKey = 0 }: FileAttachmentListProps) {
+export function FileAttachmentList({
+  taskId,
+  variant = 'full',
+  refreshKey = 0,
+  preloadedCount,
+}: FileAttachmentListProps) {
   const [files, setFiles] = useState<TaskFile[]>([])
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [textPreview, setTextPreview] = useState<Record<string, string>>({})
+
+  // Compact mode with a pre-loaded count never needs to fetch files.
+  const skipFetch = variant === 'compact' && preloadedCount !== undefined
 
   const fetchFiles = useCallback(async () => {
     try {
@@ -61,8 +75,12 @@ export function FileAttachmentList({ taskId, variant = 'full', refreshKey = 0 }:
   }, [taskId])
 
   useEffect(() => {
+    if (skipFetch) {
+      setLoading(false)
+      return
+    }
     fetchFiles()
-  }, [fetchFiles, refreshKey])
+  }, [fetchFiles, refreshKey, skipFetch])
 
   async function deleteFile(file: TaskFile) {
     if (!window.confirm(`Remove "${file.filename}"?`)) return
@@ -102,14 +120,16 @@ export function FileAttachmentList({ taskId, variant = 'full', refreshKey = 0 }:
 
   // ------------------------------------------------------------------ compact
   if (variant === 'compact') {
-    if (files.length === 0) return null
+    // Use preloadedCount from SSE stream when available (avoids HTTP fetch).
+    const count = preloadedCount ?? files.length
+    if (count === 0) return null
     return (
       <div className="flex items-center gap-1 mt-1">
         <svg className="w-3 h-3 text-dracula-comment/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 002.112 2.13" />
         </svg>
         <span className="text-[10px] text-dracula-comment/60">
-          {files.length} {files.length === 1 ? 'file' : 'files'}
+          {count} {count === 1 ? 'file' : 'files'}
         </span>
       </div>
     )
