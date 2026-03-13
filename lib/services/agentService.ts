@@ -489,10 +489,7 @@ export async function runMeeting(meetingId: string): Promise<void> {
 
   const project = getProject(meeting.projectId)
   const workingDirectory = project?.directory || undefined
-  const executorConfig = project?.executorConfig
-    ? (JSON.parse(project.executorConfig) as Parameters<typeof getExecutor>[0])
-    : undefined
-  const executor = getExecutor(executorConfig)
+  const executor = getExecutor(project?.executorConfig ?? undefined)
 
   const messages = getMessagesByMeeting(meetingId)
   let priorContext = ''
