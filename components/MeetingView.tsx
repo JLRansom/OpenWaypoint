@@ -6,12 +6,21 @@ import { useStream } from '@/components/StreamProvider'
 import { MeetingChat } from '@/components/MeetingChat'
 import type { Meeting, MeetingMessage } from '@/lib/types'
 import { ChevronLeft, Play } from 'lucide-react'
+import { formatCost, formatTokens } from '@/lib/format-utils'
+import { ROLE_HEX } from '@/lib/constants'
 
 // Dynamic import for three.js scene — code-split, no SSR
 const MeetingScene = dynamic(
   () => import('@/components/MeetingScene').then((m) => ({ default: m.MeetingScene })),
   { ssr: false },
 )
+
+interface MeetingDetailResponse {
+  meeting: Meeting
+  messages: MeetingMessage[]
+  totalCostUsd: number
+  totalTokens: number
+}
 
 export function MeetingView({
   meetingId,
@@ -25,15 +34,19 @@ export function MeetingView({
   const stream = useStream()
   const [meeting, setMeeting] = useState<Meeting | null>(null)
   const [messages, setMessages] = useState<MeetingMessage[]>([])
+  const [totalCostUsd, setTotalCostUsd] = useState<number>(0)
+  const [totalTokens, setTotalTokens] = useState<number>(0)
   const [starting, setStarting] = useState(false)
 
   // Initial REST fetch
   useEffect(() => {
     fetch(`/api/projects/${projectId}/meetings/${meetingId}`)
       .then((r) => r.json())
-      .then((data: { meeting: Meeting; messages: MeetingMessage[] }) => {
+      .then((data: MeetingDetailResponse) => {
         setMeeting(data.meeting)
         setMessages(data.messages)
+        setTotalCostUsd(data.totalCostUsd ?? 0)
+        setTotalTokens(data.totalTokens ?? 0)
       })
       .catch(console.error)
   }, [meetingId, projectId])
@@ -44,7 +57,11 @@ export function MeetingView({
     if (liveMeeting) setMeeting(liveMeeting)
 
     const liveMessages = stream.meetingMessages?.filter((m) => m.meetingId === meetingId)
-    if (liveMessages && liveMessages.length > 0) setMessages(liveMessages)
+    if (liveMessages && liveMessages.length > 0) {
+      setMessages(liveMessages)
+      setTotalCostUsd(liveMessages.reduce((s, m) => s + (m.costUsd ?? 0), 0))
+      setTotalTokens(liveMessages.reduce((s, m) => s + (m.inputTokens ?? 0) + (m.outputTokens ?? 0), 0))
+    }
   }, [stream.meetings, stream.meetingMessages, meetingId])
 
   const speakingAgent = messages.find((m) => m.status === 'speaking')?.agentType ?? null
@@ -63,12 +80,13 @@ export function MeetingView({
   }
 
   const isActive = meeting && meeting.status !== 'setup' && meeting.status !== 'concluded'
+  const isConcluded = meeting?.status === 'concluded'
 
   return (
     <div className="relative min-h-[600px] rounded-xl overflow-hidden bg-dracula-darker border border-dracula-dark/50">
       {/* Three.js background */}
       <div className="absolute inset-0 pointer-events-none">
-        <MeetingScene speakingAgent={speakingAgent} />
+        <MeetingScene speakingAgent={speakingAgent} messages={messages} />
       </div>
 
       {/* UI overlay */}
@@ -96,7 +114,7 @@ export function MeetingView({
             )}
             {meeting && (
               <span className="text-[10px] font-semibold text-dracula-comment uppercase tracking-widest">
-                {meeting.status === 'concluded' ? 'Concluded' : isActive ? 'Live' : meeting.status}
+                {isConcluded ? 'Concluded' : isActive ? 'Live' : meeting.status}
               </span>
             )}
             {isActive && (
@@ -108,13 +126,37 @@ export function MeetingView({
         {/* Topic */}
         <div className="px-4 py-3 bg-dracula-darker/60 backdrop-blur-sm border-b border-dracula-dark/30">
           <p className="text-[10px] font-bold uppercase tracking-widest text-dracula-comment mb-1">Topic</p>
-          <p className="text-sm text-dracula-light">{meeting?.topic}</p>
+          <p className="text-sm text-dracula-light">{meeting?.topic ?? '—'}</p>
         </div>
 
         {/* Chat messages */}
-        <div className="flex-1 overflow-y-auto max-h-[500px]">
+        <div className="flex-1 overflow-y-auto max-h-[420px]">
           <MeetingChat messages={messages} />
         </div>
+
+        {/* Cost summary for concluded meetings */}
+        {isConcluded && (totalCostUsd > 0 || totalTokens > 0) && (
+          <div className="px-4 py-3 bg-dracula-darker/80 backdrop-blur-sm border-t border-dracula-dark/50">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-dracula-comment mb-2">Meeting Cost</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 items-center">
+              {totalCostUsd > 0 && (
+                <span className="text-xs text-dracula-green font-semibold">{formatCost(totalCostUsd)} total</span>
+              )}
+              {totalTokens > 0 && (
+                <span className="text-xs text-dracula-comment">{formatTokens(totalTokens)} tokens</span>
+              )}
+            </div>
+            {/* Per-agent cost row */}
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
+              {messages.filter((m) => m.status === 'done' && m.costUsd != null).map((m) => (
+                <span key={m.id} className="text-[10px] text-dracula-comment">
+                  <span style={{ color: ROLE_HEX[m.agentType] ?? '#6272a4' }}>{m.agentType}</span>
+                  {' '}{formatCost(m.costUsd!)}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

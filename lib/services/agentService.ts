@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto'
 import fs from 'fs'
 import path from 'path'
 import { Agent, AgentStats, AgentType, TaskStatus, BoardType, TaskFile, MeetingAgentType, MEETING_AGENT_ORDER } from '@/lib/types'
-import { getTask, getProject, getAllAgents, updateAgent, updateTask, getAgent, addTask, getFilesByTask, getMeeting, getMessagesByMeeting, updateMeeting, updateMeetingMessage, updateMeetingMessageSilent, broadcastNow } from '@/lib/store'
+import { getTask, getProject, getAllAgents, updateAgent, updateTask, getAgent, addTask, getFilesByTask, getMeeting, getMessagesByMeeting, updateMeeting, updateMeetingMessage, updateMeetingMessageSilent, broadcastNow, getTasksByProject } from '@/lib/store'
 import { formatFileSize } from '@/lib/format-utils'
 import { runAgent } from '@/lib/agent-runner'
 import { getExecutor } from '@/lib/executors/registry'
@@ -430,14 +430,17 @@ export async function assignAgentToTask(
 
 function buildMeetingSystemPrompt(agentType: MeetingAgentType): string {
   const base =
-    'You are participating in a team meeting to discuss a proposed idea. ' +
+    'You are participating in a team meeting. ' +
     'Keep your contribution focused, constructive, and between 100-300 words. ' +
     'Do not use markdown headers. Write in a conversational but professional tone.'
 
   const roleContext: Record<MeetingAgentType, string> = {
     writer:
-      `${base} You are the writer — propose and pitch the idea. ` +
-      'Explain the concept clearly and why it matters to the project.',
+      'You are the writer on an AI agent development team. ' +
+      'Analyze the project\'s current state — its goals, active tasks, recent progress, and gaps — ' +
+      'then propose a creative, actionable idea worth discussing with the team. ' +
+      'Frame it clearly: what the idea is, why it matters, and what impact it would have. ' +
+      'Do NOT simply repeat the project description. Keep it 100-300 words.',
     researcher:
       `${base} You are the researcher — evaluate from an analytics and data perspective. ` +
       'How would we measure success? What data supports this direction? How does it help revenue?',
@@ -457,25 +460,50 @@ function buildMeetingSystemPrompt(agentType: MeetingAgentType): string {
 
 function buildMeetingUserPrompt(
   agentType: MeetingAgentType,
-  topic: string,
+  topic: string | null,
   priorContext: string,
   projectName?: string,
   projectDescription?: string,
+  taskSummaries?: string,
 ): string {
-  let prompt = `# Meeting Topic\n\n${topic}`
-  if (projectName) {
-    prompt += `\n\n## Project Context\nProject: ${projectName}`
-    if (projectDescription) prompt += `\nDescription: ${projectDescription}`
-  }
-  if (priorContext) {
-    prompt += `\n\n## Prior Discussion\n${priorContext}`
-  }
+  let prompt: string
+
   if (agentType === 'writer') {
-    prompt += '\n\nPresent and pitch this idea to the team. Keep it 100-300 words.'
+    // Writer analyzes the project and proposes an idea autonomously
+    prompt = '# Your Task\n\nAnalyze this project and propose an idea for the team to discuss.'
+    if (projectName) {
+      prompt += `\n\n## Project: ${projectName}`
+      if (projectDescription) prompt += `\n${projectDescription}`
+    }
+    if (taskSummaries) {
+      prompt += `\n\n## Current Tasks\n${taskSummaries}`
+    }
+    prompt += '\n\nPropose an interesting, actionable idea based on the project\'s current state. Keep it 100-300 words.'
   } else {
+    // Other agents discuss the topic the writer proposed
+    prompt = `# Meeting Topic\n\n${topic ?? 'A project improvement idea'}`
+    if (projectName) {
+      prompt += `\n\n## Project Context\nProject: ${projectName}`
+      if (projectDescription) prompt += `\nDescription: ${projectDescription}`
+    }
+    if (priorContext) {
+      prompt += `\n\n## Prior Discussion\n${priorContext}`
+    }
     prompt += `\n\nShare your perspective as the ${agentType}. Keep it 100-300 words.`
   }
+
   return prompt
+}
+
+/**
+ * Extract a short topic summary from the writer's output.
+ * Takes the first sentence (up to first period/newline) truncated at 120 chars.
+ */
+function extractTopicFromWriterOutput(output: string): string {
+  const clean = output.trim()
+  const firstSentenceEnd = clean.search(/[.!\n]/)
+  const candidate = firstSentenceEnd > 0 ? clean.slice(0, firstSentenceEnd) : clean
+  return candidate.trim().slice(0, 120) || 'Auto-generated meeting'
 }
 
 /**
@@ -491,8 +519,16 @@ export async function runMeeting(meetingId: string): Promise<void> {
   const workingDirectory = project?.directory || undefined
   const executor = getExecutor(project?.executorConfig ?? undefined)
 
+  // Build task summaries for the writer's project analysis
+  const tasks = project ? getTasksByProject(project.id) : []
+  const recentTasks = tasks.slice(0, 20)
+  const taskSummaries = recentTasks.length > 0
+    ? recentTasks.map((t) => `- [${t.status}] ${t.title}`).join('\n')
+    : '(no tasks yet)'
+
   const messages = getMessagesByMeeting(meetingId)
   let priorContext = ''
+  let meetingTopic = meeting.topic // will be updated after writer speaks
 
   for (const agentType of MEETING_AGENT_ORDER) {
     const msgRow = messages.find((m) => m.agentType === agentType)
@@ -506,10 +542,11 @@ export async function runMeeting(meetingId: string): Promise<void> {
     const systemPrompt = buildMeetingSystemPrompt(agentType)
     const userPrompt = buildMeetingUserPrompt(
       agentType,
-      meeting.topic,
+      meetingTopic,
       priorContext,
       project?.name,
       project?.description,
+      agentType === 'writer' ? taskSummaries : undefined,
     )
 
     // Temporary agent object for the executor
@@ -526,6 +563,7 @@ export async function runMeeting(meetingId: string): Promise<void> {
 
     let accumulated = ''
     let lastBroadcastAt = 0
+    let finalStats: AgentStats | undefined
     const controller = new AbortController()
 
     try {
@@ -543,20 +581,42 @@ export async function runMeeting(meetingId: string): Promise<void> {
             lastBroadcastAt = now
           }
         },
+        onStats: (stats) => { finalStats = stats },
         signal: controller.signal,
       })
+
+      // Compute cost — prefer stats-reported, fall back to pricing table
+      const computedCost =
+        finalStats?.costUsd ??
+        (finalStats?.inputTokens != null && finalStats?.outputTokens != null && finalStats?.model
+          ? calculateCost(finalStats.inputTokens, finalStats.outputTokens, finalStats.model)
+          : undefined)
 
       updateMeetingMessage(msgRow.id, {
         content: accumulated,
         status: 'done',
         completedAt: Date.now(),
+        inputTokens: finalStats?.inputTokens,
+        outputTokens: finalStats?.outputTokens,
+        costUsd: computedCost,
+        model: finalStats?.model,
       })
     } catch (err) {
       updateMeetingMessage(msgRow.id, {
         content: accumulated || `[Error: ${err instanceof Error ? err.message : String(err)}]`,
         status: 'done',
         completedAt: Date.now(),
+        inputTokens: finalStats?.inputTokens,
+        outputTokens: finalStats?.outputTokens,
+        costUsd: finalStats?.costUsd,
+        model: finalStats?.model,
       })
+    }
+
+    // After the writer speaks, auto-set the meeting topic from their output
+    if (agentType === 'writer' && accumulated) {
+      meetingTopic = extractTopicFromWriterOutput(accumulated)
+      updateMeeting(meetingId, { topic: meetingTopic, updatedAt: Date.now() })
     }
 
     priorContext += `\n\n### ${agentType}\n${accumulated}`

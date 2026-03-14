@@ -21,17 +21,17 @@ export async function POST(
   const project = getProject(id)
   if (!project) return NextResponse.json({ error: 'not found' }, { status: 404 })
 
-  const body = await req.json()
-  const { topic } = body as { topic?: string }
-
-  if (!topic || typeof topic !== 'string' || !topic.trim()) {
-    return NextResponse.json({ error: 'topic is required' }, { status: 400 })
-  }
+  // topic is optional — if omitted, the writer agent generates it autonomously
+  let body: { topic?: string } = {}
+  try { body = await req.json() } catch { /* empty body is fine */ }
+  const topic = typeof body.topic === 'string' && body.topic.trim()
+    ? body.topic.trim()
+    : 'Generating topic...'
 
   const meeting: Meeting = {
     id: randomUUID(),
     projectId: id,
-    topic: topic.trim(),
+    topic,
     status: 'setup',
     createdAt: Date.now(),
     updatedAt: Date.now(),

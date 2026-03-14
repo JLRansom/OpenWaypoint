@@ -1,4 +1,4 @@
-import { Agent, AgentEvent, Project, Task, TaskFile, Meeting, MeetingMessage, StreamPayload } from '@/lib/types'
+import { Agent, AgentEvent, Project, Task, TaskFile, Meeting, MeetingMessage, MeetingSchedule, StreamPayload } from '@/lib/types'
 import { broadcast } from '@/lib/broadcast'
 import {
   dbGetAllAgents,
@@ -44,16 +44,25 @@ import {
   dbAddMeetingMessage,
   dbUpdateMeetingMessage,
 } from '@/lib/db/repositories/meetingRepo'
+import {
+  dbGetSchedulesByProject,
+  dbGetAllEnabledSchedules,
+  dbGetSchedule,
+  dbAddSchedule,
+  dbUpdateSchedule,
+  dbDeleteSchedule,
+} from '@/lib/db/repositories/meetingScheduleRepo'
 
-export { subscribe, unsubscribe } from '@/lib/broadcast'
+export { subscribe, unsubscribe, broadcast } from '@/lib/broadcast'
 
-function getStreamPayload(): StreamPayload {
+export function getStreamPayload(): StreamPayload {
   return {
     agents: dbGetAllAgents(),
     projects: dbGetAllProjects(),
     tasks: dbGetAllTasks(),
     meetings: dbGetAllActiveMeetings(),
     meetingMessages: dbGetAllActiveMeetingMessages(),
+    meetingSchedules: dbGetAllEnabledSchedules(),
   }
 }
 
@@ -228,6 +237,31 @@ export function broadcastNow(): void {
   broadcast(getStreamPayload())
 }
 
+// --- Meeting schedule functions ---
+
+export function getSchedulesByProject(projectId: string): MeetingSchedule[] {
+  return dbGetSchedulesByProject(projectId)
+}
+
+export function getSchedule(id: string): MeetingSchedule | undefined {
+  return dbGetSchedule(id)
+}
+
+export function addSchedule(schedule: MeetingSchedule): void {
+  dbAddSchedule(schedule)
+  broadcast(getStreamPayload())
+}
+
+export function updateSchedule(id: string, patch: Partial<MeetingSchedule>): void {
+  dbUpdateSchedule(id, patch)
+  broadcast(getStreamPayload())
+}
+
+export function deleteSchedule(id: string): void {
+  dbDeleteSchedule(id)
+  broadcast(getStreamPayload())
+}
+
 // --- Settings functions ---
 
 export function getSetting(key: string): string | undefined {
@@ -238,6 +272,9 @@ export function setSetting(key: string, value: string): void {
   dbSetSetting(key, value)
 }
 
-// --- Full payload (for initial SSE load) ---
+// ---------------------------------------------------------------------------
+// Start the meeting scheduler (singleton — safe to call multiple times)
+// ---------------------------------------------------------------------------
 
-export { getStreamPayload }
+import { startMeetingScheduler } from '@/lib/meeting-scheduler'
+startMeetingScheduler()

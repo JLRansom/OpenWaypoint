@@ -23,13 +23,17 @@ function rowToMeeting(row: MeetingRow): Meeting {
 
 function rowToMessage(row: MeetingMessageRow): MeetingMessage {
   return {
-    id:          row.id,
-    meetingId:   row.meetingId,
-    agentType:   row.agentType as MeetingAgentType,
-    content:     row.content,
-    status:      row.status as MeetingMessageStatus,
-    startedAt:   row.startedAt ?? undefined,
-    completedAt: row.completedAt ?? undefined,
+    id:           row.id,
+    meetingId:    row.meetingId,
+    agentType:    row.agentType as MeetingAgentType,
+    content:      row.content,
+    status:       row.status as MeetingMessageStatus,
+    startedAt:    row.startedAt ?? undefined,
+    completedAt:  row.completedAt ?? undefined,
+    inputTokens:  row.inputTokens ?? undefined,
+    outputTokens: row.outputTokens ?? undefined,
+    costUsd:      row.costUsd ?? undefined,
+    model:        row.model ?? undefined,
   }
 }
 

@@ -93,6 +93,7 @@ export interface StreamPayload {
   tasks: Task[]
   meetings?: Meeting[]
   meetingMessages?: MeetingMessage[]
+  meetingSchedules?: MeetingSchedule[]
 }
 
 export interface TaskRun {
@@ -179,6 +180,21 @@ export interface MeetingMessage {
   status: MeetingMessageStatus
   startedAt?: number
   completedAt?: number
+  /** Token and cost stats captured from the executor run. */
+  inputTokens?: number
+  outputTokens?: number
+  costUsd?: number
+  model?: string
+}
+
+export interface MeetingSchedule {
+  id: string
+  projectId: string
+  cronExpression: string
+  nextRunAt: number
+  enabled: boolean
+  createdAt: number
+  updatedAt: number
 }
 
 // ---------------------------------------------------------------------------
