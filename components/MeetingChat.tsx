@@ -3,6 +3,7 @@
 import { useRef, useEffect } from 'react'
 import type { MeetingMessage } from '@/lib/types'
 import { ROLE_COLORS, ROLE_COLOR_FALLBACK } from '@/lib/constants'
+import { formatTokens, formatCost } from '@/lib/format-utils'
 
 export function MeetingChat({ messages }: { messages: MeetingMessage[] }) {
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -57,6 +58,16 @@ export function MeetingChat({ messages }: { messages: MeetingMessage[] }) {
               <span className="inline-block animate-pulse ml-0.5 text-dracula-green">|</span>
             )}
           </div>
+
+          {/* Per-message cost annotation */}
+          {msg.status === 'done' && msg.costUsd != null && (
+            <div className="flex gap-2 mt-1.5 text-[10px] text-dracula-comment/70">
+              {msg.inputTokens != null && msg.outputTokens != null && (
+                <span>{formatTokens(msg.inputTokens + msg.outputTokens)} tokens</span>
+              )}
+              <span>{formatCost(msg.costUsd)}</span>
+            </div>
+          )}
         </div>
       ))}
       <div ref={bottomRef} />

@@ -15,5 +15,13 @@ export async function GET(
   }
 
   const messages = getMessagesByMeeting(meetingId)
-  return NextResponse.json({ meeting, messages })
+
+  // Aggregate cost/token totals from message stats
+  const totalCostUsd = messages.reduce((sum, m) => sum + (m.costUsd ?? 0), 0)
+  const totalTokens = messages.reduce(
+    (sum, m) => sum + (m.inputTokens ?? 0) + (m.outputTokens ?? 0),
+    0,
+  )
+
+  return NextResponse.json({ meeting, messages, totalCostUsd, totalTokens })
 }

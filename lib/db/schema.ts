@@ -93,6 +93,17 @@ export const settings = sqliteTable('settings', {
   updatedAt: integer('updated_at').notNull(),
 })
 
+/** Recurring meeting schedules using cron expressions. */
+export const meetingSchedules = sqliteTable('meeting_schedules', {
+  id:             text('id').primaryKey(),
+  projectId:      text('project_id').notNull().references(() => projects.id),
+  cronExpression: text('cron_expression').notNull(),
+  nextRunAt:      integer('next_run_at').notNull(),
+  enabled:        integer('enabled', { mode: 'boolean' }).notNull().default(true),
+  createdAt:      integer('created_at').notNull(),
+  updatedAt:      integer('updated_at').notNull(),
+})
+
 /** Meetings — collaborative agent discussions on a topic. */
 export const meetings = sqliteTable('meetings', {
   id:        text('id').primaryKey(),
@@ -105,11 +116,15 @@ export const meetings = sqliteTable('meetings', {
 
 /** Individual agent messages within a meeting. */
 export const meetingMessages = sqliteTable('meeting_messages', {
-  id:          integer('id').primaryKey({ autoIncrement: true }),
-  meetingId:   text('meeting_id').notNull().references(() => meetings.id, { onDelete: 'cascade' }),
-  agentType:   text('agent_type').notNull(),
-  content:     text('content').notNull().default(''),
-  status:      text('status').notNull().default('pending'),
-  startedAt:   integer('started_at'),
-  completedAt: integer('completed_at'),
+  id:           integer('id').primaryKey({ autoIncrement: true }),
+  meetingId:    text('meeting_id').notNull().references(() => meetings.id, { onDelete: 'cascade' }),
+  agentType:    text('agent_type').notNull(),
+  content:      text('content').notNull().default(''),
+  status:       text('status').notNull().default('pending'),
+  startedAt:    integer('started_at'),
+  completedAt:  integer('completed_at'),
+  inputTokens:  integer('input_tokens'),
+  outputTokens: integer('output_tokens'),
+  costUsd:      real('cost_usd'),
+  model:        text('model'),
 })

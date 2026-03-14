@@ -85,6 +85,41 @@
       "when": 1773600100000,
       "tag": "0011_meeting_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1773700000000,
+      "tag": "0012_mm_input_tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1773700100000,
+      "tag": "0013_mm_output_tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1773700200000,
+      "tag": "0014_mm_cost_usd",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1773700300000,
+      "tag": "0015_mm_model",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1773800000000,
+      "tag": "0016_meeting_schedules",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+ALTER TABLE `meeting_messages` ADD COLUMN `input_tokens` integer;

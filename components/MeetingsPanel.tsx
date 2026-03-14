@@ -1,27 +1,36 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Play, Calendar } from 'lucide-react'
 import { useStream } from '@/components/StreamProvider'
-import { MeetingCard } from '@/components/MeetingCard'
+import { MeetingCalendar } from '@/components/MeetingCalendar'
+import { MeetingScheduleForm } from '@/components/MeetingScheduleForm'
+import { ConcludedMeetingsList } from '@/components/ConcludedMeetingsList'
 import { MeetingView } from '@/components/MeetingView'
-import type { Meeting } from '@/lib/types'
+import type { Meeting, MeetingSchedule } from '@/lib/types'
 
 export function MeetingsPanel({ projectId }: { projectId: string }) {
   const stream = useStream()
   const [meetings, setMeetings] = useState<Meeting[]>([])
+  const [schedules, setSchedules] = useState<MeetingSchedule[]>([])
   const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null)
-  const [newTopic, setNewTopic] = useState('')
-  const [creating, setCreating] = useState(false)
+  const [showScheduleForm, setShowScheduleForm] = useState(false)
+  const [starting, setStarting] = useState(false)
 
-  // Initial REST fetch of meetings for this project
+  // Initial REST fetch
   useEffect(() => {
     fetch(`/api/projects/${projectId}/meetings`)
       .then((r) => r.json())
       .then((data: Meeting[]) => setMeetings(data))
       .catch(console.error)
+
+    fetch(`/api/projects/${projectId}/meeting-schedules`)
+      .then((r) => r.json())
+      .then((data: MeetingSchedule[]) => setSchedules(data))
+      .catch(console.error)
   }, [projectId])
 
-  // Merge SSE updates for live meetings
+  // Merge SSE live meeting updates
   useEffect(() => {
     if (stream.meetings) {
       const projectMeetings = stream.meetings.filter((m) => m.projectId === projectId)
@@ -35,24 +44,39 @@ export function MeetingsPanel({ projectId }: { projectId: string }) {
     }
   }, [stream.meetings, projectId])
 
-  async function createMeeting() {
-    if (!newTopic.trim() || creating) return
-    setCreating(true)
+  // Merge SSE schedule updates
+  useEffect(() => {
+    if (stream.meetingSchedules) {
+      const projectSchedules = stream.meetingSchedules.filter((s) => s.projectId === projectId)
+      setSchedules(projectSchedules)
+    }
+  }, [stream.meetingSchedules, projectId])
+
+  async function startMeeting() {
+    if (starting) return
+    setStarting(true)
     try {
+      // No topic — the writer agent analyzes the project and generates one
       const res = await fetch(`/api/projects/${projectId}/meetings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: newTopic.trim() }),
+        body: JSON.stringify({}),
       })
       const meeting: Meeting = await res.json()
       setMeetings((prev) => [meeting, ...prev])
-      setNewTopic('')
       setSelectedMeetingId(meeting.id)
     } catch (err) {
       console.error('Failed to create meeting:', err)
     } finally {
-      setCreating(false)
+      setStarting(false)
     }
+  }
+
+  function handleScheduleCreated() {
+    fetch(`/api/projects/${projectId}/meeting-schedules`)
+      .then((r) => r.json())
+      .then((data: MeetingSchedule[]) => setSchedules(data))
+      .catch(console.error)
   }
 
   if (selectedMeetingId) {
@@ -67,44 +91,56 @@ export function MeetingsPanel({ projectId }: { projectId: string }) {
 
   return (
     <div className="space-y-6">
-      {/* New Meeting form */}
-      <div className="bg-dracula-dark/60 rounded-xl p-4">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-dracula-comment mb-3">
-          New Meeting
-        </p>
-        <div className="flex gap-2">
-          <input
-            value={newTopic}
-            onChange={(e) => setNewTopic(e.target.value)}
-            placeholder="Propose an idea for the team to discuss..."
-            className="flex-1 bg-dracula-darker border border-dracula-dark rounded-lg px-3 py-2 text-sm text-dracula-light placeholder:text-dracula-comment focus:outline-none focus:border-dracula-purple transition-colors"
-            onKeyDown={(e) => e.key === 'Enter' && createMeeting()}
-          />
-          <button
-            onClick={createMeeting}
-            disabled={!newTopic.trim() || creating}
-            className="px-4 py-2 rounded-lg bg-dracula-purple/20 text-dracula-purple text-sm font-semibold hover:bg-dracula-purple/30 disabled:opacity-40 transition-colors"
-          >
-            Create
-          </button>
-        </div>
-      </div>
-
-      {/* Meetings list */}
-      <div className="space-y-3">
-        {meetings.map((meeting) => (
-          <MeetingCard
-            key={meeting.id}
-            meeting={meeting}
-            onClick={() => setSelectedMeetingId(meeting.id)}
-          />
-        ))}
-        {meetings.length === 0 && (
-          <p className="text-sm text-dracula-comment">
-            No meetings yet. Create one above to start a team discussion.
-          </p>
+      {/* Action buttons */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={startMeeting}
+          disabled={starting}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-dracula-green/20 text-dracula-green text-xs font-semibold hover:bg-dracula-green/30 disabled:opacity-40 transition-colors"
+        >
+          <Play className="w-3 h-3" />
+          {starting ? 'Creating...' : 'Start Meeting'}
+        </button>
+        <button
+          onClick={() => setShowScheduleForm(true)}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-dracula-purple/20 text-dracula-purple text-xs font-semibold hover:bg-dracula-purple/30 transition-colors"
+        >
+          <Calendar className="w-3 h-3" />
+          Schedule Meetings
+        </button>
+        {schedules.length > 0 && (
+          <span className="text-[10px] text-dracula-comment">
+            {schedules.length} active schedule{schedules.length !== 1 ? 's' : ''}
+          </span>
         )}
       </div>
+
+      {/* Calendar view */}
+      <MeetingCalendar
+        meetings={meetings}
+        schedules={schedules}
+        onMeetingClick={(id) => setSelectedMeetingId(id)}
+      />
+
+      {/* Concluded meetings list */}
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-dracula-comment mb-3">
+          Concluded Meetings
+        </p>
+        <ConcludedMeetingsList
+          meetings={meetings}
+          onClick={(id) => setSelectedMeetingId(id)}
+        />
+      </div>
+
+      {/* Schedule creation modal */}
+      {showScheduleForm && (
+        <MeetingScheduleForm
+          projectId={projectId}
+          onCreated={handleScheduleCreated}
+          onClose={() => setShowScheduleForm(false)}
+        />
+      )}
     </div>
   )
 }
