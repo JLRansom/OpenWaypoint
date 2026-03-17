@@ -267,6 +267,7 @@ export async function assignAgentToTask(
 
     // If the executor didn't populate costUsd (e.g. CLI didn't emit cost_usd),
     // compute it server-side from the pricing table using token counts + model.
+    // Pass cache token counts so the correct tiered rates are applied.
     const computedCostUsd =
       finalStats?.costUsd ??
       (finalStats?.inputTokens != null &&
@@ -276,6 +277,8 @@ export async function assignAgentToTask(
             finalStats.inputTokens,
             finalStats.outputTokens,
             finalStats.model,
+            finalStats.cacheReadTokens ?? 0,
+            finalStats.cacheWriteTokens ?? 0,
           )
         : undefined)
 
@@ -585,11 +588,18 @@ export async function runMeeting(meetingId: string): Promise<void> {
         signal: controller.signal,
       })
 
-      // Compute cost — prefer stats-reported, fall back to pricing table
+      // Compute cost — prefer stats-reported, fall back to pricing table.
+      // Pass cache token counts so the correct tiered rates are applied.
       const computedCost =
         finalStats?.costUsd ??
         (finalStats?.inputTokens != null && finalStats?.outputTokens != null && finalStats?.model
-          ? calculateCost(finalStats.inputTokens, finalStats.outputTokens, finalStats.model)
+          ? calculateCost(
+              finalStats.inputTokens,
+              finalStats.outputTokens,
+              finalStats.model,
+              finalStats.cacheReadTokens ?? 0,
+              finalStats.cacheWriteTokens ?? 0,
+            )
           : undefined)
 
       updateMeetingMessage(msgRow.id, {

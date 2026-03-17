@@ -1,8 +1,10 @@
 // lib/pricing.ts
 
 export interface ModelPricing {
-  inputPerMTok: number   // USD per 1M input tokens
-  outputPerMTok: number  // USD per 1M output tokens
+  inputPerMTok: number      // USD per 1M regular (non-cached) input tokens
+  outputPerMTok: number     // USD per 1M output tokens
+  cacheReadPerMTok: number  // USD per 1M cache-read input tokens (typically 0.1× input rate)
+  cacheWritePerMTok: number // USD per 1M cache-write input tokens (typically 1.25× input rate)
 }
 
 /**
@@ -11,27 +13,29 @@ export interface ModelPricing {
  * so "claude-opus-4-6" matches "claude-opus-4-6-20260101" etc.
  * Order: most specific first (longer prefixes before shorter ones).
  *
- * Source: https://platform.claude.com/docs/en/about-claude/pricing
+ * Cache rates source: https://platform.claude.com/docs/en/about-claude/pricing
+ * - Cache reads:  0.1× base input rate
+ * - Cache writes: 1.25× base input rate
  */
 export const MODEL_PRICING: Record<string, ModelPricing> = {
   // claude-opus-4 family
-  'claude-opus-4-6':   { inputPerMTok: 5,    outputPerMTok: 25 },
-  'claude-opus-4-5':   { inputPerMTok: 5,    outputPerMTok: 25 },
-  'claude-opus-4-1':   { inputPerMTok: 15,   outputPerMTok: 75 },
-  'claude-opus-4-0':   { inputPerMTok: 15,   outputPerMTok: 75 },
-  'claude-opus-4':     { inputPerMTok: 15,   outputPerMTok: 75 },
+  'claude-opus-4-6':   { inputPerMTok: 5,    outputPerMTok: 25,   cacheReadPerMTok: 0.5,    cacheWritePerMTok: 6.25   },
+  'claude-opus-4-5':   { inputPerMTok: 5,    outputPerMTok: 25,   cacheReadPerMTok: 0.5,    cacheWritePerMTok: 6.25   },
+  'claude-opus-4-1':   { inputPerMTok: 15,   outputPerMTok: 75,   cacheReadPerMTok: 1.5,    cacheWritePerMTok: 18.75  },
+  'claude-opus-4-0':   { inputPerMTok: 15,   outputPerMTok: 75,   cacheReadPerMTok: 1.5,    cacheWritePerMTok: 18.75  },
+  'claude-opus-4':     { inputPerMTok: 15,   outputPerMTok: 75,   cacheReadPerMTok: 1.5,    cacheWritePerMTok: 18.75  },
   // claude-sonnet-4 family
-  'claude-sonnet-4-6': { inputPerMTok: 3,    outputPerMTok: 15 },
-  'claude-sonnet-4-5': { inputPerMTok: 3,    outputPerMTok: 15 },
-  'claude-sonnet-4-0': { inputPerMTok: 3,    outputPerMTok: 15 },
-  'claude-sonnet-4':   { inputPerMTok: 3,    outputPerMTok: 15 },
+  'claude-sonnet-4-6': { inputPerMTok: 3,    outputPerMTok: 15,   cacheReadPerMTok: 0.3,    cacheWritePerMTok: 3.75   },
+  'claude-sonnet-4-5': { inputPerMTok: 3,    outputPerMTok: 15,   cacheReadPerMTok: 0.3,    cacheWritePerMTok: 3.75   },
+  'claude-sonnet-4-0': { inputPerMTok: 3,    outputPerMTok: 15,   cacheReadPerMTok: 0.3,    cacheWritePerMTok: 3.75   },
+  'claude-sonnet-4':   { inputPerMTok: 3,    outputPerMTok: 15,   cacheReadPerMTok: 0.3,    cacheWritePerMTok: 3.75   },
   // claude-haiku-4 family
-  'claude-haiku-4-5':  { inputPerMTok: 1,    outputPerMTok: 5  },
+  'claude-haiku-4-5':  { inputPerMTok: 1,    outputPerMTok: 5,    cacheReadPerMTok: 0.1,    cacheWritePerMTok: 1.25   },
   // claude-3.5 / claude-3 family
-  'claude-3-5-haiku':  { inputPerMTok: 0.8,  outputPerMTok: 4  },
-  'claude-haiku-3-5':  { inputPerMTok: 0.8,  outputPerMTok: 4  },
-  'claude-3-opus':     { inputPerMTok: 15,   outputPerMTok: 75 },
-  'claude-3-haiku':    { inputPerMTok: 0.25, outputPerMTok: 1.25 },
+  'claude-3-5-haiku':  { inputPerMTok: 0.8,  outputPerMTok: 4,    cacheReadPerMTok: 0.08,   cacheWritePerMTok: 1.0    },
+  'claude-haiku-3-5':  { inputPerMTok: 0.8,  outputPerMTok: 4,    cacheReadPerMTok: 0.08,   cacheWritePerMTok: 1.0    },
+  'claude-3-opus':     { inputPerMTok: 15,   outputPerMTok: 75,   cacheReadPerMTok: 1.5,    cacheWritePerMTok: 18.75  },
+  'claude-3-haiku':    { inputPerMTok: 0.25, outputPerMTok: 1.25, cacheReadPerMTok: 0.025,  cacheWritePerMTok: 0.3125 },
 }
 
 /**
@@ -53,6 +57,11 @@ export function getModelPricing(model: string): ModelPricing | undefined {
 /**
  * Calculate cost in USD from token counts and model identifier.
  *
+ * When cache token counts are provided, the correct per-tier rates are applied:
+ *   - cacheReadTokens:  billed at cacheReadPerMTok  (~0.1× input rate)
+ *   - cacheWriteTokens: billed at cacheWritePerMTok (~1.25× input rate)
+ *   - remaining input:  billed at inputPerMTok
+ *
  * Returns `undefined` if the model is unknown so callers can fall back to
  * CLI-reported cost or display a dash — this function never throws.
  */
@@ -60,11 +69,17 @@ export function calculateCost(
   inputTokens: number,
   outputTokens: number,
   model: string,
+  cacheReadTokens = 0,
+  cacheWriteTokens = 0,
 ): number | undefined {
   const pricing = getModelPricing(model)
   if (!pricing) return undefined
+  // Regular input = total input minus the tokens already accounted for by cache
+  const regularInput = Math.max(0, inputTokens - cacheReadTokens - cacheWriteTokens)
   return (
-    (inputTokens  / 1_000_000) * pricing.inputPerMTok +
-    (outputTokens / 1_000_000) * pricing.outputPerMTok
+    (regularInput      / 1_000_000) * pricing.inputPerMTok +
+    (cacheReadTokens   / 1_000_000) * pricing.cacheReadPerMTok +
+    (cacheWriteTokens  / 1_000_000) * pricing.cacheWritePerMTok +
+    (outputTokens      / 1_000_000) * pricing.outputPerMTok
   )
 }
