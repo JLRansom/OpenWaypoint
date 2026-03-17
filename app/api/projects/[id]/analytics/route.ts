@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getProject, getTasksByProject } from '@/lib/store'
-import { dbGetProjectAnalytics } from '@/lib/db/repositories/analyticsRepo'
+import { dbGetProjectAnalytics, dbGetMeetingAnalytics } from '@/lib/db/repositories/analyticsRepo'
 import type { RecentTaskEntry, TaskStatusCount } from '@/lib/types'
 
 export async function GET(
@@ -21,6 +21,7 @@ export async function GET(
   const to   = toParsed   !== undefined && !Number.isNaN(toParsed)   ? toParsed   : undefined
 
   const data = dbGetProjectAnalytics(id, from, to)
+  const meetingStats = dbGetMeetingAnalytics(id, from, to)
 
   // Enrich with task-store data (status counts, recently updated, active count)
   const allTasks = getTasksByProject(id).filter((t) => !t.archived)
@@ -52,5 +53,6 @@ export async function GET(
     summary: { ...data.summary, activeTaskCount, successRate },
     taskStatusCounts,
     recentlyUpdatedTasks,
+    meetingStats,
   })
 }

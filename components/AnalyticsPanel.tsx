@@ -16,7 +16,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
-import type { ProjectAnalyticsResponse, TaskStatus } from '@/lib/types'
+import type { ProjectAnalyticsResponse, TaskStatus, MeetingsByDayData } from '@/lib/types'
 import { formatTokens, formatCost, formatElapsed } from '@/lib/format-utils'
 import { ROLE_HEX, ROLE_HEX_FALLBACK, ROLE_COLORS, ROLE_COLOR_FALLBACK } from '@/lib/constants'
 
@@ -201,7 +201,7 @@ export function AnalyticsPanel({ projectId }: { projectId: string }) {
 
       {!loading && (
         <>
-          {/* ── 6 stat cards ── */}
+          {/* ── 6 agent stat cards ── */}
           <div className="grid grid-cols-3 gap-3">
             <StatCard
               label="Tasks Done"
@@ -232,6 +232,20 @@ export function AnalyticsPanel({ projectId }: { projectId: string }) {
               label="Success Rate"
               value={hasRuns ? `${Math.round(summary?.successRate ?? 0)}%` : '—'}
               valueColor="text-dracula-cyan"
+            />
+          </div>
+
+          {/* ── 2 meeting stat cards ── */}
+          <div className="grid grid-cols-2 gap-3">
+            <StatCard
+              label="Meetings Held"
+              value={String(data?.meetingStats?.totalMeetings ?? 0)}
+              valueColor="text-dracula-pink"
+            />
+            <StatCard
+              label="Meeting Cost"
+              value={formatCost(data?.meetingStats?.totalMeetingCostUsd ?? 0)}
+              valueColor="text-dracula-pink"
             />
           </div>
 
@@ -462,6 +476,46 @@ export function AnalyticsPanel({ projectId }: { projectId: string }) {
                 </ChartCard>
 
               </div>
+
+              {/* ── Meetings over time chart ── */}
+              {(data?.meetingStats?.meetingsByDay?.length ?? 0) > 0 && (
+                <ChartCard title="Meetings Over Time">
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart
+                      data={data!.meetingStats!.meetingsByDay as MeetingsByDayData[]}
+                      margin={{ top: 4, right: 32, left: -16, bottom: 0 }}
+                    >
+                      <CartesianGrid stroke={D.dark} strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="dateLabel" {...axisStyle} />
+                      <YAxis yAxisId="count" allowDecimals={false} {...axisStyle} />
+                      <YAxis
+                        yAxisId="cost"
+                        orientation="right"
+                        tickFormatter={(v: number) => formatCost(v)}
+                        {...axisStyle}
+                      />
+                      <Tooltip
+                        {...tooltipStyle}
+                        formatter={(value, name) =>
+                          name === 'Cost' ? [formatCost(Number(value)), 'Cost'] : [String(value), name]
+                        }
+                      />
+                      <Legend wrapperStyle={{ fontSize: 11, color: D.comment }} />
+                      <Bar yAxisId="count" dataKey="count" name="Meetings" fill={D.pink} radius={[3, 3, 0, 0]} />
+                      <Line
+                        yAxisId="cost"
+                        type="monotone"
+                        dataKey="costUsd"
+                        name="Cost"
+                        stroke={D.orange}
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 4 }}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              )}
             </>
           )}
         </>

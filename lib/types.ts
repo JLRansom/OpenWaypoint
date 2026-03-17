@@ -268,6 +268,19 @@ export interface TaskStatusCount {
   count: number
 }
 
+export interface MeetingsByDayData {
+  dateLabel: string
+  count: number
+  costUsd: number
+}
+
+export interface MeetingAnalytics {
+  totalMeetings: number
+  totalMeetingCostUsd: number
+  totalMeetingTokens: number
+  meetingsByDay: MeetingsByDayData[]
+}
+
 export interface ProjectAnalyticsResponse {
   summary: ProjectAnalyticsSummary
   weeklyTasks: WeeklyTaskData[]
@@ -277,4 +290,5 @@ export interface ProjectAnalyticsResponse {
   recentRuns: RecentRunEntry[]
   recentlyUpdatedTasks: RecentTaskEntry[]
   taskStatusCounts: TaskStatusCount[]
+  meetingStats?: MeetingAnalytics
 }
