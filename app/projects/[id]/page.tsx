@@ -1,14 +1,22 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import { getProject } from '@/lib/store'
 import { KanbanBoard } from '@/components/KanbanBoard'
 import { ArchivedCards } from '@/components/ArchivedCards'
 import { EditProjectModal } from '@/components/EditProjectModal'
 import { ProjectViewToggle } from '@/components/ProjectViewToggle'
 import { AnalyticsPanel } from '@/components/AnalyticsPanel'
-import { MeetingsPanel } from '@/components/MeetingsPanel'
 import { TagsPanel } from '@/components/TagsPanel'
+
+// MeetingsPanel pulls in Three.js / @react-three/fiber via MeetingScene.
+// Dynamic import defers its Turbopack compilation until the meetings tab is
+// first visited, keeping the default board/dashboard view fast.
+const MeetingsPanel = dynamic(
+  () => import('@/components/MeetingsPanel').then((m) => ({ default: m.MeetingsPanel })),
+  { ssr: false },
+)
 
 export default async function ProjectBoardPage({
   params,
