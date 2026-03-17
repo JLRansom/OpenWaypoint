@@ -6,6 +6,8 @@ import { TaskRun, PaginatedRunsResponse } from '@/lib/types'
 import { Button } from '@/components/ui/Button'
 import { MarkdownOutput } from '@/components/ui/MarkdownOutput'
 import { ROLE_COLORS, ROLE_COLOR_FALLBACK } from '@/lib/constants'
+import { formatCost, formatTokens } from '@/lib/format-utils'
+import type { MeetingHistoryEntry } from '@/app/api/meetings/route'
 
 type RoleFilter = 'all' | 'researcher' | 'coder' | 'senior-coder' | 'tester' | 'writer'
 type StatusFilter = 'all' | 'done' | 'failed'
@@ -97,8 +99,20 @@ function PillButton({
 
 const LIMIT = 20
 
+type MeetingStatusFilter = 'all' | 'setup' | 'active' | 'concluded'
+
+const MEETING_STATUS_OPTIONS: { label: string; value: MeetingStatusFilter }[] = [
+  { label: 'All', value: 'all' },
+  { label: 'Setup', value: 'setup' },
+  { label: 'Active', value: 'active' },
+  { label: 'Concluded', value: 'concluded' },
+]
+
 export function HistoryList() {
   const router = useRouter()
+  const [mode, setMode] = useState<'runs' | 'meetings'>('runs')
+
+  // --- Card runs state ---
   const [runs, setRuns] = useState<TaskRun[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -112,6 +126,13 @@ export function HistoryList() {
   const [search, setSearch] = useState('')
   const [dateFrom, setDateFrom] = useState<number | undefined>()
   const [dateTo, setDateTo] = useState<number | undefined>()
+
+  // --- Meetings state ---
+  const [meetingEntries, setMeetingEntries] = useState<MeetingHistoryEntry[]>([])
+  const [meetingsLoading, setMeetingsLoading] = useState(false)
+  const [meetingStatusFilter, setMeetingStatusFilter] = useState<MeetingStatusFilter>('all')
+  const [meetingDateFrom, setMeetingDateFrom] = useState<number | undefined>()
+  const [meetingDateTo, setMeetingDateTo] = useState<number | undefined>()
 
   const fetchRuns = useCallback(async () => {
     setLoading(true)
@@ -138,6 +159,25 @@ export function HistoryList() {
   useEffect(() => { fetchRuns() }, [fetchRuns])
   useEffect(() => { setExpandedTab('result') }, [expandedId])
 
+  const fetchMeetings = useCallback(async () => {
+    setMeetingsLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (meetingStatusFilter !== 'all') params.set('status', meetingStatusFilter)
+      if (meetingDateFrom !== undefined) params.set('from', String(meetingDateFrom))
+      if (meetingDateTo !== undefined) params.set('to', String(meetingDateTo))
+      const res = await fetch(`/api/meetings?${params}`)
+      const data: MeetingHistoryEntry[] = await res.json()
+      setMeetingEntries(data)
+    } finally {
+      setMeetingsLoading(false)
+    }
+  }, [meetingStatusFilter, meetingDateFrom, meetingDateTo])
+
+  useEffect(() => {
+    if (mode === 'meetings') fetchMeetings()
+  }, [mode, fetchMeetings])
+
   // Debounce searchInput → search (300ms)
   useEffect(() => {
     const id = setTimeout(() => setSearch(searchInput), 300)
@@ -152,6 +192,150 @@ export function HistoryList() {
 
   return (
     <div>
+      {/* Mode toggle */}
+      <div className="flex gap-1 mb-6">
+        <button
+          onClick={() => setMode('runs')}
+          className={`text-xs font-semibold px-3 py-1 rounded-md transition-colors ${
+            mode === 'runs'
+              ? 'bg-dracula-purple/20 text-dracula-purple'
+              : 'text-dracula-comment hover:text-dracula-foreground'
+          }`}
+        >
+          Card Runs
+        </button>
+        <button
+          onClick={() => setMode('meetings')}
+          className={`text-xs font-semibold px-3 py-1 rounded-md transition-colors ${
+            mode === 'meetings'
+              ? 'bg-dracula-pink/20 text-dracula-pink'
+              : 'text-dracula-comment hover:text-dracula-foreground'
+          }`}
+        >
+          Meetings
+        </button>
+      </div>
+
+      {/* Meetings view */}
+      {mode === 'meetings' && (
+        <div>
+          {/* Meeting filters */}
+          <div className="mb-4 flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-dracula-blue mr-1">Status:</span>
+              {MEETING_STATUS_OPTIONS.map((o) => (
+                <PillButton
+                  key={o.value}
+                  active={meetingStatusFilter === o.value}
+                  onClick={() => setMeetingStatusFilter(o.value)}
+                >
+                  {o.label}
+                </PillButton>
+              ))}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-dracula-blue mr-1">From:</span>
+              <input
+                type="date"
+                value={meetingDateFrom !== undefined ? new Date(meetingDateFrom).toISOString().slice(0, 10) : ''}
+                onChange={(e) => setMeetingDateFrom(e.target.value ? new Date(e.target.value).getTime() : undefined)}
+                className="rounded-lg bg-dracula-dark border border-dracula-dark/80 px-2 py-1 text-xs text-dracula-light focus:outline-none focus:border-dracula-purple/60"
+              />
+              <span className="text-xs text-dracula-blue">To:</span>
+              <input
+                type="date"
+                value={meetingDateTo !== undefined ? new Date(meetingDateTo - 86399999).toISOString().slice(0, 10) : ''}
+                onChange={(e) => setMeetingDateTo(e.target.value ? new Date(e.target.value).getTime() + 86399999 : undefined)}
+                className="rounded-lg bg-dracula-dark border border-dracula-dark/80 px-2 py-1 text-xs text-dracula-light focus:outline-none focus:border-dracula-purple/60"
+              />
+            </div>
+            <div className="ml-auto flex items-center gap-3">
+              <span className="text-xs text-dracula-blue">
+                {meetingEntries.length} meeting{meetingEntries.length !== 1 ? 's' : ''}
+              </span>
+              <Button variant="ghost" size="sm" onClick={fetchMeetings}>Refresh</Button>
+            </div>
+          </div>
+
+          {meetingsLoading ? (
+            <p className="text-dracula-blue text-sm mt-8 text-center">Loading…</p>
+          ) : meetingEntries.length === 0 ? (
+            <p className="text-dracula-blue text-sm mt-8 text-center">No meetings found.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-dracula-dark">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-dracula-dark bg-dracula-dark text-left text-xs text-dracula-blue uppercase tracking-wider">
+                    <th className="py-3 px-4">Date</th>
+                    <th className="py-3 px-4">Topic</th>
+                    <th className="py-3 px-4">Project</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4">Agents</th>
+                    <th className="py-3 px-4">Tokens</th>
+                    <th className="py-3 px-4">Cost</th>
+                    <th className="py-3 px-4">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {meetingEntries.map((m) => (
+                    <tr
+                      key={m.id}
+                      className="border-b border-dracula-dark hover:bg-dracula-dark/30 transition-colors cursor-pointer"
+                      onClick={() => router.push(`/projects/${m.projectId}?view=meetings`)}
+                    >
+                      <td className="py-3 px-4 text-xs text-dracula-comment whitespace-nowrap">
+                        {formatDate(m.createdAt)}
+                      </td>
+                      <td className="py-3 px-4 max-w-[200px] truncate text-dracula-light">
+                        {m.topic || '—'}
+                      </td>
+                      <td className="py-3 px-4 max-w-[140px] truncate text-dracula-comment">
+                        {m.projectName}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`rounded px-2 py-0.5 text-xs font-semibold uppercase ${
+                          m.status === 'concluded'
+                            ? 'text-dracula-green bg-dracula-green/10'
+                            : m.status === 'setup'
+                              ? 'text-dracula-comment bg-dracula-comment/10'
+                              : 'text-dracula-cyan bg-dracula-cyan/10'
+                        }`}>
+                          {m.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-xs text-dracula-blue tabular-nums">
+                        {m.agentCount}
+                      </td>
+                      <td className="py-3 px-4 text-xs text-dracula-blue tabular-nums">
+                        {m.totalTokens > 0 ? formatTokens(m.totalTokens) : '—'}
+                      </td>
+                      <td className="py-3 px-4 text-xs text-dracula-green tabular-nums">
+                        {m.totalCostUsd > 0 ? formatCost(m.totalCostUsd) : '—'}
+                      </td>
+                      <td className="py-3 px-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            router.push(`/projects/${m.projectId}?view=meetings`)
+                          }}
+                          className="whitespace-nowrap"
+                        >
+                          View →
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Card runs view */}
+      {mode === 'runs' && <div>
       {/* Filter bar */}
       <div className="mb-4 flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-1.5">
@@ -383,6 +567,7 @@ export function HistoryList() {
           )}
         </>
       )}
+      </div>}
     </div>
   )
 }
