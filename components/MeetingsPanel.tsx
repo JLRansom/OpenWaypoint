@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Play, Calendar } from 'lucide-react'
+import { Play, Calendar, ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
 import { useStream } from '@/components/StreamProvider'
 import { MeetingCalendar } from '@/components/MeetingCalendar'
 import { MeetingScheduleForm } from '@/components/MeetingScheduleForm'
@@ -18,6 +18,9 @@ export function MeetingsPanel({ projectId }: { projectId: string }) {
   const [showScheduleForm, setShowScheduleForm] = useState(false)
   const [showTypeSelector, setShowTypeSelector] = useState(false)
   const [starting, setStarting] = useState(false)
+  const [memory, setMemory] = useState<string | null>(null)
+  const [memoryOpen, setMemoryOpen] = useState(false)
+  const [clearingMemory, setClearingMemory] = useState(false)
 
   // Initial REST fetch
   useEffect(() => {
@@ -29,6 +32,11 @@ export function MeetingsPanel({ projectId }: { projectId: string }) {
     fetch(`/api/projects/${projectId}/meeting-schedules`)
       .then((r) => r.json())
       .then((data: MeetingSchedule[]) => setSchedules(data))
+      .catch(console.error)
+
+    fetch(`/api/projects/${projectId}/meeting-memory`)
+      .then((r) => r.json())
+      .then((data: { memory: string | null }) => setMemory(data.memory))
       .catch(console.error)
   }, [projectId])
 
@@ -71,6 +79,20 @@ export function MeetingsPanel({ projectId }: { projectId: string }) {
       console.error('Failed to create meeting:', err)
     } finally {
       setStarting(false)
+    }
+  }
+
+  async function clearMemory() {
+    if (clearingMemory) return
+    if (!window.confirm('Clear all meeting memory for this project?')) return
+    setClearingMemory(true)
+    try {
+      await fetch(`/api/projects/${projectId}/meeting-memory`, { method: 'DELETE' })
+      setMemory(null)
+    } catch (err) {
+      console.error('Failed to clear memory:', err)
+    } finally {
+      setClearingMemory(false)
     }
   }
 
@@ -133,6 +155,46 @@ export function MeetingsPanel({ projectId }: { projectId: string }) {
           meetings={meetings}
           onClick={(id) => setSelectedMeetingId(id)}
         />
+      </div>
+
+      {/* Meeting Memory */}
+      <div className="rounded-lg border border-dracula-dark/50 overflow-hidden">
+        <button
+          onClick={() => setMemoryOpen((o) => !o)}
+          className="w-full flex items-center justify-between px-4 py-3 bg-dracula-dark/40 hover:bg-dracula-dark/60 transition-colors text-left"
+        >
+          <span className="text-[10px] font-bold uppercase tracking-widest text-dracula-comment">
+            Meeting Memory {memory ? `(${memory.split('\n•').filter(Boolean).length} entries)` : '(empty)'}
+          </span>
+          {memoryOpen ? (
+            <ChevronDown className="w-3 h-3 text-dracula-comment" />
+          ) : (
+            <ChevronRight className="w-3 h-3 text-dracula-comment" />
+          )}
+        </button>
+        {memoryOpen && (
+          <div className="px-4 py-3 bg-dracula-darker/40 space-y-3">
+            {memory ? (
+              <>
+                <pre className="text-xs text-dracula-comment whitespace-pre-wrap font-sans leading-relaxed max-h-48 overflow-y-auto">
+                  {memory}
+                </pre>
+                <button
+                  onClick={clearMemory}
+                  disabled={clearingMemory}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-dracula-red/15 text-dracula-red text-xs hover:bg-dracula-red/25 disabled:opacity-40 transition-colors"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  {clearingMemory ? 'Clearing…' : 'Clear Memory'}
+                </button>
+              </>
+            ) : (
+              <p className="text-xs text-dracula-comment/60 italic">
+                No meeting history yet. Memory accumulates after each concluded meeting.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Meeting type selector modal */}

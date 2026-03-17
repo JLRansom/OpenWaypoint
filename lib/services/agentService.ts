@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto'
 import fs from 'fs'
 import path from 'path'
 import { Agent, AgentStats, AgentType, TaskStatus, BoardType, TaskFile, MeetingAgentType, MEETING_AGENT_ORDER, MeetingType } from '@/lib/types'
-import { getTask, getProject, getAllAgents, updateAgent, updateTask, getAgent, addTask, getFilesByTask, getMeeting, getMessagesByMeeting, updateMeeting, updateMeetingMessage, updateMeetingMessageSilent, broadcastNow, getTasksByProject } from '@/lib/store'
+import { getTask, getProject, getAllAgents, updateAgent, updateTask, getAgent, addTask, getFilesByTask, getMeeting, getMessagesByMeeting, updateMeeting, updateMeetingMessage, updateMeetingMessageSilent, broadcastNow, getTasksByProject, getSetting, setSetting } from '@/lib/store'
 import { formatFileSize } from '@/lib/format-utils'
 import { runAgent } from '@/lib/agent-runner'
 import { getExecutor } from '@/lib/executors/registry'
@@ -431,7 +431,7 @@ export async function assignAgentToTask(
 // Meeting orchestration
 // ---------------------------------------------------------------------------
 
-function buildMeetingSystemPrompt(agentType: MeetingAgentType, meetingType: 'ideas' | 'card-discussion' = 'ideas'): string {
+function buildMeetingSystemPrompt(agentType: MeetingAgentType, meetingType: 'ideas' | 'card-discussion' = 'ideas', memory?: string): string {
   const base =
     'You are participating in a team meeting. ' +
     'Keep your contribution focused, constructive, and between 100-300 words. ' +
@@ -481,7 +481,11 @@ function buildMeetingSystemPrompt(agentType: MeetingAgentType, meetingType: 'ide
       'How do we test this? What edge cases and failure modes should we watch for?',
   }
 
-  return roleContext[agentType]
+  let prompt = roleContext[agentType]
+  if (memory) {
+    prompt += '\n\n## Past Meeting Context\n' + memory
+  }
+  return prompt
 }
 
 function buildMeetingUserPrompt(
@@ -551,6 +555,9 @@ function extractTopicFromWriterOutput(output: string): string {
   return candidate.trim().slice(0, 120) || 'Auto-generated meeting'
 }
 
+const MEMORY_KEY_PREFIX = 'meeting-memory:'
+const MEMORY_MAX_CHARS = 4000
+
 /**
  * Run a full meeting: each agent in MEETING_AGENT_ORDER speaks sequentially.
  * Uses the executor directly (not the idle agent pool) so meetings don't
@@ -578,6 +585,10 @@ export async function runMeeting(meetingId: string): Promise<void> {
     }
   }
 
+  // Load persistent meeting memory for this project
+  const memoryKey = MEMORY_KEY_PREFIX + meeting.projectId
+  const memory = getSetting(memoryKey) || undefined
+
   // Build task summaries for the writer's project analysis (ideas meetings only)
   const tasks = project ? getTasksByProject(project.id) : []
   const recentTasks = tasks.slice(0, 20)
@@ -588,7 +599,7 @@ export async function runMeeting(meetingId: string): Promise<void> {
   const messages = getMessagesByMeeting(meetingId)
   let priorContext = ''
   let meetingTopic = meeting.topic // will be updated after writer speaks (ideas mode)
-  let testerOutput = '' // captured for card-discussion note appending
+  let testerOutput = '' // captured for card-discussion notes and memory summary
 
   for (const agentType of MEETING_AGENT_ORDER) {
     const msgRow = messages.find((m) => m.agentType === agentType)
@@ -599,7 +610,7 @@ export async function runMeeting(meetingId: string): Promise<void> {
     updateMeeting(meetingId, { status: meetingStatus, updatedAt: Date.now() })
     updateMeetingMessage(msgRow.id, { status: 'speaking', startedAt: Date.now() })
 
-    const systemPrompt = buildMeetingSystemPrompt(agentType, meetingType)
+    const systemPrompt = buildMeetingSystemPrompt(agentType, meetingType, memory)
     const userPrompt = buildMeetingUserPrompt(
       agentType,
       meetingTopic,
@@ -688,7 +699,7 @@ export async function runMeeting(meetingId: string): Promise<void> {
       updateMeeting(meetingId, { topic: meetingTopic, updatedAt: Date.now() })
     }
 
-    // Capture tester output for card-discussion note appending
+    // Capture tester output for card-discussion notes and memory summary
     if (agentType === 'tester' && accumulated) {
       testerOutput = accumulated
     }
@@ -709,5 +720,22 @@ export async function runMeeting(meetingId: string): Promise<void> {
         updatedAt: Date.now(),
       })
     }
+  }
+
+  // Save a summary of this meeting to persistent memory
+  if (project) {
+    const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    const keyPoints = (testerOutput || priorContext).trim().slice(0, 300).replace(/\n+/g, ' ')
+    const entry = `• [${date}] Topic: ${meetingTopic}. Key points: ${keyPoints}`
+
+    let updated = entry + (memory ? '\n' + memory : '')
+    // Trim oldest entries when memory exceeds limit
+    if (updated.length > MEMORY_MAX_CHARS) {
+      updated = updated.slice(0, MEMORY_MAX_CHARS)
+      // Don't cut mid-entry — trim back to the last complete bullet
+      const lastBullet = updated.lastIndexOf('\n•')
+      if (lastBullet > 0) updated = updated.slice(0, lastBullet)
+    }
+    setSetting(memoryKey, updated)
   }
 }
