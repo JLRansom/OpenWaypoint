@@ -8,7 +8,7 @@ import path from 'path'
 const dbPath = process.env.SQLITE_DB_PATH ?? './data/agents.db'
 fs.mkdirSync(path.dirname(dbPath), { recursive: true })
 
-const g = globalThis as typeof globalThis & { __db?: Database.Database }
+const g = globalThis as typeof globalThis & { __db?: Database.Database; __dbMigrated?: boolean }
 if (!g.__db) {
   g.__db = new Database(dbPath)
   g.__db.pragma('journal_mode = WAL')
@@ -16,4 +16,10 @@ if (!g.__db) {
 }
 
 export const db = drizzle(g.__db, { schema })
-migrate(db, { migrationsFolder: './lib/db/migrations' })
+
+// Migrate once per process — the globalThis guard prevents re-running
+// on HMR reloads where the module may be re-evaluated.
+if (!g.__dbMigrated) {
+  migrate(db, { migrationsFolder: './lib/db/migrations' })
+  g.__dbMigrated = true
+}
