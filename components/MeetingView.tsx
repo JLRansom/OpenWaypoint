@@ -83,16 +83,16 @@ export function MeetingView({
   const isConcluded = meeting?.status === 'concluded'
 
   return (
-    <div className="relative min-h-[600px] rounded-xl overflow-hidden bg-dracula-darker border border-dracula-dark/50">
-      {/* Three.js background */}
-      <div className="absolute inset-0 pointer-events-none">
+    <div className="flex flex-row rounded-xl overflow-hidden border border-dracula-dark/50 min-h-[600px]">
+      {/* Left pane — Three.js scene (45%) */}
+      <div className="w-[45%] min-h-[600px] flex-shrink-0" style={{ background: '#1e1f29' }}>
         <MeetingScene speakingAgent={speakingAgent} messages={messages} />
       </div>
 
-      {/* UI overlay */}
-      <div className="relative z-10 flex flex-col min-h-[600px]">
+      {/* Right pane — header + topic + chat + cost footer (55%) */}
+      <div className="flex flex-col w-[55%] bg-dracula-darker border-l border-dracula-dark/50">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 bg-dracula-darker/80 backdrop-blur-sm border-b border-dracula-dark/50">
+        <div className="flex items-center justify-between p-4 bg-dracula-darker/80 backdrop-blur-sm border-b border-dracula-dark/50 flex-shrink-0">
           <button
             onClick={onBack}
             className="flex items-center gap-1 text-xs text-dracula-cyan hover:text-dracula-light transition-colors"
@@ -124,19 +124,19 @@ export function MeetingView({
         </div>
 
         {/* Topic */}
-        <div className="px-4 py-3 bg-dracula-darker/60 backdrop-blur-sm border-b border-dracula-dark/30">
+        <div className="px-4 py-3 bg-dracula-darker/60 backdrop-blur-sm border-b border-dracula-dark/30 flex-shrink-0">
           <p className="text-[10px] font-bold uppercase tracking-widest text-dracula-comment mb-1">Topic</p>
           <p className="text-sm text-dracula-light">{meeting?.topic ?? '—'}</p>
         </div>
 
         {/* Chat messages */}
-        <div className="flex-1 overflow-y-auto max-h-[420px]">
+        <div className="flex-1 overflow-y-auto">
           <MeetingChat messages={messages} />
         </div>
 
         {/* Cost summary for concluded meetings */}
         {isConcluded && (totalCostUsd > 0 || totalTokens > 0) && (
-          <div className="px-4 py-3 bg-dracula-darker/80 backdrop-blur-sm border-t border-dracula-dark/50">
+          <div className="px-4 py-3 bg-dracula-darker/80 backdrop-blur-sm border-t border-dracula-dark/50 flex-shrink-0">
             <p className="text-[10px] font-bold uppercase tracking-widest text-dracula-comment mb-2">Meeting Cost</p>
             <div className="flex flex-wrap gap-x-4 gap-y-1 items-center">
               {totalCostUsd > 0 && (

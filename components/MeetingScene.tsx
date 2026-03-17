@@ -225,8 +225,8 @@ export function MeetingScene({
 
   return (
     <Canvas
-      camera={{ position: [0, 3, 6], fov: 55 }}
-      style={{ background: 'transparent' }}
+      camera={{ position: [0, 2.5, 5], fov: 55 }}
+      style={{ background: '#1e1f29', width: '100%', height: '100%' }}
       dpr={[1, 1.5]}
       shadows
     >
