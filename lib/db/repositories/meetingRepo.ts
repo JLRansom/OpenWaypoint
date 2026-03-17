@@ -54,6 +54,16 @@ export function dbGetMeetingsByProject(projectId: string): Meeting[] {
     .map(rowToMeeting)
 }
 
+/** Return ALL meetings across all projects, newest first. */
+export function dbGetAllMeetings(): Meeting[] {
+  return db
+    .select()
+    .from(meetings)
+    .all()
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .map(rowToMeeting)
+}
+
 /** Return all meetings that are NOT concluded — for SSE broadcast. */
 export function dbGetAllActiveMeetings(): Meeting[] {
   return db
