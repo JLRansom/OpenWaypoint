@@ -306,9 +306,3 @@ export function setSetting(key: string, value: string): void {
   dbSetSetting(key, value)
 }
 
-// ---------------------------------------------------------------------------
-// Start the meeting scheduler (singleton — safe to call multiple times)
-// ---------------------------------------------------------------------------
-
-import { startMeetingScheduler } from '@/lib/meeting-scheduler'
-startMeetingScheduler()
