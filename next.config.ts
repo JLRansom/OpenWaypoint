@@ -1,11 +1,16 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  // better-sqlite3 ships a precompiled native .node binary — bundling it is
-  // extremely slow (it triggers full native-module tracing in Turbopack).
-  // Marking it as a server external keeps it as a bare require() at runtime
-  // and cuts per-route compile times from ~15s down to ~1-2s.
-  serverExternalPackages: ['better-sqlite3'],
+  // Exclude heavy server-only packages from Turbopack bundling.
+  //
+  // better-sqlite3 — precompiled native .node binary; tracing it costs ~12s
+  //   per route compile.
+  // drizzle-orm    — 443 package.json exports; Turbopack traces the entire
+  //   graph on every compile, costing the remaining ~14s.
+  //
+  // Both are server-only (never imported by client components) so marking
+  // them as externals is safe — they become bare require() calls at runtime.
+  serverExternalPackages: ['better-sqlite3', 'drizzle-orm'],
 
   async headers() {
     return [
