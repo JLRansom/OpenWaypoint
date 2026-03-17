@@ -167,11 +167,17 @@ export const MEETING_AGENT_ORDER: MeetingAgentType[] = [
   'writer', 'researcher', 'coder', 'senior-coder', 'tester',
 ]
 
+export type MeetingType = 'ideas' | 'card-discussion'
+
 export interface Meeting {
   id: string
   projectId: string
   topic: string
   status: MeetingStatus
+  /** 'ideas' = writer proposes agenda; 'card-discussion' = structured discussion of a specific task. */
+  meetingType?: MeetingType
+  /** For card-discussion meetings: the task ID being discussed. */
+  taskId?: string
   createdAt: number
   updatedAt: number
 }

@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto'
 import fs from 'fs'
 import path from 'path'
-import { Agent, AgentStats, AgentType, TaskStatus, BoardType, TaskFile, MeetingAgentType, MEETING_AGENT_ORDER } from '@/lib/types'
+import { Agent, AgentStats, AgentType, TaskStatus, BoardType, TaskFile, MeetingAgentType, MEETING_AGENT_ORDER, MeetingType } from '@/lib/types'
 import { getTask, getProject, getAllAgents, updateAgent, updateTask, getAgent, addTask, getFilesByTask, getMeeting, getMessagesByMeeting, updateMeeting, updateMeetingMessage, updateMeetingMessageSilent, broadcastNow, getTasksByProject } from '@/lib/store'
 import { formatFileSize } from '@/lib/format-utils'
 import { runAgent } from '@/lib/agent-runner'
@@ -431,11 +431,34 @@ export async function assignAgentToTask(
 // Meeting orchestration
 // ---------------------------------------------------------------------------
 
-function buildMeetingSystemPrompt(agentType: MeetingAgentType): string {
+function buildMeetingSystemPrompt(agentType: MeetingAgentType, meetingType: 'ideas' | 'card-discussion' = 'ideas'): string {
   const base =
     'You are participating in a team meeting. ' +
     'Keep your contribution focused, constructive, and between 100-300 words. ' +
     'Do not use markdown headers. Write in a conversational but professional tone.'
+
+  if (meetingType === 'card-discussion') {
+    const cardRoleContext: Record<MeetingAgentType, string> = {
+      writer:
+        'You are the writer on an AI agent development team. ' +
+        'You are facilitating a discussion about a specific task card. ' +
+        'Introduce the card clearly — what it is, why it matters now, and what key questions the team should discuss. ' +
+        'Do NOT simply restate the description. Frame the discussion constructively. Keep it 100-300 words.',
+      researcher:
+        `${base} You are the researcher — analyse the card from an analytics and success-metrics perspective. ` +
+        'How do we measure completion? What data validates the need? What does success look like?',
+      coder:
+        `${base} You are the coder — assess the technical implementation of this card. ` +
+        'What is the approach? What are the dependencies, risks, and unknowns?',
+      'senior-coder':
+        `${base} You are the senior engineer — evaluate architecture fit and risk. ` +
+        'Does this card fit the existing architecture? What technical debt could it introduce or resolve?',
+      tester:
+        `${base} You are the QA engineer — consider how to validate this card. ` +
+        'What tests are needed? What edge cases or failure modes should be designed for upfront?',
+    }
+    return cardRoleContext[agentType]
+  }
 
   const roleContext: Record<MeetingAgentType, string> = {
     writer:
@@ -468,8 +491,27 @@ function buildMeetingUserPrompt(
   projectName?: string,
   projectDescription?: string,
   taskSummaries?: string,
+  cardContext?: string,
+  meetingType: 'ideas' | 'card-discussion' = 'ideas',
 ): string {
   let prompt: string
+
+  if (meetingType === 'card-discussion') {
+    if (agentType === 'writer') {
+      // Writer introduces and frames the card for team discussion
+      prompt = '# Card Discussion\n\nYou are facilitating a structured team discussion about the following task card.'
+      if (projectName) prompt += `\n\n## Project: ${projectName}`
+      if (cardContext) prompt += `\n\n## Card Details\n${cardContext}`
+      prompt += '\n\nIntroduce this card to the team and frame the key discussion points. Keep it 100-300 words.'
+    } else {
+      // Other agents discuss the card
+      prompt = `# Card Discussion: ${topic ?? 'Task Review'}`
+      if (cardContext) prompt += `\n\n## Card Details\n${cardContext}`
+      if (priorContext) prompt += `\n\n## Prior Discussion\n${priorContext}`
+      prompt += `\n\nShare your perspective as the ${agentType}. Keep it 100-300 words.`
+    }
+    return prompt
+  }
 
   if (agentType === 'writer') {
     // Writer analyzes the project and proposes an idea autonomously
@@ -522,7 +564,21 @@ export async function runMeeting(meetingId: string): Promise<void> {
   const workingDirectory = project?.directory || undefined
   const executor = getExecutor(project?.executorConfig ?? undefined)
 
-  // Build task summaries for the writer's project analysis
+  const meetingType: MeetingType = meeting.meetingType ?? 'ideas'
+
+  // Build card context for card-discussion meetings
+  let cardContext: string | undefined
+  if (meetingType === 'card-discussion' && meeting.taskId) {
+    const discussedTask = getTask(meeting.taskId)
+    if (discussedTask) {
+      cardContext = `**Title:** ${discussedTask.title}\n**Status:** ${discussedTask.status}`
+      if (discussedTask.description) cardContext += `\n**Description:**\n${discussedTask.description}`
+      if (discussedTask.researcherOutput) cardContext += `\n**Researcher Output:**\n${discussedTask.researcherOutput.slice(0, 500)}`
+      if (discussedTask.coderOutput) cardContext += `\n**Coder Output:**\n${discussedTask.coderOutput.slice(0, 500)}`
+    }
+  }
+
+  // Build task summaries for the writer's project analysis (ideas meetings only)
   const tasks = project ? getTasksByProject(project.id) : []
   const recentTasks = tasks.slice(0, 20)
   const taskSummaries = recentTasks.length > 0
@@ -531,7 +587,8 @@ export async function runMeeting(meetingId: string): Promise<void> {
 
   const messages = getMessagesByMeeting(meetingId)
   let priorContext = ''
-  let meetingTopic = meeting.topic // will be updated after writer speaks
+  let meetingTopic = meeting.topic // will be updated after writer speaks (ideas mode)
+  let testerOutput = '' // captured for card-discussion note appending
 
   for (const agentType of MEETING_AGENT_ORDER) {
     const msgRow = messages.find((m) => m.agentType === agentType)
@@ -542,7 +599,7 @@ export async function runMeeting(meetingId: string): Promise<void> {
     updateMeeting(meetingId, { status: meetingStatus, updatedAt: Date.now() })
     updateMeetingMessage(msgRow.id, { status: 'speaking', startedAt: Date.now() })
 
-    const systemPrompt = buildMeetingSystemPrompt(agentType)
+    const systemPrompt = buildMeetingSystemPrompt(agentType, meetingType)
     const userPrompt = buildMeetingUserPrompt(
       agentType,
       meetingTopic,
@@ -550,6 +607,8 @@ export async function runMeeting(meetingId: string): Promise<void> {
       project?.name,
       project?.description,
       agentType === 'writer' ? taskSummaries : undefined,
+      cardContext,
+      meetingType,
     )
 
     // Temporary agent object for the executor
@@ -623,14 +682,32 @@ export async function runMeeting(meetingId: string): Promise<void> {
       })
     }
 
-    // After the writer speaks, auto-set the meeting topic from their output
-    if (agentType === 'writer' && accumulated) {
+    // After the writer speaks in ideas mode, auto-set the meeting topic from their output
+    if (agentType === 'writer' && accumulated && meetingType === 'ideas') {
       meetingTopic = extractTopicFromWriterOutput(accumulated)
       updateMeeting(meetingId, { topic: meetingTopic, updatedAt: Date.now() })
+    }
+
+    // Capture tester output for card-discussion note appending
+    if (agentType === 'tester' && accumulated) {
+      testerOutput = accumulated
     }
 
     priorContext += `\n\n### ${agentType}\n${accumulated}`
   }
 
   updateMeeting(meetingId, { status: 'concluded', updatedAt: Date.now() })
+
+  // For card-discussion meetings, append meeting notes to the task description
+  if (meetingType === 'card-discussion' && meeting.taskId && testerOutput) {
+    const discussedTask = getTask(meeting.taskId)
+    if (discussedTask) {
+      const dateStr = new Date().toISOString().split('T')[0]
+      const noteBlock = `\n\n---\n**Meeting Notes (${dateStr})**\n${testerOutput.trim().slice(0, 1000)}`
+      updateTask(meeting.taskId, {
+        description: (discussedTask.description ?? '') + noteBlock,
+        updatedAt: Date.now(),
+      })
+    }
+  }
 }
