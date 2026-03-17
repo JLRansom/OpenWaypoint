@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 import { useStream } from '@/components/StreamProvider'
 import { MeetingChat } from '@/components/MeetingChat'
 import type { Meeting, MeetingMessage } from '@/lib/types'
-import { ChevronLeft, Play } from 'lucide-react'
+import { ChevronLeft, Play, PlusSquare, Check } from 'lucide-react'
 import { formatCost, formatTokens } from '@/lib/format-utils'
 import { ROLE_HEX } from '@/lib/constants'
 
@@ -37,6 +37,8 @@ export function MeetingView({
   const [totalCostUsd, setTotalCostUsd] = useState<number>(0)
   const [totalTokens, setTotalTokens] = useState<number>(0)
   const [starting, setStarting] = useState(false)
+  const [creatingCard, setCreatingCard] = useState(false)
+  const [cardCreated, setCardCreated] = useState(false)
 
   // Initial REST fetch
   useEffect(() => {
@@ -76,6 +78,35 @@ export function MeetingView({
     } catch (err) {
       console.error('Failed to start meeting:', err)
       setStarting(false)
+    }
+  }
+
+  async function createCardFromMeeting() {
+    if (creatingCard || cardCreated || !meeting) return
+    setCreatingCard(true)
+    try {
+      // Use tester's output as the card description, fall back to all messages
+      const testerMsg = messages.find((m) => m.agentType === 'tester' && m.status === 'done')
+      const description = testerMsg?.content
+        ? `${testerMsg.content}\n\n*Generated from meeting: "${meeting.topic}" on ${new Date().toLocaleDateString()}*`
+        : messages
+            .filter((m) => m.status === 'done')
+            .map((m) => `**${m.agentType}:** ${m.content}`)
+            .join('\n\n')
+
+      await fetch(`/api/projects/${projectId}/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: meeting.topic,
+          description,
+        }),
+      })
+      setCardCreated(true)
+    } catch (err) {
+      console.error('Failed to create card:', err)
+    } finally {
+      setCreatingCard(false)
     }
   }
 
@@ -134,26 +165,56 @@ export function MeetingView({
           <MeetingChat messages={messages} />
         </div>
 
-        {/* Cost summary for concluded meetings */}
-        {isConcluded && (totalCostUsd > 0 || totalTokens > 0) && (
+        {/* Footer for concluded meetings: cost summary + Create Card */}
+        {isConcluded && (
           <div className="px-4 py-3 bg-dracula-darker/80 backdrop-blur-sm border-t border-dracula-dark/50 flex-shrink-0">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-dracula-comment mb-2">Meeting Cost</p>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 items-center">
-              {totalCostUsd > 0 && (
-                <span className="text-xs text-dracula-green font-semibold">{formatCost(totalCostUsd)} total</span>
-              )}
-              {totalTokens > 0 && (
-                <span className="text-xs text-dracula-comment">{formatTokens(totalTokens)} tokens</span>
-              )}
-            </div>
-            {/* Per-agent cost row */}
-            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
-              {messages.filter((m) => m.status === 'done' && m.costUsd != null).map((m) => (
-                <span key={m.id} className="text-[10px] text-dracula-comment">
-                  <span style={{ color: ROLE_HEX[m.agentType] ?? '#6272a4' }}>{m.agentType}</span>
-                  {' '}{formatCost(m.costUsd!)}
-                </span>
-              ))}
+            <div className="flex items-start justify-between gap-4">
+              {/* Cost summary */}
+              <div className="flex-1 min-w-0">
+                {(totalCostUsd > 0 || totalTokens > 0) && (
+                  <>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-dracula-comment mb-2">Meeting Cost</p>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 items-center">
+                      {totalCostUsd > 0 && (
+                        <span className="text-xs text-dracula-green font-semibold">{formatCost(totalCostUsd)} total</span>
+                      )}
+                      {totalTokens > 0 && (
+                        <span className="text-xs text-dracula-comment">{formatTokens(totalTokens)} tokens</span>
+                      )}
+                    </div>
+                    {/* Per-agent cost row */}
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
+                      {messages.filter((m) => m.status === 'done' && m.costUsd != null).map((m) => (
+                        <span key={m.id} className="text-[10px] text-dracula-comment">
+                          <span style={{ color: ROLE_HEX[m.agentType] ?? '#6272a4' }}>{m.agentType}</span>
+                          {' '}{formatCost(m.costUsd!)}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Create Card button */}
+              <div className="flex-shrink-0">
+                <button
+                  onClick={createCardFromMeeting}
+                  disabled={creatingCard || cardCreated}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dracula-cyan/20 text-dracula-cyan text-xs font-semibold hover:bg-dracula-cyan/30 disabled:opacity-50 transition-colors"
+                >
+                  {cardCreated ? (
+                    <>
+                      <Check className="w-3 h-3" />
+                      Card Created
+                    </>
+                  ) : (
+                    <>
+                      <PlusSquare className="w-3 h-3" />
+                      {creatingCard ? 'Creating...' : 'Create Card'}
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
