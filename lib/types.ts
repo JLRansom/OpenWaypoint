@@ -91,6 +91,16 @@ export interface Project {
   executorConfig?: ExecutorConfig
 }
 
+/** A user-defined tag for a project with a custom hex color. */
+export interface ProjectTag {
+  id: string
+  projectId: string
+  name: string
+  /** Hex color string, e.g. '#ff5555'. */
+  color: string
+  createdAt: number
+}
+
 export interface StreamPayload {
   agents: Agent[]
   projects: Project[]
@@ -98,6 +108,7 @@ export interface StreamPayload {
   meetings?: Meeting[]
   meetingMessages?: MeetingMessage[]
   meetingSchedules?: MeetingSchedule[]
+  projectTags?: ProjectTag[]
 }
 
 export interface TaskRun {

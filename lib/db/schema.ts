@@ -118,6 +118,16 @@ export const meetings = sqliteTable('meetings', {
   updatedAt:   integer('updated_at').notNull(),
 })
 
+/** Per-project tag definitions with custom colors. */
+export const projectTags = sqliteTable('project_tags', {
+  id:        text('id').primaryKey(),
+  projectId: text('project_id').notNull().references(() => projects.id),
+  name:      text('name').notNull(),
+  /** Hex color string, e.g. '#ff5555'. */
+  color:     text('color').notNull().default('#6272a4'),
+  createdAt: integer('created_at').notNull(),
+})
+
 /** Individual agent messages within a meeting. */
 export const meetingMessages = sqliteTable('meeting_messages', {
   id:           integer('id').primaryKey({ autoIncrement: true }),

@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 
-type View = 'board' | 'dashboard' | 'meetings'
+type View = 'board' | 'dashboard' | 'meetings' | 'tags'
 
 export function ProjectViewToggle({
   projectId,
@@ -52,6 +52,16 @@ export function ProjectViewToggle({
         }`}
       >
         Meetings
+      </button>
+      <button
+        onClick={() => switchTo('tags')}
+        className={`text-xs font-semibold px-3 py-1 rounded-md transition-colors ${
+          currentView === 'tags'
+            ? 'bg-dracula-orange/20 text-dracula-orange'
+            : 'text-dracula-comment hover:text-dracula-foreground'
+        }`}
+      >
+        Tags
       </button>
     </div>
   )

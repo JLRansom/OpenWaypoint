@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { Task, Agent, BoardType, isAgentActive, TaskRun, TaskFile } from '@/lib/types'
+import { Task, Agent, BoardType, isAgentActive, TaskRun, TaskFile, ProjectTag } from '@/lib/types'
 import { AgentProgressBar } from '@/components/AgentProgressBar'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
 import { FileDropZone } from '@/components/FileDropZone'
@@ -28,13 +28,14 @@ interface KanbanCardProps {
   task: Task
   activeAgent?: Agent
   boardType: BoardType
+  projectTags?: ProjectTag[]
   autoOpen?: boolean
   onAutoOpenConsumed?: () => void
   isSelected?: boolean
   onToggleSelect?: (id: string) => void
 }
 
-export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenConsumed, isSelected = false, onToggleSelect }: KanbanCardProps) {
+export function KanbanCard({ task, activeAgent, boardType, projectTags, autoOpen, onAutoOpenConsumed, isSelected = false, onToggleSelect }: KanbanCardProps) {
   const [loading, setLoading] = useState<AssignRole | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [assignError, setAssignError] = useState<string | null>(null)
@@ -257,14 +258,44 @@ export function KanbanCard({ task, activeAgent, boardType, autoOpen, onAutoOpenC
       {/* Tags */}
       {task.tags && task.tags.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {task.tags.map((tag) => (
-            <span
-              key={tag}
-              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${TAG_COLORS[tag] ?? TAG_COLOR_DEFAULT}`}
-            >
-              {tag}
-            </span>
-          ))}
+          {task.tags.map((tag) => {
+            // Check pipeline-generated colors first, then project tag definitions
+            const pipelineClass = TAG_COLORS[tag]
+            const projectTag = !pipelineClass ? projectTags?.find((t) => t.name === tag) : undefined
+            if (pipelineClass) {
+              return (
+                <span
+                  key={tag}
+                  className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${pipelineClass}`}
+                >
+                  {tag}
+                </span>
+              )
+            }
+            if (projectTag) {
+              return (
+                <span
+                  key={tag}
+                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border"
+                  style={{
+                    background: projectTag.color + '33',
+                    color: projectTag.color,
+                    borderColor: projectTag.color + '55',
+                  }}
+                >
+                  {tag}
+                </span>
+              )
+            }
+            return (
+              <span
+                key={tag}
+                className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${TAG_COLOR_DEFAULT}`}
+              >
+                {tag}
+              </span>
+            )
+          })}
         </div>
       )}
 

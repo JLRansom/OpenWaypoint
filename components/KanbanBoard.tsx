@@ -22,7 +22,8 @@ const COLUMNS_BY_TYPE: Record<BoardType, TaskStatus[]> = {
 }
 
 export function KanbanBoard({ projectId, initialCardId, boardType }: { projectId: string; initialCardId?: string; boardType: BoardType }) {
-  const { tasks, agents } = useStream()
+  const { tasks, agents, projectTags } = useStream()
+  const projectTagsForProject = (projectTags ?? []).filter((t) => t.projectId === projectId)
   const [activeAddColumn, setActiveAddColumn] = useState<TaskStatus | null>(null)
   const [autoOpenCardId, setAutoOpenCardId] = useState<string | undefined>(initialCardId)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -156,6 +157,23 @@ export function KanbanBoard({ projectId, initialCardId, boardType }: { projectId
           </span>
           {allTags.map((tag) => {
             const active = activeTagFilters.has(tag)
+            const projectTag = projectTagsForProject.find((t) => t.name === tag)
+            if (projectTag) {
+              const hex = projectTag.color
+              return (
+                <button
+                  key={tag}
+                  onClick={() => toggleTagFilter(tag)}
+                  className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border transition-colors"
+                  style={active
+                    ? { background: hex, color: '#282a36', borderColor: hex }
+                    : { background: hex + '22', color: hex, borderColor: hex + '55' }
+                  }
+                >
+                  {tag}
+                </button>
+              )
+            }
             return (
               <button
                 key={tag}
@@ -192,6 +210,7 @@ export function KanbanBoard({ projectId, initialCardId, boardType }: { projectId
                 agents={agents}
                 projectId={projectId}
                 boardType={boardType}
+                projectTags={projectTagsForProject}
                 isAddActive={activeAddColumn === status}
                 onAddActivate={() => setActiveAddColumn(status)}
                 onAddDeactivate={() => setActiveAddColumn(null)}

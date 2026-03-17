@@ -1,4 +1,4 @@
-import { Agent, AgentEvent, Project, Task, TaskFile, Meeting, MeetingMessage, MeetingSchedule, StreamPayload } from '@/lib/types'
+import { Agent, AgentEvent, Project, Task, TaskFile, Meeting, MeetingMessage, MeetingSchedule, StreamPayload, ProjectTag } from '@/lib/types'
 import { broadcast } from '@/lib/broadcast'
 import {
   dbGetAllAgents,
@@ -52,6 +52,14 @@ import {
   dbUpdateSchedule,
   dbDeleteSchedule,
 } from '@/lib/db/repositories/meetingScheduleRepo'
+import {
+  dbGetAllTags,
+  dbGetTagsByProject,
+  dbGetTag,
+  dbAddTag,
+  dbUpdateTag,
+  dbDeleteTag,
+} from '@/lib/db/repositories/tagRepo'
 
 export { subscribe, unsubscribe, broadcast } from '@/lib/broadcast'
 
@@ -63,6 +71,7 @@ export function getStreamPayload(): StreamPayload {
     meetings: dbGetAllActiveMeetings(),
     meetingMessages: dbGetAllActiveMeetingMessages(),
     meetingSchedules: dbGetAllEnabledSchedules(),
+    projectTags: dbGetAllTags(),
   }
 }
 
@@ -259,6 +268,31 @@ export function updateSchedule(id: string, patch: Partial<MeetingSchedule>): voi
 
 export function deleteSchedule(id: string): void {
   dbDeleteSchedule(id)
+  broadcast(getStreamPayload())
+}
+
+// --- Project tag functions ---
+
+export function getTagsByProject(projectId: string): ProjectTag[] {
+  return dbGetTagsByProject(projectId)
+}
+
+export function getTag(id: string): ProjectTag | undefined {
+  return dbGetTag(id)
+}
+
+export function addTag(tag: ProjectTag): void {
+  dbAddTag(tag)
+  broadcast(getStreamPayload())
+}
+
+export function updateTag(id: string, patch: Partial<Pick<ProjectTag, 'name' | 'color'>>): void {
+  dbUpdateTag(id, patch)
+  broadcast(getStreamPayload())
+}
+
+export function deleteTag(id: string): void {
+  dbDeleteTag(id)
   broadcast(getStreamPayload())
 }
 

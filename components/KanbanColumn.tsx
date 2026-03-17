@@ -1,5 +1,5 @@
 import { useDroppable } from '@dnd-kit/core'
-import { Task, Agent, TaskStatus, BoardType } from '@/lib/types'
+import { Task, Agent, TaskStatus, BoardType, ProjectTag } from '@/lib/types'
 import { KanbanCard } from '@/components/KanbanCard'
 import { AddCardForm } from '@/components/AddCardForm'
 
@@ -30,6 +30,7 @@ interface KanbanColumnProps {
   agents: Agent[]
   projectId: string
   boardType: BoardType
+  projectTags?: ProjectTag[]
   isAddActive: boolean
   onAddActivate: () => void
   onAddDeactivate: () => void
@@ -39,7 +40,7 @@ interface KanbanColumnProps {
   onToggleSelect: (id: string) => void
 }
 
-export function KanbanColumn({ status, tasks, agents, projectId, boardType, isAddActive, onAddActivate, onAddDeactivate, autoOpenCardId, onAutoOpenConsumed, selectedIds, onToggleSelect }: KanbanColumnProps) {
+export function KanbanColumn({ status, tasks, agents, projectId, boardType, projectTags, isAddActive, onAddActivate, onAddDeactivate, autoOpenCardId, onAutoOpenConsumed, selectedIds, onToggleSelect }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
   const baseLabel = COLUMN_LABELS[status]
   const label = status === 'backlog' && boardType === 'general' ? 'To Do' : baseLabel
@@ -77,6 +78,7 @@ export function KanbanColumn({ status, tasks, agents, projectId, boardType, isAd
               task={task}
               activeAgent={activeAgent}
               boardType={boardType}
+              projectTags={projectTags}
               autoOpen={autoOpenCardId === task.id}
               onAutoOpenConsumed={onAutoOpenConsumed}
               isSelected={selectedIds.has(task.id)}
