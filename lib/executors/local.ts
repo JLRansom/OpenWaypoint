@@ -73,9 +73,12 @@ export class LocalClaudeCliExecutor implements Executor {
       let settled = false
 
       // Accumulate token counts across multi-turn conversations.
-      // message_start carries input tokens; message_delta carries output tokens.
+      // message_start carries input tokens (including cache tokens);
+      // message_delta carries output tokens.
       let accumInputTokens = 0
       let accumOutputTokens = 0
+      let accumCacheRead = 0
+      let accumCacheWrite = 0
       let accumTurns = 0
 
       const settle = (err?: Error) => {
@@ -116,13 +119,17 @@ export class LocalClaudeCliExecutor implements Executor {
               const usage = msg?.usage as Record<string, unknown> | undefined
               if (usage) {
                 accumInputTokens += (usage.input_tokens as number | undefined) ?? 0
+                accumCacheRead  += (usage.cache_read_input_tokens   as number | undefined) ?? 0
+                accumCacheWrite += (usage.cache_creation_input_tokens as number | undefined) ?? 0
                 accumTurns += 1
                 onStats({
                   inputTokens: accumInputTokens,
                   outputTokens: accumOutputTokens,
                   totalTokens: accumInputTokens + accumOutputTokens,
                   numTurns: accumTurns,
-                  costUsd: calculateCost(accumInputTokens, accumOutputTokens, model),
+                  cacheReadTokens: accumCacheRead,
+                  cacheWriteTokens: accumCacheWrite,
+                  costUsd: calculateCost(accumInputTokens, accumOutputTokens, model, accumCacheRead, accumCacheWrite),
                 })
               }
             }
@@ -137,7 +144,9 @@ export class LocalClaudeCliExecutor implements Executor {
                   outputTokens: accumOutputTokens,
                   totalTokens: accumInputTokens + accumOutputTokens,
                   numTurns: accumTurns,
-                  costUsd: calculateCost(accumInputTokens, accumOutputTokens, model),
+                  cacheReadTokens: accumCacheRead,
+                  cacheWriteTokens: accumCacheWrite,
+                  costUsd: calculateCost(accumInputTokens, accumOutputTokens, model, accumCacheRead, accumCacheWrite),
                 })
               }
             }
@@ -154,7 +163,9 @@ export class LocalClaudeCliExecutor implements Executor {
                   outputTokens: accumOutputTokens,
                   totalTokens: accumInputTokens + accumOutputTokens,
                   numTurns: Math.max(accumTurns, 1),
-                  costUsd: calculateCost(accumInputTokens, accumOutputTokens, model),
+                  cacheReadTokens: accumCacheRead,
+                  cacheWriteTokens: accumCacheWrite,
+                  costUsd: calculateCost(accumInputTokens, accumOutputTokens, model, accumCacheRead, accumCacheWrite),
                 })
               }
               settle(new Error(
@@ -170,17 +181,24 @@ export class LocalClaudeCliExecutor implements Executor {
                 (usage?.input_tokens as number | undefined) ?? accumInputTokens
               const outputTokens =
                 (usage?.output_tokens as number | undefined) ?? accumOutputTokens
+              // Prefer result-line cache counts if present, fall back to accumulated
+              const cacheReadTokens =
+                (usage?.cache_read_input_tokens as number | undefined) ?? accumCacheRead
+              const cacheWriteTokens =
+                (usage?.cache_creation_input_tokens as number | undefined) ?? accumCacheWrite
               const resultModel = parsed.model as string | undefined
               // Prefer CLI-reported cost; fall back to server-side calculation
               // from the pricing table so cost is always populated when possible.
               const cliCost = parsed.cost_usd as number | undefined
               const costUsd =
-                cliCost ?? calculateCost(inputTokens, outputTokens, resultModel ?? model)
+                cliCost ?? calculateCost(inputTokens, outputTokens, resultModel ?? model, cacheReadTokens, cacheWriteTokens)
               onStats({
                 inputTokens,
                 outputTokens,
                 totalTokens: inputTokens + outputTokens,
                 numTurns: (parsed.num_turns as number | undefined) ?? Math.max(accumTurns, 1),
+                cacheReadTokens,
+                cacheWriteTokens,
                 costUsd,
                 model: resultModel,
               })

@@ -9,7 +9,7 @@ export interface AgentEvent {
 
 /** Usage statistics extracted from Claude CLI execution. */
 export interface AgentStats {
-  /** Prompt / input tokens consumed. */
+  /** Prompt / input tokens consumed (includes cache read + write tokens). */
   inputTokens: number
   /** Completion / output tokens generated. */
   outputTokens: number
@@ -21,6 +21,10 @@ export interface AgentStats {
   costUsd?: number
   /** Model identifier used for the run (e.g. "claude-opus-4-5"). */
   model?: string
+  /** Tokens served from the prompt cache (billed at ~0.1× input rate). */
+  cacheReadTokens?: number
+  /** Tokens written to the prompt cache (billed at ~1.25× input rate). */
+  cacheWriteTokens?: number
 }
 
 export interface Agent {
