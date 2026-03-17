@@ -303,3 +303,21 @@ export interface ProjectAnalyticsResponse {
   taskStatusCounts: TaskStatusCount[]
   meetingStats?: MeetingAnalytics
 }
+
+// ---------------------------------------------------------------------------
+// Meeting history (shared between GET /api/meetings and HistoryList)
+// ---------------------------------------------------------------------------
+
+/** Enriched meeting row returned by GET /api/meetings for the history table. */
+export interface MeetingHistoryEntry {
+  id: string
+  projectId: string
+  projectName: string
+  topic: string
+  status: string
+  agentCount: number
+  totalTokens: number
+  totalCostUsd: number
+  createdAt: number
+  updatedAt: number
+}

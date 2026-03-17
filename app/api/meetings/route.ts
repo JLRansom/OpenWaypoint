@@ -2,19 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAllProjects } from '@/lib/store'
 import { dbGetAllMeetings } from '@/lib/db/repositories/meetingRepo'
 import { dbGetMessagesByMeeting } from '@/lib/db/repositories/meetingRepo'
-
-export interface MeetingHistoryEntry {
-  id: string
-  projectId: string
-  projectName: string
-  topic: string
-  status: string
-  agentCount: number
-  totalTokens: number
-  totalCostUsd: number
-  createdAt: number
-  updatedAt: number
-}
+import type { MeetingHistoryEntry } from '@/lib/types'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl

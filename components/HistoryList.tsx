@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { TaskRun, PaginatedRunsResponse } from '@/lib/types'
+import { TaskRun, PaginatedRunsResponse, MeetingHistoryEntry } from '@/lib/types'
 import { Button } from '@/components/ui/Button'
 import { MarkdownOutput } from '@/components/ui/MarkdownOutput'
 import { ROLE_COLORS, ROLE_COLOR_FALLBACK } from '@/lib/constants'
 import { formatCost, formatTokens } from '@/lib/format-utils'
-import type { MeetingHistoryEntry } from '@/app/api/meetings/route'
 
 type RoleFilter = 'all' | 'researcher' | 'coder' | 'senior-coder' | 'tester' | 'writer'
 type StatusFilter = 'all' | 'done' | 'failed'
