@@ -5,6 +5,7 @@ import { Play, Calendar } from 'lucide-react'
 import { useStream } from '@/components/StreamProvider'
 import { MeetingCalendar } from '@/components/MeetingCalendar'
 import { MeetingScheduleForm } from '@/components/MeetingScheduleForm'
+import { MeetingTypeSelector } from '@/components/MeetingTypeSelector'
 import { ConcludedMeetingsList } from '@/components/ConcludedMeetingsList'
 import { MeetingView } from '@/components/MeetingView'
 import type { Meeting, MeetingSchedule } from '@/lib/types'
@@ -15,6 +16,7 @@ export function MeetingsPanel({ projectId }: { projectId: string }) {
   const [schedules, setSchedules] = useState<MeetingSchedule[]>([])
   const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null)
   const [showScheduleForm, setShowScheduleForm] = useState(false)
+  const [showTypeSelector, setShowTypeSelector] = useState(false)
   const [starting, setStarting] = useState(false)
 
   // Initial REST fetch
@@ -52,15 +54,15 @@ export function MeetingsPanel({ projectId }: { projectId: string }) {
     }
   }, [stream.meetingSchedules, projectId])
 
-  async function startMeeting() {
+  async function createMeeting(meetingType: 'ideas' | 'card-discussion', taskId?: string) {
     if (starting) return
+    setShowTypeSelector(false)
     setStarting(true)
     try {
-      // No topic — the writer agent analyzes the project and generates one
       const res = await fetch(`/api/projects/${projectId}/meetings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ meetingType, taskId }),
       })
       const meeting: Meeting = await res.json()
       setMeetings((prev) => [meeting, ...prev])
@@ -94,7 +96,7 @@ export function MeetingsPanel({ projectId }: { projectId: string }) {
       {/* Action buttons */}
       <div className="flex items-center gap-3">
         <button
-          onClick={startMeeting}
+          onClick={() => setShowTypeSelector(true)}
           disabled={starting}
           className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-dracula-green/20 text-dracula-green text-xs font-semibold hover:bg-dracula-green/30 disabled:opacity-40 transition-colors"
         >
@@ -132,6 +134,15 @@ export function MeetingsPanel({ projectId }: { projectId: string }) {
           onClick={(id) => setSelectedMeetingId(id)}
         />
       </div>
+
+      {/* Meeting type selector modal */}
+      {showTypeSelector && (
+        <MeetingTypeSelector
+          projectId={projectId}
+          onSelect={createMeeting}
+          onClose={() => setShowTypeSelector(false)}
+        />
+      )}
 
       {/* Schedule creation modal */}
       {showScheduleForm && (

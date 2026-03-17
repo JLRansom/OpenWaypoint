@@ -106,12 +106,16 @@ export const meetingSchedules = sqliteTable('meeting_schedules', {
 
 /** Meetings — collaborative agent discussions on a topic. */
 export const meetings = sqliteTable('meetings', {
-  id:        text('id').primaryKey(),
-  projectId: text('project_id').notNull().references(() => projects.id),
-  topic:     text('topic').notNull(),
-  status:    text('status').notNull().default('setup'),
-  createdAt: integer('created_at').notNull(),
-  updatedAt: integer('updated_at').notNull(),
+  id:          text('id').primaryKey(),
+  projectId:   text('project_id').notNull().references(() => projects.id),
+  topic:       text('topic').notNull(),
+  status:      text('status').notNull().default('setup'),
+  /** 'ideas' = writer proposes agenda autonomously; 'card-discussion' = discuss a specific task. */
+  meetingType: text('meeting_type').notNull().default('ideas'),
+  /** For card-discussion meetings: the task being discussed. */
+  taskId:      text('task_id'),
+  createdAt:   integer('created_at').notNull(),
+  updatedAt:   integer('updated_at').notNull(),
 })
 
 /** Individual agent messages within a meeting. */

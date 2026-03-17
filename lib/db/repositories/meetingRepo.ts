@@ -1,7 +1,7 @@
 import { eq, ne } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { meetings, meetingMessages } from '@/lib/db/schema'
-import type { Meeting, MeetingMessage, MeetingStatus, MeetingMessageStatus, MeetingAgentType } from '@/lib/types'
+import type { Meeting, MeetingMessage, MeetingStatus, MeetingMessageStatus, MeetingAgentType, MeetingType } from '@/lib/types'
 
 // ---------------------------------------------------------------------------
 // Row mapping
@@ -12,12 +12,14 @@ type MeetingMessageRow = typeof meetingMessages.$inferSelect
 
 function rowToMeeting(row: MeetingRow): Meeting {
   return {
-    id:        row.id,
-    projectId: row.projectId,
-    topic:     row.topic,
-    status:    row.status as MeetingStatus,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
+    id:          row.id,
+    projectId:   row.projectId,
+    topic:       row.topic,
+    status:      row.status as MeetingStatus,
+    meetingType: (row.meetingType as MeetingType | null) ?? 'ideas',
+    taskId:      row.taskId ?? undefined,
+    createdAt:   row.createdAt,
+    updatedAt:   row.updatedAt,
   }
 }
 
@@ -99,12 +101,14 @@ export function dbGetAllActiveMeetingMessages(): MeetingMessage[] {
 export function dbAddMeeting(meeting: Meeting): void {
   db.insert(meetings)
     .values({
-      id:        meeting.id,
-      projectId: meeting.projectId,
-      topic:     meeting.topic,
-      status:    meeting.status,
-      createdAt: meeting.createdAt,
-      updatedAt: meeting.updatedAt,
+      id:          meeting.id,
+      projectId:   meeting.projectId,
+      topic:       meeting.topic,
+      status:      meeting.status,
+      meetingType: meeting.meetingType ?? 'ideas',
+      taskId:      meeting.taskId ?? null,
+      createdAt:   meeting.createdAt,
+      updatedAt:   meeting.updatedAt,
     })
     .run()
 }
