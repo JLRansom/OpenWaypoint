@@ -2,12 +2,47 @@
 
 > Append new entries at the top. Keep each entry ≤ 10 lines.
 
+## ADR-037 — Meetings toggle in HistoryList + global meetings API (2026-03-14)
+**Decision:** Added `mode` state (`'runs' | 'meetings'`) to `HistoryList`. Meetings view shows a filterable table (date, topic, project, status, agents, tokens, cost) via a new global `GET /api/meetings` endpoint. Endpoint enriches data from `dbGetAllMeetings()` + per-meeting message aggregations (agentCount, totalTokens, totalCostUsd). Supports `from`/`to` epoch-ms and `status` query params.
+**Why:** History tab covers all runs; logical to extend it to meetings. Global endpoint needed because /history has no projectId.
+**Affects:** `app/api/meetings/route.ts` (new), `lib/db/repositories/meetingRepo.ts` (+`dbGetAllMeetings`), `components/HistoryList.tsx`.
+**PR:** #19 merged (2026-03-17).
+
+## ADR-036 — Meeting analytics stats in AnalyticsPanel (2026-03-14)
+**Decision:** Added `dbGetMeetingAnalytics(projectId, from?, to?)` that joins `meetings` + `meeting_messages`, aggregates concluded meetings by day. Analytics route merges `meetingStats` into response. AnalyticsPanel shows 2 new stat cards (Meetings Held, Meeting Cost) and a Meetings Over Time BarChart with Line overlay for cost.
+**Affects:** `lib/types.ts` (+`MeetingAnalytics`, `MeetingsByDayData`), `analyticsRepo.ts`, `app/api/projects/[id]/analytics/route.ts`, `components/AnalyticsPanel.tsx`.
+**PR:** #18 merged (2026-03-17).
+
+## ADR-035 — Per-project meeting memory via settings table (2026-03-14)
+**Decision:** Meeting memory stored in existing `settings` table with key `meeting-memory:{projectId}`. On `runMeeting()` start, memory is injected into all agent system prompts as "Past Meeting Context". After conclusion, a 2–3 sentence summary is prepended (bullet format); trimmed to 4000 chars at last complete bullet when full. Collapsible UI in MeetingsPanel; GET/DELETE `/api/projects/[id]/meeting-memory`.
+**Pattern:** Reuses `getSetting`/`setSetting` — no new table or migration needed.
+**Affects:** `lib/services/agentService.ts`, `app/api/projects/[id]/meeting-memory/route.ts` (new), `components/MeetingsPanel.tsx`.
+**PR:** #17 merged (2026-03-17).
+
+## ADR-034 — First-class project tags with hex colors (2026-03-14)
+**Decision:** Added `project_tags` table (migration 0019) with `id, project_id, name, color (hex), created_at`. Tags become first-class entities; KanbanCard/Column/Board look up the hex color from `StreamPayload.projectTags` and apply it via inline styles (background + '33', border + '55' for transparency). Pipeline auto-tags (approved, etc.) retain their Tailwind classes. TagsPanel (new tab) provides CRUD with a 12-swatch inline color picker (no external library).
+**Why:** Task.tags was an unmanaged string array; no way to assign colors consistently. Per-project tag entities allow color management and future per-project tag namespacing.
+**Affects:** `lib/db/schema.ts`, `lib/types.ts`, `lib/db/repositories/tagRepo.ts` (new), `lib/store.ts`, API routes (new), `components/TagsPanel.tsx` (new), `components/KanbanCard/Column/Board.tsx`, `components/ProjectViewToggle.tsx`, `app/projects/[id]/page.tsx`.
+**PR:** #16 merged (2026-03-17).
+
+## ADR-033 — "Create Card" button on concluded meetings (2026-03-14)
+**Decision:** Added "Create Card" button to MeetingView's concluded-meeting footer. Uses tester agent's final output as the card description; falls back to concatenated all-agent outputs. POSTs to existing `POST /api/projects/:id/tasks` endpoint — no new route. Shows loading + success states (`creatingCard`, `cardCreated`).
+**Affects:** `components/MeetingView.tsx` only.
+**PR:** #15 merged (2026-03-17).
+
+## ADR-032 — Meetings v2: writer autonomy + in-app scheduling + croner (2026-03-13)
+**Decision:** Removed manual topic input — writer agent receives project task list and generates idea autonomously; topic auto-extracted from first sentence of writer output. In-app cron scheduling via `croner` library + `meeting_schedules` DB table + 30s `setInterval` singleton in `lib/meeting-scheduler.ts`. SSE payload now includes `meetingSchedules`. Calendar grid (no library) is the default meetings view.
+**Why:** User shouldn't need to prime the AI with ideas. Recurring meetings needed a reliable cron mechanism without adding a job queue. Calendar view is more useful than a flat list.
+**Alternatives rejected:** Claude Code scheduled tasks (can't call MCP tools from web app). External calendar library (vanilla Date math sufficient for month grid).
+**Affects:** `lib/types.ts`, `lib/db/schema.ts`, `lib/store.ts`, `lib/services/agentService.ts`, `lib/meeting-scheduler.ts`, `lib/cron-utils.ts`, all Meeting* components.
+**PR:** #11 merged (2026-03-14).
+
 ## ADR-031 — Extract getMondayEpoch helper to eliminate duplication (2026-03-13)
 **Decision:** Extracted `export function getMondayEpoch(epochMs): number` in `analyticsRepo.ts`. Both `getMondayKey()` and the `weekLabel` initialiser now delegate to it. Uses `getUTCDay`/`setUTCDate`/`setUTCHours` for timezone-deterministic results.
 **Why:** Two independent Monday-calculation implementations existed in the same file (local-time `setDate/getDay` in `getMondayKey` vs inline epoch arithmetic in `weekLabel`). Senior review flagged that test helpers would need a third copy. Exporting the function prevents future test drift.
 **Alternatives rejected:** Keeping local-time methods (would still fix duplication, but UTC is strictly safer for server code).
 **Affects:** `lib/db/repositories/analyticsRepo.ts` only.
-**Branch:** `chore/extract-monday-epoch-helper` — PR #9 open.
+**PR:** #9 merged (2026-03-13).
 
 ## ADR-030 — Project dashboard replaces Analytics as default view (2026-03-13)
 **Decision:** Renamed "Analytics" → "Dashboard"; made it the default (`view !== 'board'`). Dashboard now shows 6 stat cards (Tasks Done, Failed Runs, Active Tasks, Total Cost, Avg Cost/Run, Success Rate), a task pipeline strip (all statuses with counts, dimmed at 0), a two-column activity section (Recent Runs + Recently Updated Tasks), and the existing 4 Recharts charts. Route handler enriches analytics response with task-store data (`taskStatusCounts`, `recentlyUpdatedTasks`, `activeTaskCount`, `successRate`). New types: `RecentRunEntry`, `RecentTaskEntry`, `TaskStatusCount` added to `lib/types.ts`. `ProjectAnalyticsSummary` gains `avgDurationMs`, `activeTaskCount`, `successRate`.
