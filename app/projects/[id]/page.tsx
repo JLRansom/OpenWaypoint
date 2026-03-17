@@ -8,6 +8,7 @@ import { EditProjectModal } from '@/components/EditProjectModal'
 import { ProjectViewToggle } from '@/components/ProjectViewToggle'
 import { AnalyticsPanel } from '@/components/AnalyticsPanel'
 import { MeetingsPanel } from '@/components/MeetingsPanel'
+import { TagsPanel } from '@/components/TagsPanel'
 
 export default async function ProjectBoardPage({
   params,
@@ -22,7 +23,7 @@ export default async function ProjectBoardPage({
 
   if (!project) notFound()
 
-  const activeView = view === 'board' ? 'board' : view === 'meetings' ? 'meetings' : 'dashboard'
+  const activeView = view === 'board' ? 'board' : view === 'meetings' ? 'meetings' : view === 'tags' ? 'tags' : 'dashboard'
 
   return (
     <div>
@@ -60,6 +61,9 @@ export default async function ProjectBoardPage({
       )}
       {activeView === 'meetings' && (
         <MeetingsPanel projectId={id} />
+      )}
+      {activeView === 'tags' && (
+        <TagsPanel projectId={id} />
       )}
     </div>
   )
