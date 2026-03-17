@@ -1,7 +1,7 @@
-import { eq, and, gte, lte } from 'drizzle-orm'
+import { eq, and, gte, lte, inArray } from 'drizzle-orm'
 import type { SQL } from 'drizzle-orm'
 import { db } from '../client'
-import { taskRuns } from '../schema'
+import { taskRuns, meetings, meetingMessages } from '../schema'
 import type {
   ProjectAnalyticsResponse,
   ProjectAnalyticsSummary,
@@ -10,6 +10,8 @@ import type {
   DailyCostData,
   RoleCostData,
   RecentRunEntry,
+  MeetingAnalytics,
+  MeetingsByDayData,
 } from '@/lib/types'
 
 // ---------------------------------------------------------------------------
@@ -176,5 +178,80 @@ export function dbGetProjectAnalytics(
     // recentlyUpdatedTasks and taskStatusCounts are injected by the route handler
     recentlyUpdatedTasks: [],
     taskStatusCounts: [],
+  }
+}
+
+/**
+ * Returns meeting statistics for a project in a given time range.
+ * Queries concluded meetings and aggregates their message costs/tokens.
+ */
+export function dbGetMeetingAnalytics(
+  projectId: string,
+  from?: number,
+  to?: number,
+): MeetingAnalytics {
+  // Fetch concluded meetings for the project within the time range
+  const meetingConditions: (SQL | undefined)[] = [
+    eq(meetings.projectId, projectId),
+    eq(meetings.status, 'concluded'),
+  ]
+  if (from !== undefined) meetingConditions.push(gte(meetings.createdAt, from))
+  if (to !== undefined) meetingConditions.push(lte(meetings.createdAt, to))
+
+  const meetingRows = db
+    .select()
+    .from(meetings)
+    .where(and(...meetingConditions))
+    .all()
+
+  if (meetingRows.length === 0) {
+    return { totalMeetings: 0, totalMeetingCostUsd: 0, totalMeetingTokens: 0, meetingsByDay: [] }
+  }
+
+  const meetingIds = meetingRows.map((m) => m.id)
+
+  // Fetch all messages for these meetings
+  const msgRows = db
+    .select()
+    .from(meetingMessages)
+    .where(inArray(meetingMessages.meetingId, meetingIds))
+    .all()
+
+  // Build a map: meetingId → { costUsd, tokens }
+  const msgMap = new Map<string, { costUsd: number; tokens: number }>()
+  for (const msg of msgRows) {
+    if (!msgMap.has(msg.meetingId)) msgMap.set(msg.meetingId, { costUsd: 0, tokens: 0 })
+    const agg = msgMap.get(msg.meetingId)!
+    agg.costUsd += msg.costUsd ?? 0
+    agg.tokens  += (msg.inputTokens ?? 0) + (msg.outputTokens ?? 0)
+  }
+
+  let totalMeetingCostUsd = 0
+  let totalMeetingTokens = 0
+
+  // Build daily aggregation map
+  const dayMap = new Map<string, { dateLabel: string; count: number; costUsd: number }>()
+  for (const m of meetingRows) {
+    const dayKey = getDayKey(m.createdAt)
+    if (!dayMap.has(dayKey)) {
+      dayMap.set(dayKey, { dateLabel: shortDateLabel(m.createdAt), count: 0, costUsd: 0 })
+    }
+    const bucket = dayMap.get(dayKey)!
+    bucket.count++
+    const msgAgg = msgMap.get(m.id) ?? { costUsd: 0, tokens: 0 }
+    bucket.costUsd += msgAgg.costUsd
+    totalMeetingCostUsd += msgAgg.costUsd
+    totalMeetingTokens  += msgAgg.tokens
+  }
+
+  const meetingsByDay: MeetingsByDayData[] = Array.from(dayMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, v]) => ({ dateLabel: v.dateLabel, count: v.count, costUsd: v.costUsd }))
+
+  return {
+    totalMeetings: meetingRows.length,
+    totalMeetingCostUsd,
+    totalMeetingTokens,
+    meetingsByDay,
   }
 }
