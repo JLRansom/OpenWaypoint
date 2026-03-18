@@ -12,7 +12,14 @@ import { ROLE_HEX } from '@/lib/constants'
 // Dynamic import for three.js scene — code-split, no SSR
 const MeetingScene = dynamic(
   () => import('@/components/MeetingScene').then((m) => ({ default: m.MeetingScene })),
-  { ssr: false },
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-full text-dracula-comment text-sm">
+        Loading scene…
+      </div>
+    ),
+  },
 )
 
 interface MeetingDetailResponse {
