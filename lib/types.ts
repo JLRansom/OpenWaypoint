@@ -101,6 +101,20 @@ export interface ProjectTag {
   createdAt: number
 }
 
+/** Per-agent health sub-metrics derived from task run history. */
+export interface AgentHealthMetrics {
+  /** Completion rate: done / (done + failed) over rolling 7-day window. null if insufficient data. */
+  completionRate: number | null
+  /** Throughput trend: positive = improving, negative = declining, 0 = stable. null if < 2 weeks of data. */
+  throughputTrend: number | null
+  /** Error density: failed / total over rolling 7-day window. null if insufficient data. */
+  errorDensity: number | null
+  /** Seconds since agent's last completed task run (across all time). null if no runs exist. */
+  idleSeconds: number | null
+  /** True if there's enough data for meaningful metrics (>= MIN_RUNS_THRESHOLD completed runs in window). */
+  hasEnoughData: boolean
+}
+
 export interface StreamPayload {
   agents: Agent[]
   projects: Project[]
@@ -109,6 +123,7 @@ export interface StreamPayload {
   meetingMessages?: MeetingMessage[]
   meetingSchedules?: MeetingSchedule[]
   projectTags?: ProjectTag[]
+  agentHealth?: Record<string, AgentHealthMetrics>  // keyed by agentId
 }
 
 export interface TaskRun {

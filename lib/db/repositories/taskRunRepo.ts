@@ -156,3 +156,25 @@ export function dbGetTaskRunsPaginated(opts: GetTaskRunsOpts): { runs: TaskRun[]
 
   return { runs: rows.map(rowToTaskRun), total }
 }
+
+/** Returns all task runs for a specific agent, ordered by completedAt DESC. */
+export function dbGetTaskRunsByAgent(agentId: string): TaskRun[] {
+  return db
+    .select()
+    .from(taskRuns)
+    .where(eq(taskRuns.agentId, agentId))
+    .orderBy(desc(taskRuns.completedAt))
+    .all()
+    .map(rowToTaskRun)
+}
+
+/** Returns task runs for a specific agent completed at or after `since` (epoch ms). */
+export function dbGetRecentTaskRunsByAgent(agentId: string, since: number): TaskRun[] {
+  return db
+    .select()
+    .from(taskRuns)
+    .where(and(eq(taskRuns.agentId, agentId), gte(taskRuns.completedAt, since)))
+    .orderBy(desc(taskRuns.completedAt))
+    .all()
+    .map(rowToTaskRun)
+}
