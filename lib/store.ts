@@ -1,4 +1,4 @@
-import { Agent, AgentEvent, Project, Task, TaskFile, Meeting, MeetingMessage, MeetingSchedule, StreamPayload, ProjectTag } from '@/lib/types'
+import { Agent, AgentEvent, Project, Task, TaskFile, Meeting, MeetingMessage, MeetingSchedule, StreamPayload, ProjectTag, AgentHealthMetrics } from '@/lib/types'
 import { broadcast } from '@/lib/broadcast'
 import {
   dbGetAllAgents,
@@ -60,18 +60,33 @@ import {
   dbUpdateTag,
   dbDeleteTag,
 } from '@/lib/db/repositories/tagRepo'
+import {
+  getCachedHealthMetrics,
+  computeAndCacheHealthMetrics,
+} from '@/lib/health-cache'
 
 export { subscribe, unsubscribe, broadcast } from '@/lib/broadcast'
 
 export function getStreamPayload(): StreamPayload {
+  const agents = dbGetAllAgents()
+
+  // Build health metrics map — cached per agent with 30-second TTL so the
+  // rolling-window calculation never runs inside the SSE hot path.
+  const agentHealth: Record<string, AgentHealthMetrics> = {}
+  for (const agent of agents) {
+    const cached = getCachedHealthMetrics(agent.id)
+    agentHealth[agent.id] = cached ?? computeAndCacheHealthMetrics(agent.id)
+  }
+
   return {
-    agents: dbGetAllAgents(),
+    agents,
     projects: dbGetAllProjects(),
     tasks: dbGetAllTasks(),
     meetings: dbGetAllActiveMeetings(),
     meetingMessages: dbGetAllActiveMeetingMessages(),
     meetingSchedules: dbGetAllEnabledSchedules(),
     projectTags: dbGetAllTags(),
+    agentHealth,
   }
 }
 

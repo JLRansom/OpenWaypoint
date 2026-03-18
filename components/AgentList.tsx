@@ -38,6 +38,7 @@ export function AgentList() {
               <th className="py-3 px-4">Project</th>
               <th className="py-3 px-4">Status</th>
               <th className="py-3 px-4">Created</th>
+              <th className="py-3 px-4">Health</th>
               <th className="py-3 px-4">Actions</th>
             </tr>
           </thead>

@@ -5,9 +5,10 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { useStream } from '@/components/StreamProvider'
 import { Button } from '@/components/ui/Button'
 import { Trash2 } from 'lucide-react'
+import { AgentHealthBadge } from '@/components/AgentHealthBadge'
 
 export function AgentRow({ agent, onSelect }: { agent: Agent; onSelect: () => void }) {
-  const { projects } = useStream()
+  const { projects, agentHealth } = useStream()
   const project = projects.find((p) => p.id === agent.projectId)
 
   async function handleStop() {
@@ -48,6 +49,9 @@ export function AgentRow({ agent, onSelect }: { agent: Agent; onSelect: () => vo
       </td>
       <td className="py-3 px-4 text-xs text-dracula-blue">
         {new Date(agent.createdAt).toLocaleTimeString()}
+      </td>
+      <td className="py-3 px-4">
+        <AgentHealthBadge metrics={agentHealth?.[agent.id]} />
       </td>
       <td className="py-3 px-4">
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
