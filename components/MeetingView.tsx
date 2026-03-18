@@ -79,14 +79,13 @@ export function MeetingView({
     if (creatingCard || cardCreated || !meeting) return
     setCreatingCard(true)
     try {
-      // Use tester's output as the card description, fall back to all messages
-      const testerMsg = messages.find((m) => m.agentType === 'tester' && m.status === 'done')
-      const description = testerMsg?.content
-        ? `${testerMsg.content}\n\n*Generated from meeting: "${meeting.topic}" on ${new Date().toLocaleDateString()}*`
-        : messages
-            .filter((m) => m.status === 'done')
-            .map((m) => `**${m.agentType}:** ${m.content}`)
-            .join('\n\n')
+      const agentSections = messages
+        .filter((m) => m.status === 'done')
+        .map((m) => `**${m.agentType}:** ${m.content}`)
+        .join('\n\n')
+      const description = agentSections
+        ? `${agentSections}\n\n*Generated from meeting: "${meeting.topic}" on ${new Date().toLocaleDateString()}*`
+        : `*Generated from meeting: "${meeting.topic}" on ${new Date().toLocaleDateString()}*`
 
       await fetch(`/api/projects/${projectId}/tasks`, {
         method: 'POST',

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Task, TaskStatus, TaskRun, TaskFile } from '@/lib/types'
+import { Task, TaskStatus, TaskRun, TaskFile, ProjectTag } from '@/lib/types'
 import { Button } from '@/components/ui/Button'
 import { MarkdownOutput } from '@/components/ui/MarkdownOutput'
 import { FileDropZone } from '@/components/FileDropZone'
@@ -66,8 +66,15 @@ export function TaskDetailModal({ task, onClose, runs, runsLoading, files, onFil
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description)
   const [tags, setTags] = useState<string[]>(task.tags ?? [])
-  const [tagInput, setTagInput] = useState('')
+  const [projectTags, setProjectTags] = useState<ProjectTag[]>([])
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch(`/api/projects/${task.projectId}/tags`)
+      .then((r) => r.json())
+      .then((data: ProjectTag[]) => setProjectTags(data))
+      .catch(() => {})
+  }, [task.projectId])
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -91,11 +98,9 @@ export function TaskDetailModal({ task, onClose, runs, runsLoading, files, onFil
     onClose()
   }
 
-  function addTag() {
-    const t = tagInput.trim().toLowerCase().slice(0, 32)
-    if (!t || tags.includes(t)) { setTagInput(''); return }
-    setTags((prev) => [...prev, t])
-    setTagInput('')
+  function addTag(name: string) {
+    if (!name || tags.includes(name)) return
+    setTags((prev) => [...prev, name])
   }
 
   function removeTag(tag: string) {
@@ -168,38 +173,44 @@ export function TaskDetailModal({ task, onClose, runs, runsLoading, files, onFil
               </label>
               {tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
-                  {tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-dracula-purple/20 text-dracula-purple border border-dracula-purple/30"
-                    >
-                      {tag}
-                      <button
-                        onClick={() => removeTag(tag)}
-                        className="hover:text-dracula-red transition-colors leading-none"
-                        aria-label={`Remove tag ${tag}`}
+                  {tags.map((tag) => {
+                    const pt = projectTags.find((t) => t.name === tag)
+                    return (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border"
+                        style={pt
+                          ? { background: pt.color + '33', color: pt.color, borderColor: pt.color + '55' }
+                          : { background: 'rgb(189 147 249 / 0.2)', color: '#bd93f9', borderColor: 'rgb(189 147 249 / 0.3)' }
+                        }
                       >
-                        ×
-                      </button>
-                    </span>
-                  ))}
+                        {tag}
+                        <button
+                          onClick={() => removeTag(tag)}
+                          className="hover:text-dracula-red transition-colors leading-none"
+                          aria-label={`Remove tag ${tag}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    )
+                  })}
                 </div>
               )}
-              <div className="flex gap-2">
-                <input
-                  className="flex-1 bg-dracula-dark border border-dracula-dark/80 rounded-lg px-3 py-1.5 text-sm text-dracula-light placeholder-dracula-comment focus:outline-none focus:border-dracula-purple/60 transition-colors"
-                  placeholder="Add a tag…"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag() } }}
-                />
-                <button
-                  onClick={addTag}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-dracula-purple/20 text-dracula-purple hover:bg-dracula-purple/30 transition-colors"
+              {projectTags.filter((pt) => !tags.includes(pt.name)).length > 0 && (
+                <select
+                  className="w-full bg-dracula-dark border border-dracula-dark/80 rounded-lg px-3 py-1.5 text-sm text-dracula-light focus:outline-none focus:border-dracula-purple/60 transition-colors"
+                  value=""
+                  onChange={(e) => { if (e.target.value) addTag(e.target.value) }}
                 >
-                  Add
-                </button>
-              </div>
+                  <option value="" disabled>Add a tag…</option>
+                  {projectTags
+                    .filter((pt) => !tags.includes(pt.name))
+                    .map((pt) => (
+                      <option key={pt.id} value={pt.name}>{pt.name}</option>
+                    ))}
+                </select>
+              )}
             </div>
 
             {/* ----------------------------------------------------------------
