@@ -1,26 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import dynamic from 'next/dynamic'
 import { useStream } from '@/components/StreamProvider'
 import { MeetingChat } from '@/components/MeetingChat'
+import { MeetingScene } from '@/components/MeetingScene'
 import type { Meeting, MeetingMessage } from '@/lib/types'
 import { ChevronLeft, Play, PlusSquare, Check } from 'lucide-react'
 import { formatCost, formatTokens } from '@/lib/format-utils'
 import { ROLE_HEX } from '@/lib/constants'
-
-// Dynamic import for three.js scene — code-split, no SSR
-const MeetingScene = dynamic(
-  () => import('@/components/MeetingScene').then((m) => ({ default: m.MeetingScene })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex items-center justify-center h-full text-dracula-comment text-sm">
-        Loading scene…
-      </div>
-    ),
-  },
-)
 
 interface MeetingDetailResponse {
   meeting: Meeting
@@ -122,7 +109,7 @@ export function MeetingView({
 
   return (
     <div className="flex flex-row rounded-xl overflow-hidden border border-dracula-dark/50 min-h-[600px]">
-      {/* Left pane — Three.js scene (45%) */}
+      {/* Left pane — CSS agent visualization (45%) */}
       <div className="w-[45%] min-h-[600px] flex-shrink-0" style={{ background: '#1e1f29' }}>
         <MeetingScene speakingAgent={speakingAgent} messages={messages} />
       </div>
