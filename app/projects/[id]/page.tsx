@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
-import dynamic from 'next/dynamic'
 import { getProject } from '@/lib/store'
 import { KanbanBoard } from '@/components/KanbanBoard'
 import { ArchivedCards } from '@/components/ArchivedCards'
@@ -9,14 +8,7 @@ import { EditProjectModal } from '@/components/EditProjectModal'
 import { ProjectViewToggle } from '@/components/ProjectViewToggle'
 import { AnalyticsPanel } from '@/components/AnalyticsPanel'
 import { TagsPanel } from '@/components/TagsPanel'
-
-// Dynamic import keeps Three.js / @react-three/fiber out of the page's eager
-// module graph. Turbopack only compiles the meetings chunk when ?view=meetings
-// is first visited. ssr:false lives inside MeetingsPanelLoader (Client Component)
-// because Next.js 16 disallows ssr:false in Server Components.
-const MeetingsPanelLoader = dynamic(
-  () => import('@/components/MeetingsPanelLoader').then((m) => ({ default: m.MeetingsPanelLoader })),
-)
+import { MeetingsPanelLoader } from '@/components/MeetingsPanelLoader'
 
 export default async function ProjectBoardPage({
   params,
