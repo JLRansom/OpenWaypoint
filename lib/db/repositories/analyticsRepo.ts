@@ -73,7 +73,7 @@ export function dbGetProjectAnalytics(
 
   for (const r of rows) {
     if (r.status === 'done') totalRunsDone++
-    else totalRunsFailed++
+    else if (r.status === 'failed') totalRunsFailed++
     totalCostUsd += r.costUsd ?? 0
     totalInputTokens += r.inputTokens ?? 0
     totalOutputTokens += r.outputTokens ?? 0
@@ -105,7 +105,7 @@ export function dbGetProjectAnalytics(
     }
     const bucket = weekMap.get(key)!
     if (r.status === 'done') bucket.done++
-    else bucket.failed++
+    else if (r.status === 'failed') bucket.failed++
   }
   const weeklyTasks: WeeklyTaskData[] = Array.from(weekMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))

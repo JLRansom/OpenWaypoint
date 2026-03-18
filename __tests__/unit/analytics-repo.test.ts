@@ -295,3 +295,56 @@ describe('dbGetProjectAnalytics', () => {
     expect(summary.totalCostUsd).toBeCloseTo(0.20)
   })
 })
+
+// --- Status classification ---------------------------------------------------
+
+describe('status classification', () => {
+  it.each([
+    { status: 'done' as const,   expectDone: 1, expectFailed: 0 },
+    { status: 'failed' as const, expectDone: 0, expectFailed: 1 },
+  ])('correctly classifies status=$status', async ({ status, expectDone, expectFailed }) => {
+    const project = makeTestProject()
+    addProject(project)
+    seedRun(project.id, { status, completedAt: D1 })
+
+    const { summary } = dbGetProjectAnalytics(project.id)
+    expect(summary.totalRunsDone).toBe(expectDone)
+    expect(summary.totalRunsFailed).toBe(expectFailed)
+    // Neither category should contain extra counts
+    expect(summary.totalRunsDone + summary.totalRunsFailed).toBe(1)
+  })
+
+  it('does not double-count - done increments only totalRunsDone', () => {
+    const project = makeTestProject()
+    addProject(project)
+    seedRun(project.id, { status: 'done', completedAt: D1 })
+    seedRun(project.id, { status: 'done', completedAt: D1 })
+
+    const { summary } = dbGetProjectAnalytics(project.id)
+    expect(summary.totalRunsDone).toBe(2)
+    expect(summary.totalRunsFailed).toBe(0)
+  })
+
+  it('does not double-count - failed increments only totalRunsFailed', () => {
+    const project = makeTestProject()
+    addProject(project)
+    seedRun(project.id, { status: 'failed', completedAt: D1 })
+    seedRun(project.id, { status: 'failed', completedAt: D1 })
+
+    const { summary } = dbGetProjectAnalytics(project.id)
+    expect(summary.totalRunsDone).toBe(0)
+    expect(summary.totalRunsFailed).toBe(2)
+  })
+
+  it('weekly bucket classifies done vs failed explicitly', () => {
+    const project = makeTestProject()
+    addProject(project)
+    seedRun(project.id, { status: 'done',   completedAt: D1 })
+    seedRun(project.id, { status: 'failed', completedAt: D1 })
+
+    const { weeklyTasks } = dbGetProjectAnalytics(project.id)
+    expect(weeklyTasks).toHaveLength(1)
+    expect(weeklyTasks[0].done).toBe(1)
+    expect(weeklyTasks[0].failed).toBe(1)
+  })
+})
