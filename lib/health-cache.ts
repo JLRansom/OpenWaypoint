@@ -1,5 +1,7 @@
-import { computeHealthMetrics, ROLLING_WINDOW_MS } from '@/lib/health'
+import { computeHealthMetrics, applyRoleBaseline } from '@/lib/health'
 import { dbGetTaskRunsByAgent } from '@/lib/db/repositories/taskRunRepo'
+import { dbGetAgent } from '@/lib/db/repositories/agentRepo'
+import { getRoleBaseline } from '@/lib/health-baselines'
 import type { AgentHealthMetrics } from '@/lib/types'
 
 // ---------------------------------------------------------------------------
@@ -37,11 +39,31 @@ export function getCachedHealthMetrics(
 
 /**
  * Queries the DB for all task runs belonging to this agent, computes health
- * metrics, stores the result in the cache, and returns it.
+ * metrics, applies role-relative baseline normalisation when the
+ * `ROLE_BASELINES_ENABLED` environment variable is set to `"true"`, stores
+ * the result in the cache, and returns it.
+ *
+ * Role-baseline normalisation is gated behind the feature flag so the code
+ * can be deployed without activating it, enabling an A/B comparison of badge
+ * behaviour and an emergency rollback without a code revert.
  */
 export function computeAndCacheHealthMetrics(agentId: string): AgentHealthMetrics {
   const runs = dbGetTaskRunsByAgent(agentId)
-  const metrics = computeHealthMetrics(runs)
+  const raw = computeHealthMetrics(runs)
+
+  let metrics = raw
+
+  if (process.env.ROLE_BASELINES_ENABLED === 'true') {
+    // Look up the agent's role so we can fetch the correct cohort baseline.
+    // dbGetAgent returns undefined for unknown ids; we degrade to flat thresholds
+    // in that case (applyRoleBaseline treats a null baseline as a no-op).
+    const agent = dbGetAgent(agentId)
+    if (agent) {
+      const baseline = getRoleBaseline(agent.type)
+      metrics = applyRoleBaseline(raw, baseline)
+    }
+  }
+
   cache.set(agentId, { metrics, computedAt: Date.now() })
   return metrics
 }

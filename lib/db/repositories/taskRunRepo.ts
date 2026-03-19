@@ -178,3 +178,30 @@ export function dbGetRecentTaskRunsByAgent(agentId: string, since: number): Task
     .all()
     .map(rowToTaskRun)
 }
+
+/**
+ * Returns all task runs for agents of the given role within a trailing time
+ * window, ordered by completedAt DESC.
+ *
+ * Used by `lib/health-baselines.ts` to compute per-role aggregate baselines.
+ * Fetching all runs for the role in one query is more efficient than issuing N
+ * per-agent queries and merging in JS.
+ *
+ * @param role     - The agent role string (e.g. 'coder', 'researcher').
+ * @param windowMs - Look-back window in ms (default: 30 days).
+ * @param now      - Injectable epoch ms for deterministic tests.
+ */
+export function dbGetTaskRunsByRole(
+  role: string,
+  windowMs: number = 30 * 24 * 60 * 60 * 1_000,
+  now: number = Date.now(),
+): TaskRun[] {
+  const since = now - windowMs
+  return db
+    .select()
+    .from(taskRuns)
+    .where(and(eq(taskRuns.role, role), gte(taskRuns.completedAt, since)))
+    .orderBy(desc(taskRuns.completedAt))
+    .all()
+    .map(rowToTaskRun)
+}

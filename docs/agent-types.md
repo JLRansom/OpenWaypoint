@@ -74,3 +74,31 @@ tester      → 'testing'
 ```
 
 Cards are automatically moved to the matching column when an agent of that role starts.
+
+## Health Baselines and New Role Addition
+
+When `ROLE_BASELINES_ENABLED=true`, each agent's health sub-metrics are
+normalised against the median performance of its role cohort (see
+`lib/health-baselines.ts` and ADR-040).
+
+**Adding a new AgentType requires a baseline recalibration period.**
+
+When a sixth (or later) role is added to the `AgentType` union:
+
+1. At deploy time, the new role has zero historical runs → `cohortSize = 0`
+   → `MIN_COHORT_SIZE` guard fires → health scores fall back to flat thresholds
+   automatically. No crash, no code change needed.
+2. After approximately **2–3 weeks** of production traffic, once the cohort
+   accumulates ≥ 3 agents each with ≥ 5 runs per week, the baseline will
+   self-populate on the next 5-minute cache refresh.
+3. During the recalibration window, health badges for the new role display raw
+   absolute values (same as before `ROLE_BASELINES_ENABLED` was set).
+
+**Action required when adding a new role:**
+- Update `AgentType` in `lib/types.ts`
+- Update `ROLE_COLORS` / `ROLE_HEX` in `lib/constants.ts`
+- Update pipeline logic in `lib/services/agentService.ts` if it joins the pipeline
+- Note the recalibration period in the PR description so the team knows to
+  monitor badge accuracy for the new role for 2–3 weeks post-deploy
+- Call `invalidateRoleBaselines()` in any migration script that back-fills
+  historical runs for the new role (so the cache doesn't serve stale data)

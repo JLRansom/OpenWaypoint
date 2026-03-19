@@ -2,6 +2,14 @@
 
 > Append new entries at the top. Keep each entry ≤ 10 lines.
 
+## ADR-040 — Role-aware health baselines (2026-03-18)
+**Decision:** Add `lib/health-baselines.ts` — a dedicated module that computes and caches 30-day median baselines (completionRate, errorDensity, weeklyThroughput) per agent role. `applyRoleBaseline()` in `health.ts` normalises raw sub-metrics relative to the role's median before badge thresholds are applied, so a tester at 72% completion looks healthy if testers average 70% but alarming if they average 92%.
+**Architecture:** `BaselineNorms` interface defined in `health.ts` (not `health-baselines.ts`) to break the potential circular import. `health-baselines.ts` satisfies it structurally. 5-minute TTL cache; `MIN_COHORT_SIZE = 3` guard falls back to flat thresholds when cohort is too thin. Feature-flagged via `ROLE_BASELINES_ENABLED` env var (default off) for safe A/B rollout.
+**Degradation contract:** Cohort < 3 → flat thresholds. Agent < 5 runs → skip (hasEnoughData unchanged). Baseline metric null or zero → skip that sub-metric. DB error → return stale cache or null-metrics. New role → cohort = 0 → flat thresholds until data accumulates (≈2–3 weeks).
+**New role warning:** Adding a new AgentType requires a baseline recalibration period; documented in `docs/agent-types.md`.
+**Affects:** `lib/health-baselines.ts` (new), `lib/health.ts` (+`applyRoleBaseline`, `BaselineNorms`, `MIN_COHORT_SIZE_FOR_BASELINE`), `lib/health-cache.ts` (+role lookup, feature flag), `lib/db/repositories/taskRunRepo.ts` (+`dbGetTaskRunsByRole`), `__tests__/unit/health-baselines.test.ts` (new), `__tests__/unit/health-cache.test.ts` (extended), `docs/agent-types.md`.
+**PR:** #28 (`feat/role-aware-health-baselines`) — depends on #26, #27.
+
 ## ADR-037 — Meetings toggle in HistoryList + global meetings API (2026-03-14)
 **Decision:** Added `mode` state (`'runs' | 'meetings'`) to `HistoryList`. Meetings view shows a filterable table (date, topic, project, status, agents, tokens, cost) via a new global `GET /api/meetings` endpoint. Endpoint enriches data from `dbGetAllMeetings()` + per-meeting message aggregations (agentCount, totalTokens, totalCostUsd). Supports `from`/`to` epoch-ms and `status` query params.
 **Why:** History tab covers all runs; logical to extend it to meetings. Global endpoint needed because /history has no projectId.
