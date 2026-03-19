@@ -1,12 +1,13 @@
 # Current Sprint
 
-> Last updated: 2026-03-17
+> Last updated: 2026-03-18
 
 ## Active Worktrees
 
-*(none — all branches merged, worktrees cleaned up)*
+- `feat/role-aware-health-baselines` — PR #29 open, awaiting review (depends on #26, #27)
 
 ## In Progress
+- [ ] Role-aware health baselines — PR #29 open (awaiting #26 + #27 as prerequisites)
 - [ ] Authentication & role-based access (protect dashboard + API routes)
 - [ ] Agent log search & filtering
 

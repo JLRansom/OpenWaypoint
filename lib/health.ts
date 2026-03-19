@@ -1,6 +1,25 @@
 import type { TaskRun, AgentHealthMetrics } from '@/lib/types'
 
 // ---------------------------------------------------------------------------
+// Role-baseline normalisation types
+// ---------------------------------------------------------------------------
+
+/**
+ * Structural subset of RoleBaseline used by applyRoleBaseline.
+ *
+ * Defining it here (rather than importing from health-baselines.ts) avoids a
+ * circular dependency: health-baselines.ts → health.ts → health-baselines.ts.
+ * Any object that satisfies this shape — including RoleBaseline — is accepted
+ * by applyRoleBaseline thanks to TypeScript's structural typing.
+ */
+export interface BaselineNorms {
+  medianCompletionRate: number | null
+  medianErrorDensity: number | null
+  /** Number of agents that contributed; guards against thin cohorts. */
+  cohortSize: number
+}
+
+// ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
@@ -115,5 +134,77 @@ export function computeHealthMetrics(
     errorDensity,
     idleSeconds,
     hasEnoughData: true,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Role-baseline normalisation
+// ---------------------------------------------------------------------------
+
+/**
+ * The minimum cohort size required to treat a baseline as meaningful.
+ * Mirrors the constant in health-baselines.ts; duplicated here to keep
+ * health.ts free of any import from health-baselines.ts.
+ */
+export const MIN_COHORT_SIZE_FOR_BASELINE = 3
+
+/**
+ * Adjusts raw health metrics relative to the role's aggregate norms.
+ *
+ * Returns the raw metrics **unchanged** when:
+ *  - `baseline` is null (caller signals "no baseline available")
+ *  - `baseline.cohortSize < MIN_COHORT_SIZE_FOR_BASELINE` (cohort too thin)
+ *  - `raw.hasEnoughData` is false (not enough per-agent data to compare)
+ *
+ * Normalisation rules (only for metrics where both raw value and baseline
+ * median are non-null and the baseline median is > 0):
+ *  - `completionRate`  → raw / medianCompletionRate, capped at [0, 1]
+ *    (1.0 = at role norm; <1.0 = below norm; values >1 clamped to 1)
+ *  - `errorDensity`    → raw / medianErrorDensity  (higher ratio = worse)
+ *    (1.0 = at role norm; >1.0 = worse than norm; <1.0 = better than norm)
+ *  - `throughputTrend` → unchanged (already a slope/delta, not an absolute)
+ *  - `idleSeconds`     → unchanged (wall-clock metric, not role-dependent)
+ *
+ * The AgentHealthMetrics shape is **not** changed — this is a purely internal
+ * value transform applied before badge thresholds are evaluated.
+ *
+ * @internal — exported for unit testing; consume via health-cache.ts
+ */
+export function applyRoleBaseline(
+  raw: AgentHealthMetrics,
+  baseline: BaselineNorms | null,
+): AgentHealthMetrics {
+  // Gate 1: no baseline or cohort too small → flat thresholds apply unchanged
+  if (!baseline || baseline.cohortSize < MIN_COHORT_SIZE_FOR_BASELINE) return raw
+
+  // Gate 2: agent lacks sufficient data → nothing to normalise
+  if (!raw.hasEnoughData) return raw
+
+  let { completionRate, errorDensity } = raw
+
+  // Normalise completionRate: higher raw / high baseline = "at or above norm"
+  // Guard: skip if either value is null or baseline median is zero
+  if (
+    completionRate !== null &&
+    baseline.medianCompletionRate !== null &&
+    baseline.medianCompletionRate > 0
+  ) {
+    completionRate = Math.min(completionRate / baseline.medianCompletionRate, 1)
+  }
+
+  // Normalise errorDensity: lower raw / high baseline = "better than norm"
+  // Guard: skip if either value is null or baseline median is zero
+  if (
+    errorDensity !== null &&
+    baseline.medianErrorDensity !== null &&
+    baseline.medianErrorDensity > 0
+  ) {
+    errorDensity = errorDensity / baseline.medianErrorDensity
+  }
+
+  return {
+    ...raw,
+    completionRate,
+    errorDensity,
   }
 }
