@@ -41,7 +41,7 @@ function getStatusForRole(role: AssignRole, boardType: BoardType): TaskStatus {
   return defaults[role]
 }
 
-function buildSystemPrompt(role: AssignRole): string {
+export function buildSystemPrompt(role: AssignRole): string {
   if (role === 'researcher') {
     return (
       'You are a research analyst planning a software task. ' +
@@ -152,7 +152,7 @@ function mimeToLang(mime: string): string {
 }
 
 
-function buildUserPrompt(
+export function buildUserPrompt(
   role: AssignRole,
   task: NonNullable<ReturnType<typeof getTask>>,
   directory?: string

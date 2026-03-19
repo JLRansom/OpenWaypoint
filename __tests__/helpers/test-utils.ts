@@ -13,7 +13,7 @@ import { randomUUID } from 'crypto'
 import { readFileSync, rmSync } from 'fs'
 import { join } from 'path'
 import { NextRequest } from 'next/server'
-import type { Project, Task, TaskFile, TaskRun } from '@/lib/types'
+import type { Agent, Meeting, MeetingMessage, Project, Task, TaskFile, TaskRun } from '@/lib/types'
 
 // ─── Fixture helpers ────────────────────────────────────────────────────────
 
@@ -100,6 +100,63 @@ export function makeTestTaskRun(
     model: 'claude-sonnet-4-6',
     ...overrides,
   }
+}
+
+/** Creates a minimal valid Agent object. Does NOT persist it — call addAgent() or dbAddAgent(). */
+export function makeTestAgent(overrides: Partial<Agent> = {}): Agent {
+  return {
+    id: randomUUID(),
+    type: 'coder',
+    prompt: '',
+    status: 'idle',
+    events: [],
+    createdAt: Date.now(),
+    ...overrides,
+  }
+}
+
+export interface MeetingFixture {
+  meeting: Meeting
+  messages: Omit<MeetingMessage, 'id'>[]
+}
+
+/**
+ * Creates a minimal concluded Meeting plus a list of MeetingMessage stubs.
+ * Does NOT persist — callers must call dbAddMeeting() + dbAddMeetingMessage() themselves.
+ *
+ * Pass `messageOverrides` to customise each message's token/cost counts.
+ */
+export function makeTestMeeting(
+  projectId: string,
+  overrides: Partial<Meeting> = {},
+  messages: Partial<Omit<MeetingMessage, 'id' | 'meetingId'>>[] = [],
+): MeetingFixture {
+  const meetingId = randomUUID()
+  const now = Date.now()
+  const meeting: Meeting = {
+    id: meetingId,
+    projectId,
+    topic: 'Test Meeting',
+    status: 'concluded',
+    meetingType: 'ideas',
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  }
+  // Use meeting.id (not meetingId) so FK references the final resolved ID,
+  // even if overrides replaced it.
+  const defaultMessages: Omit<MeetingMessage, 'id'>[] = messages.map((m, i) => ({
+    meetingId: meeting.id,
+    agentType: 'writer',
+    content: `Message ${i + 1}`,
+    status: 'done',
+    inputTokens: 100,
+    outputTokens: 50,
+    costUsd: 0.001,
+    model: 'claude-sonnet-4-6',
+    ...m,
+  }))
+  return { meeting, messages: defaultMessages }
 }
 
 // ─── Request builders ─────────────────────────────────────────────────────────
