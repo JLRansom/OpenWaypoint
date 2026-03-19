@@ -146,8 +146,8 @@ export function KanbanCard({ task, activeAgent, boardType, projectTags, autoOpen
   // For research/coding boards, also show while transitioning between pipeline stages.
   const showProgressBar = isAgentRunning || (boardType !== 'general' && MID_PIPELINE.includes(task.status))
 
-  const showAssignResearcher = task.status === 'backlog' && boardType !== 'general'
-  const showAssignCoder = boardType === 'coding' && ((task.status === 'planning' && !isAgentRunning) || task.status === 'changes-requested')
+  const showAssignResearcher = task.status === 'backlog' && !isAgentRunning && boardType !== 'general'
+  const showAssignCoder = boardType === 'coding' && !isAgentRunning && (task.status === 'planning' || task.status === 'changes-requested')
   const showAssignSeniorCoder = boardType === 'coding' && task.status === 'in-progress' && !isAgentRunning
   const showAssignTester = boardType === 'coding' && task.status === 'testing' && !isAgentRunning
 

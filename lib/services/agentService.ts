@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto'
 import fs from 'fs'
 import path from 'path'
-import { Agent, AgentStats, AgentType, TaskStatus, BoardType, TaskFile, MeetingAgentType, MEETING_AGENT_ORDER, MeetingType } from '@/lib/types'
+import { Agent, AgentStats, AgentType, TaskStatus, BoardType, TaskFile, MeetingAgentType, MEETING_AGENT_ORDER, MeetingType, isAgentActive } from '@/lib/types'
 import { getTask, getProject, getAllAgents, updateAgent, updateTask, getAgent, addTask, getFilesByTask, getMeeting, getMessagesByMeeting, updateMeeting, updateMeetingMessage, updateMeetingMessageSilent, broadcastNow, getTasksByProject, getSetting, setSetting } from '@/lib/store'
 import { formatFileSize } from '@/lib/format-utils'
 import { runAgent } from '@/lib/agent-runner'
@@ -215,6 +215,16 @@ export async function assignAgentToTask(
 ): Promise<Agent | { error: string }> {
   const task = getTask(taskId)
   if (!task) return { error: 'task not found' }
+
+  // Guard: reject if task already has a queued or running agent.
+  // Prevents double-scheduling when the UI fires two assign requests before
+  // the SSE confirming the first one arrives back on the client.
+  if (task.activeAgentId) {
+    const existing = getAgent(task.activeAgentId)
+    if (existing && isAgentActive(existing)) {
+      return { error: `Task already has an active ${existing.type} agent` }
+    }
+  }
 
   const project = task.projectId ? getProject(task.projectId) : null
   const directory = project?.directory || undefined
